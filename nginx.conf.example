@@ -1,0 +1,71 @@
+# ============================================
+# AI 助理系统 - Nginx 反向代理配置
+# ============================================
+#
+# 使用方式：
+#   1. 复制到 /etc/nginx/sites-available/aie
+#   2. 将 YOUR_SERVER_IP 替换为服务器实际 IP
+#   3. ln -s /etc/nginx/sites-available/aie /etc/nginx/sites-enabled/
+#   4. nginx -t  检查配置语法
+#   5. systemctl reload nginx
+#
+# 前端静态文件部署路径：/var/www/aie-frontend
+# 后端服务地址：http://127.0.0.1:3001
+
+server {
+    listen 80;
+    server_name YOUR_SERVER_IP;
+
+    # 前端静态资源
+    root /var/www/aie-frontend;
+    index index.html;
+
+    # 前端路由（SPA 单页应用，所有路由回退到 index.html）
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # 静态资源缓存（带 hash 的文件名，长期缓存）
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # API 反向代理到后端
+    location /api/ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # 上传文件大小限制（录音/图片 base64）
+        client_max_body_size 10m;
+
+        # 超时设置（录音转写可能耗时较长）
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # 健康检查端点（不记日志）
+    location /health {
+        proxy_pass http://127.0.0.1:3001;
+        access_log off;
+    }
+
+    # Gzip 压缩
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml;
+    gzip_min_length 1024;
+    gzip_comp_level 6;
+
+    # 安全头
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # 隐藏 nginx 版本号
+    server_tokens off;
+}

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>绿角犀 · 全项目风格方案 3 选 1</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif; background: #111827; padding: 36px 20px 80px; }
+  .style-section { margin: 0 auto 56px; max-width: 900px; }
+  .style-head { color: #fff; margin-bottom: 20px; }
+  .style-head .num { font-size: 12px; letter-spacing: 3px; color: #9CA3AF; font-weight: 700; }
+  .style-head h2 { font-size: 22px; margin: 6px 0 8px; }
+  .style-head p { font-size: 13px; color: #9CA3AF; line-height: 1.6; max-width: 640px; }
+  .tags { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tag { font-size: 11px; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,.2); color: #D1D5DB; }
+  .row { display: flex; gap: 36px; flex-wrap: wrap; }
+  .phone-label { color: #9CA3AF; font-size: 12px; font-weight: 600; text-align: center; margin-bottom: 12px; }
+
+  .phone { width: 360px; height: 720px; border-radius: 40px; border: 8px solid #1F2937; overflow: hidden; position: relative; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+  .screen { flex: 1; overflow-y: auto; scrollbar-width: none; position: relative; }
+  .screen::-webkit-scrollbar { display: none; }
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 22px; background: #1F2937; border-radius: 0 0 14px 14px; z-index: 60; }
+  .tabbar { height: 58px; display: flex; align-items: center; padding-bottom: 4px; flex-shrink: 0; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; }
+  .tab .dot { width: 20px; height: 20px; border-radius: 7px; background: currentColor; opacity: .25; }
+  .tab.on .dot { opacity: 1; }
+
+  /* 通用结构 */
+  .greet-row { display: flex; align-items: center; gap: 12px; }
+  .greet-main { font-weight: 700; }
+  .greet-sub { margin-top: 4px; }
+  .chips { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .chip { font-size: 10px; padding: 4px 9px; border-radius: 99px; }
+  .task-card { margin: 14px 14px 0; border-radius: 20px; padding: 16px; }
+  .task-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .task-head .t { font-size: 15px; font-weight: 700; }
+  .task-head .count { font-size: 10px; font-weight: 700; color: #fff; min-width: 18px; height: 18px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px; }
+  .task-head .all { margin-left: auto; font-size: 11px; font-weight: 600; }
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; }
+  .task-item .star { width: 20px; height: 20px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .task-item .tt { font-size: 13px; flex: 1; }
+  .countdown { font-size: 12px; font-weight: 800; padding: 4px 10px; border-radius: 10px; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .block { margin: 14px 14px 0; border-radius: 20px; padding: 16px; height: 88px; display: flex; align-items: center; justify-content: center; font-size: 11px; letter-spacing: 1px; }
+  .msg { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 16px; }
+  .msg.me { flex-direction: row-reverse; }
+  .m-avatar { width: 32px; height: 32px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; position: relative; }
+  .m-avatar .bdg { position: absolute; right: -4px; bottom: -4px; width: 14px; height: 14px; border-radius: 50%; font-size: 8px; display: flex; align-items: center; justify-content: center; color: #fff; }
+  .bcol { display: flex; flex-direction: column; gap: 3px; max-width: 74%; }
+  .msg.me .bcol { align-items: flex-end; }
+  .bubble { padding: 10px 14px; font-size: 14px; line-height: 1.5; }
+  .mtime { font-size: 9px; padding: 0 4px; opacity: .55; }
+  .composer { position: absolute; bottom: 58px; left: 0; right: 0; padding: 10px 12px; }
+  .composer-in { border-radius: 24px; display: flex; align-items: center; padding: 6px 6px 6px 16px; gap: 8px; }
+  .composer-in input { flex: 1; border: none; outline: none; font-size: 14px; background: transparent; font-family: inherit; }
+  .send { width: 34px; height: 34px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; flex-shrink: 0; }
+
+  /* ================================================================
+     风格 A：极简白 · Apple HIG 风
+  ================================================================ */
+  .sA .screen, .sA .tabbar { background: #F6F7F9; }
+  .sA .hero { padding: 46px 18px 20px; background: #F6F7F9; }
+  .sA .greet-main { font-size: 24px; color: #111827; letter-spacing: -0.5px; }
+  .sA .greet-sub { font-size: 11px; color: #9CA3AF; line-height: 1.5; }
+  .sA .avatar { width: 60px; height: 60px; border-radius: 50%; background: #E5E7EB; border: 1px solid #D1D5DB; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .sA .avatar .st { position: absolute; right: 1px; bottom: 1px; width: 13px; height: 13px; border-radius: 50%; background: #34C759; border: 2.5px solid #F6F7F9; }
+  .sA .avatar-wrap { position: relative; flex-shrink: 0; }
+  .sA .chip { background: #fff; border: 1px solid #E5E7EB; color: #6B7280; }
+  .sA .chip.good { color: #059669; border-color: #A7F3D0; background: #ECFDF5; }
+  .sA .chip.bad { color: #DC2626; border-color: #FECACA; background: #FEF2F2; }
+  .sA .weather { margin-left: auto; text-align: right; flex-shrink: 0; }
+  .sA .weather .t { font-size: 26px; font-weight: 200; color: #111827; }
+  .sA .weather .d { font-size: 10px; color: #9CA3AF; }
+  .sA .task-card { background: #fff; border: 1px solid #ECEEF1; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .sA .task-head .ic { width: 0; height: 0; }
+  .sA .task-head .t { color: #111827; font-size: 16px; }
+  .sA .task-head .count { background: #111827; }
+  .sA .task-head .all { color: #059669; }
+  .sA .task-item { border-bottom: 1px solid #F3F4F6; border-radius: 0; margin: 0 -4px; }
+  .sA .task-item:last-of-type { border-bottom: none; }
+  .sA .task-item.imp { background: #fff; }
+  .sA .task-item .star { background: #FEF2F2; color: #DC2626; }
+  .sA .task-item .star.n { background: #F3F4F6; }
+  .sA .task-item .tt { color: #374151; }
+  .sA .task-item.imp .tt { color: #111827; font-weight: 600; }
+  .sA .countdown.d { color: #DC2626; background: #FEF2F2; }
+  .sA .countdown.w { color: #D97706; background: #FFFBEB; }
+  .sA .countdown.n { color: #9CA3AF; background: #F3F4F6; }
+  .sA .block { background: #fff; border: 1px solid #ECEEF1; color: #9CA3AF; }
+  .sA .tab { color: #C0C6CF; } .sA .tab.on { color: #111827; }
+  .sA .chat-head { position: sticky; top: 0; z-index: 10; padding: 42px 16px 12px; background: rgba(246,247,249,.9); backdrop-filter: blur(10px); border-bottom: 1px solid #ECEEF1; display: flex; align-items: center; gap: 10px; }
+  .sA .chat-title { font-size: 16px; font-weight: 700; color: #111827; }
+  .sA .chat-badge { font-size: 9px; color: #059669; font-weight: 600; margin-left: 6px; }
+  .sA .m-avatar { background: #E5E7EB; border: 1px solid #D1D5DB; }
+  .sA .m-avatar .bdg { background: #059669; border: 2px solid #F6F7F9; }
+  .sA .bubble.ai { background: #fff; border: 1px solid #ECEEF1; color: #111827; border-radius: 18px 18px 18px 5px; }
+  .sA .bubble.me { background: #059669; color: #fff; border-radius: 18px 18px 5px 18px; }
+  .sA .mtime { color: #9CA3AF; }
+  .sA .composer { background: rgba(246,247,249,.92); backdrop-filter: blur(10px); }
+  .sA .composer-in { background: #fff; border: 1px solid #E5E7EB; }
+  .sA .composer-in input { color: #111827; }
+  .sA .send { background: #059669; }
+  .sA .msgs { padding: 16px 14px 120px; }
+
+  /* ================================================================
+     风格 B：暗夜玻璃 · Glassmorphism Dark
+  ================================================================ */
+  .sB .screen, .sB .tabbar { background: #0B1220; }
+  .sB .hero { padding: 46px 18px 22px; background: radial-gradient(ellipse at 80% -10%, rgba(16,185,129,.25) 0%, transparent 55%), radial-gradient(ellipse at 10% 110%, rgba(59,130,246,.2) 0%, transparent 50%), #0B1220; }
+  .sB .greet-main { font-size: 21px; color: #F9FAFB; }
+  .sB .greet-sub { font-size: 11px; color: rgba(156,163,175,.9); line-height: 1.5; }
+  .sB .avatar-wrap { position: relative; flex-shrink: 0; }
+  .sB .avatar { width: 62px; height: 62px; border-radius: 50%; background: rgba(255,255,255,.08); backdrop-filter: blur(8px); border: 2px solid rgba(52,211,153,.7); box-shadow: 0 0 18px rgba(16,185,129,.45); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .sB .avatar .st { position: absolute; right: 0; bottom: 0; width: 14px; height: 14px; border-radius: 50%; background: #34D399; border: 2.5px solid #0B1220; box-shadow: 0 0 10px rgba(52,211,153,.8); }
+  .sB .chip { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); color: #D1D5DB; backdrop-filter: blur(6px); }
+  .sB .chip.good { color: #6EE7B7; border-color: rgba(52,211,153,.35); background: rgba(16,185,129,.12); }
+  .sB .chip.bad { color: #FCA5A5; border-color: rgba(248,113,113,.35); background: rgba(239,68,68,.12); }
+  .sB .weather { margin-left: auto; text-align: right; flex-shrink: 0; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(8px); border-radius: 18px; padding: 10px 14px; }
+  .sB .weather .t { font-size: 22px; font-weight: 300; color: #F9FAFB; }
+  .sB .weather .d { font-size: 10px; color: #9CA3AF; }
+  .sB .task-card { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(12px); }
+  .sB .task-head .ic { width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(135deg, #F43F5E, #F97316); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; box-shadow: 0 0 14px rgba(244,63,94,.5); }
+  .sB .task-head .t { color: #F9FAFB; }
+  .sB .task-head .count { background: #F43F5E; box-shadow: 0 0 10px rgba(244,63,94,.5); }
+  .sB .task-head .all { color: #34D399; }
+  .sB .task-item.imp { background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.25); }
+  .sB .task-item .star { background: rgba(244,63,94,.2); color: #FB7185; }
+  .sB .task-item .star.n { background: rgba(255,255,255,.08); }
+  .sB .task-item .tt { color: #9CA3AF; }
+  .sB .task-item.imp .tt { color: #F9FAFB; font-weight: 600; }
+  .sB .countdown.d { color: #FB7185; background: rgba(244,63,94,.15); }
+  .sB .countdown.w { color: #FBBF24; background: rgba(245,158,11,.15); }
+  .sB .countdown.n { color: #9CA3AF; background: rgba(255,255,255,.08); }
+  .sB .block { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #6B7280; }
+  .sB .tab { color: #4B5563; } .sB .tab.on { color: #34D399; }
+  .sB .tab.on .dot { background: linear-gradient(135deg, #10B981, #34D399); box-shadow: 0 0 10px rgba(52,211,153,.6); }
+  .sB .chat-head { position: sticky; top: 0; z-index: 10; padding: 42px 16px 12px; background: rgba(11,18,32,.75); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; }
+  .sB .chat-title { font-size: 15px; font-weight: 700; color: #F9FAFB; }
+  .sB .chat-badge { font-size: 9px; color: #34D399; background: rgba(16,185,129,.15); border: 1px solid rgba(52,211,153,.35); padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
+  .sB .m-avatar { background: rgba(255,255,255,.08); border: 1px solid rgba(52,211,153,.5); }
+  .sB .m-avatar .bdg { background: #10B981; border: 2px solid #0B1220; }
+  .sB .bubble.ai { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); color: #E5E7EB; border-radius: 18px 18px 18px 5px; backdrop-filter: blur(8px); }
+  .sB .bubble.me { background: linear-gradient(135deg, #059669, #10B981); color: #fff; border-radius: 18px 18px 5px 18px; box-shadow: 0 4px 16px rgba(16,185,129,.35); }
+  .sB .mtime { color: #6B7280; }
+  .sB .composer { background: rgba(11,18,32,.8); backdrop-filter: blur(14px); }
+  .sB .composer-in { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(8px); }
+  .sB .composer-in input { color: #F9FAFB; }
+  .sB .send { background: linear-gradient(135deg, #059669, #10B981); box-shadow: 0 0 14px rgba(16,185,129,.5); }
+  .sB .msgs { padding: 16px 14px 120px; }
+
+  /* ================================================================
+     风格 C：暖奶油 · Cozy Soft
+  ================================================================ */
+  .sC .screen, .sC .tabbar { background: #FDF6EC; }
+  .sC .hero { padding: 46px 18px 24px; background: linear-gradient(135deg, #FFE8D6 0%, #FFD8A8 100%); border-radius: 0 0 32px 32px; }
+  .sC .greet-main { font-size: 21px; color: #7C2D12; }
+  .sC .greet-sub { font-size: 11px; color: rgba(124,45,18,.65); line-height: 1.5; }
+  .sC .avatar-wrap { position: relative; flex-shrink: 0; }
+  .sC .avatar { width: 62px; height: 62px; border-radius: 24px; background: #FFF7ED; border: 3px solid #fff; box-shadow: 0 6px 16px rgba(180,83,9,.18); display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .sC .avatar .st { position: absolute; right: -2px; bottom: -2px; width: 15px; height: 15px; border-radius: 50%; background: #FBBF24; border: 2.5px solid #fff; }
+  .sC .chip { background: rgba(255,255,255,.75); border: 1px solid rgba(180,83,9,.15); color: #9A3412; }
+  .sC .chip.good { color: #15803D; background: rgba(255,255,255,.8); border-color: rgba(21,128,61,.2); }
+  .sC .chip.bad { color: #B91C1C; background: rgba(255,255,255,.8); border-color: rgba(185,28,28,.18); }
+  .sC .weather { margin-left: auto; text-align: right; flex-shrink: 0; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.9); border-radius: 20px; padding: 10px 14px; }
+  .sC .weather .t { font-size: 22px; font-weight: 500; color: #7C2D12; }
+  .sC .weather .d { font-size: 10px; color: rgba(124,45,18,.6); }
+  .sC .task-card { background: #fff; box-shadow: 0 8px 24px rgba(180,83,9,.12); border: 2px solid #FFE8D6; }
+  .sC .task-head .ic { width: 30px; height: 30px; border-radius: 12px; background: linear-gradient(135deg, #FB923C, #F97316); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; box-shadow: 0 4px 10px rgba(249,115,22,.35); }
+  .sC .task-head .t { color: #7C2D12; }
+  .sC .task-head .count { background: #F97316; }
+  .sC .task-head .all { color: #EA580C; }
+  .sC .task-item.imp { background: #FFF4E6; border: 1.5px solid #FFD8A8; }
+  .sC .task-item .star { background: #FFE8D6; color: #EA580C; }
+  .sC .task-item .star.n { background: #F5F0E8; }
+  .sC .task-item .tt { color: #78716C; }
+  .sC .task-item.imp .tt { color: #7C2D12; font-weight: 700; }
+  .sC .countdown.d { color: #DC2626; background: #FFE8D6; }
+  .sC .countdown.w { color: #D97706; background: #FEF3C7; }
+  .sC .countdown.n { color: #A8A29E; background: #F5F0E8; }
+  .sC .block { background: #fff; border: 2px solid #FFE8D6; color: #D6C3B2; border-radius: 24px; }
+  .sC .tab { color: #D6C3B2; } .sC .tab.on { color: #EA580C; }
+  .sC .tab.on .dot { background: linear-gradient(135deg, #FB923C, #F97316); box-shadow: 0 4px 10px rgba(249,115,22,.4); }
+  .sC .chat-head { position: sticky; top: 0; z-index: 10; padding: 42px 16px 12px; background: rgba(253,246,236,.92); backdrop-filter: blur(10px); border-bottom: 2px solid #FFE8D6; display: flex; align-items: center; gap: 10px; }
+  .sC .chat-title { font-size: 15px; font-weight: 700; color: #7C2D12; }
+  .sC .chat-badge { font-size: 9px; color: #EA580C; background: #FFE8D6; border: 1.5px solid #FED7AA; padding: 2px 8px; border-radius: 99px; margin-left: 6px; font-weight: 700; }
+  .sC .m-avatar { background: #FFE8D6; border: 2px solid #fff; box-shadow: 0 3px 8px rgba(180,83,9,.15); }
+  .sC .m-avatar .bdg { background: #F97316; border: 2px solid #FDF6EC; }
+  .sC .bubble.ai { background: #fff; border: 2px solid #FFE8D6; color: #57534E; border-radius: 22px 22px 22px 8px; }
+  .sC .bubble.me { background: linear-gradient(135deg, #FB923C, #F97316); color: #fff; border-radius: 22px 22px 8px 22px; box-shadow: 0 4px 12px rgba(249,115,22,.3); }
+  .sC .mtime { color: #C4B5A5; }
+  .sC .composer { background: rgba(253,246,236,.94); backdrop-filter: blur(8px); }
+  .sC .composer-in { background: #fff; border: 2px solid #FFE8D6; box-shadow: 0 4px 14px rgba(180,83,9,.1); }
+  .sC .composer-in input { color: #57534E; }
+  .sC .send { background: linear-gradient(135deg, #FB923C, #F97316); border-radius: 14px; }
+  .sC .msgs { padding: 16px 14px 120px; }
+</style>
+</head>
+<body>
+
+<!-- ================= 风格 A ================= -->
+<div class="style-section">
+  <div class="style-head">
+    <div class="num">STYLE A</div>
+    <h2>极简白 · Apple HIG 风</h2>
+    <p>无渐变、无彩色横幅，靠留白和字重建立层级。白色卡片+发丝线描边，主色只在关键动作出现。干净、耐看、最不容易过时。</p>
+    <div class="tags"><span class="tag">纯白底</span><span class="tag">发丝线</span><span class="tag">大字号标题</span><span class="tag">点缀绿</span></div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="phone-label">主页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sA">
+        <div class="hero">
+          <div class="greet-row">
+            <div class="avatar-wrap"><div class="avatar">🦏<span class="st"></span></div></div>
+            <div style="flex:1;min-width:0">
+              <div class="greet-main">早呀，老王</div>
+              <div class="greet-sub">10月26日 十月初一 · 属蛇 · ♍处女座 · 连续陪伴 23 天</div>
+              <div class="chips"><span class="chip good">宜 整理 复盘</span><span class="chip bad">忌 熬夜</span></div>
+            </div>
+            <div class="weather"><div style="font-size:22px">🌤</div><div class="t">26°</div><div class="d">晴 22/33</div></div>
+          </div>
+        </div>
+        <div class="task-card">
+          <div class="task-head"><span class="t">今日要事</span><span class="count">3</span><span class="all">全部 ›</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">下午 3 点产品评审会</span><span class="countdown d">⏳ 1:42</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">给客户回方案邮件</span><span class="countdown w">⏳ 5:20</span></div>
+          <div class="task-item"><span class="star n">●</span><span class="tt">取快递</span><span class="countdown n">18:00</span></div>
+        </div>
+        <div class="block">今日概览（其余模块）</div>
+        <div class="block" style="margin-bottom:14px">随手记（其余模块）</div>
+      </div><div class="tabbar sA"><div class="tab on"><span class="dot"></span>主页</div><div class="tab"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+    <div>
+      <div class="phone-label">对话页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sA" style="position:relative">
+        <div class="chat-head"><div style="font-size:18px;color:#111827">‹</div><div style="flex:1"><div class="chat-title">角角<span class="chat-badge">● 在呢</span></div></div><div class="m-avatar">🦏<span class="bdg">角</span></div></div>
+        <div class="msgs">
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">还没睡？</div><div class="mtime">23:41</div></div></div>
+          <div class="msg me"><div class="m-avatar">🦏</div><div class="bcol"><div class="bubble me">刚忙完，午饭花了 38</div><div class="mtime">23:42</div></div></div>
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">记好了，餐饮 ¥38，今天累计 ¥76。</div><div class="mtime">23:42</div></div></div>
+        </div>
+        <div class="composer"><div class="composer-in"><input placeholder="想说啥就说…"><div class="send">➤</div></div></div>
+      </div><div class="tabbar sA"><div class="tab"><span class="dot"></span>主页</div><div class="tab on"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 风格 B ================= -->
+<div class="style-section">
+  <div class="style-head">
+    <div class="num">STYLE B</div>
+    <h2>暗夜玻璃 · Glassmorphism Dark</h2>
+    <p>深空底色+彩色光晕+毛玻璃卡片。科技感和氛围感最强，夜间使用极其舒适，AI 产品的"未来感"路线。需要全局换深色主题。</p>
+    <div class="tags"><span class="tag">深色底</span><span class="tag">毛玻璃</span><span class="tag">霓虹绿辉光</span><span class="tag">氛围感</span></div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="phone-label">主页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sB">
+        <div class="hero">
+          <div class="greet-row">
+            <div class="avatar-wrap"><div class="avatar">🦏<span class="st"></span></div></div>
+            <div style="flex:1;min-width:0">
+              <div class="greet-main">早呀，老王</div>
+              <div class="greet-sub">10月26日 十月初一 · 属蛇 · ♍处女座 · 连续陪伴 23 天</div>
+              <div class="chips"><span class="chip good">宜 整理 复盘</span><span class="chip bad">忌 熬夜</span></div>
+            </div>
+            <div class="weather"><div style="font-size:22px">🌤</div><div class="t">26°</div><div class="d">晴 22/33</div></div>
+          </div>
+        </div>
+        <div class="task-card">
+          <div class="task-head"><span class="ic">★</span><span class="t">今日要事</span><span class="count">3</span><span class="all">全部 ›</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">下午 3 点产品评审会</span><span class="countdown d">⏳ 1:42</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">给客户回方案邮件</span><span class="countdown w">⏳ 5:20</span></div>
+          <div class="task-item"><span class="star n">●</span><span class="tt">取快递</span><span class="countdown n">18:00</span></div>
+        </div>
+        <div class="block">今日概览（其余模块）</div>
+        <div class="block" style="margin-bottom:14px">随手记（其余模块）</div>
+      </div><div class="tabbar sB"><div class="tab on"><span class="dot"></span>主页</div><div class="tab"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+    <div>
+      <div class="phone-label">对话页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sB" style="position:relative">
+        <div class="chat-head"><div style="font-size:18px;color:#F9FAFB">‹</div><div style="flex:1"><div class="chat-title">角角<span class="chat-badge">● 在呢</span></div></div><div class="m-avatar">🦏<span class="bdg">角</span></div></div>
+        <div class="msgs">
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">还没睡？</div><div class="mtime">23:41</div></div></div>
+          <div class="msg me"><div class="m-avatar">🦏</div><div class="bcol"><div class="bubble me">刚忙完，午饭花了 38</div><div class="mtime">23:42</div></div></div>
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">记好了，餐饮 ¥38，今天累计 ¥76。</div><div class="mtime">23:42</div></div></div>
+        </div>
+        <div class="composer"><div class="composer-in"><input placeholder="想说啥就说…"><div class="send">➤</div></div></div>
+      </div><div class="tabbar sB"><div class="tab"><span class="dot"></span>主页</div><div class="tab on"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 风格 C ================= -->
+<div class="style-section">
+  <div class="style-head">
+    <div class="num">STYLE C</div>
+    <h2>暖奶油 · Cozy Soft</h2>
+    <p>奶油底+蜜桃横幅+圆润大圆角+软阴影。最贴合"老朋友陪伴"的产品气质，温暖治愈，和角角的人设最搭。</p>
+    <div class="tags"><span class="tag">奶油底</span><span class="tag">蜜桃渐变</span><span class="tag">超圆角</span><span class="tag">软阴影</span></div>
+  </div>
+  <div class="row">
+    <div>
+      <div class="phone-label">主页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sC">
+        <div class="hero">
+          <div class="greet-row">
+            <div class="avatar-wrap"><div class="avatar">🦏<span class="st"></span></div></div>
+            <div style="flex:1;min-width:0">
+              <div class="greet-main">早呀，老王</div>
+              <div class="greet-sub">10月26日 十月初一 · 属蛇 · ♍处女座 · 连续陪伴 23 天</div>
+              <div class="chips"><span class="chip good">宜 整理 复盘</span><span class="chip bad">忌 熬夜</span></div>
+            </div>
+            <div class="weather"><div style="font-size:22px">🌤</div><div class="t">26°</div><div class="d">晴 22/33</div></div>
+          </div>
+        </div>
+        <div class="task-card">
+          <div class="task-head"><span class="ic">★</span><span class="t">今日要事</span><span class="count">3</span><span class="all">全部 ›</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">下午 3 点产品评审会</span><span class="countdown d">⏳ 1:42</span></div>
+          <div class="task-item imp"><span class="star">★</span><span class="tt">给客户回方案邮件</span><span class="countdown w">⏳ 5:20</span></div>
+          <div class="task-item"><span class="star n">●</span><span class="tt">取快递</span><span class="countdown n">18:00</span></div>
+        </div>
+        <div class="block">今日概览（其余模块）</div>
+        <div class="block" style="margin-bottom:14px">随手记（其余模块）</div>
+      </div><div class="tabbar sC"><div class="tab on"><span class="dot"></span>主页</div><div class="tab"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+    <div>
+      <div class="phone-label">对话页</div>
+      <div class="phone"><div class="notch"></div><div class="screen sC" style="position:relative">
+        <div class="chat-head"><div style="font-size:18px;color:#7C2D12">‹</div><div style="flex:1"><div class="chat-title">角角<span class="chat-badge">● 在呢</span></div></div><div class="m-avatar">🦏<span class="bdg">角</span></div></div>
+        <div class="msgs">
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">还没睡？</div><div class="mtime">23:41</div></div></div>
+          <div class="msg me"><div class="m-avatar">🦏</div><div class="bcol"><div class="bubble me">刚忙完，午饭花了 38</div><div class="mtime">23:42</div></div></div>
+          <div class="msg"><div class="m-avatar">🦏<span class="bdg">角</span></div><div class="bcol"><div class="bubble ai">记好了，餐饮 ¥38，今天累计 ¥76。</div><div class="mtime">23:42</div></div></div>
+        </div>
+        <div class="composer"><div class="composer-in"><input placeholder="想说啥就说…"><div class="send">➤</div></div></div>
+      </div><div class="tabbar sC"><div class="tab"><span class="dot"></span>主页</div><div class="tab on"><span class="dot"></span>对话</div><div class="tab"><span class="dot"></span>社区</div><div class="tab"><span class="dot"></span>我的</div></div></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

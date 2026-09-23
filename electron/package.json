@@ -1,0 +1,109 @@
+{
+    "name":  "aie-desktop",
+    "version":  "1.0.6",
+    "description":  "绿角犀 - Windows 桌面版",
+    "main":  "main.cjs",
+    "author":  "绿角犀 Team",
+    "license":  "MIT",
+    "scripts":  {
+                    "start":  "electron .",
+                    "pack":  "electron-builder --dir",
+                    "dist":  "electron-builder",
+                    "dist:win":  "electron-builder --win --x64"
+                },
+    "devDependencies":  {
+                            "electron":  "^43.4.0",
+                            "electron-builder":  "^25.1.8"
+                        },
+    "build":  {
+                  "appId":  "com.aie.desktop",
+                  "productName":  "绿角犀",
+                  "copyright":  "Copyright © 2026 绿角犀",
+                  "directories":  {
+                                      "output":  "release-v16",
+                                      "buildResources":  "build"
+                                  },
+                  "files":  [
+                                "main.cjs",
+                                "preload.cjs",
+                                "cacheStore.cjs",
+                                "collector.cjs",
+                                "agent/**/*",
+                                "package.json"
+                            ],
+                  "asar":  false,
+                  "extraResources":  [
+                                         {
+                                             "from":  "resources/.version.json",
+                                             "to":  ".version.json"
+                                         },
+                                         {
+                                             "from":  "resources/frontend",
+                                             "to":  "frontend",
+                                             "filter":  [
+                                                            "**/*"
+                                                        ]
+                                         },
+                                         {
+                                             "from":  "resources/backend",
+                                             "to":  "backend",
+                                             "filter":  [
+                                                            "**/*",
+                                                            "!dev.db",
+                                                            "!gateway-secret.json",
+                                                            "!dev.db-journal",
+                                                            "!dev.db-wal",
+                                                            "!dev.db-shm",
+                                                            "!dev.db.bak*",
+                                                            "!.env",
+                                                            "!.env.example",
+                                                            "!smoke-*.mjs",
+                                                            "!check-*.mjs",
+                                                            "!clean-template*.mjs",
+                                                            "!verify-template*.mjs",
+                                                            "!vacuum-template.mjs",
+                                                            "!get-short-paths.ps1",
+                                                            "!verify-template-runner*.ps1",
+                                                            "!verify-template-runner.cmd",
+                                                            "!test-clean.db",
+                                                            "!raw-check.cjs",
+                                                            "!**/dev.db.bak*",
+                                                            "!**/dev.db-journal",
+                                                            "!**/dev.db-wal",
+                                                            "!**/dev.db-shm",
+                                                            "!**/test-clean.db",
+                                                            "!**/*.log",
+                                                            "!*.log"
+                                                        ]
+                                         }
+                                     ],
+                  "win":  {
+                              "target":  [
+                                             {
+                                                 "target":  "nsis",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             },
+                                             {
+                                                 "target":  "portable",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             }
+                                         ],
+                              "icon":  "build/icon.ico",
+                              "artifactName":  "绿角犀-Setup-${version}.${ext}"
+                          },
+                  "nsis":  {
+                               "oneClick":  false,
+                               "allowToChangeInstallationDirectory":  true,
+                               "createDesktopShortcut":  true,
+                               "createStartMenuShortcut":  true,
+                               "shortcutName":  "绿角犀"
+                           },
+                  "portable":  {
+                                   "artifactName":  "绿角犀-Portable-${version}.exe"
+                               }
+              }
+}

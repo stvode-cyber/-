@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    随手记主屏小部件配置元数据
+    - minWidth/minHeight: 4x1 单元格（标准小部件尺寸）
+    - updatePeriodMillis: 1800000 (30分钟，Android 最小允许值)
+    - initialLayout: 指向 widget_quick_note.xml
+    - resizeMode: horizontal（允许水平拉伸，更适配不同屏幕）
+    - widgetCategory: home_screen（仅主屏显示，不放锁屏）
+    - previewImage: 使用应用图标作为预览（无独立预览图资源时回退到 app icon）
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_quick_note"
+    android:resizeMode="horizontal"
+    android:widgetCategory="home_screen"
+    android:previewImage="@mipmap/ic_launcher"
+    android:targetCellWidth="4"
+    android:targetCellHeight="1" />

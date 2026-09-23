@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代码规范</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #18181b;
+    background: #ffffff;
+    line-height: 1.6;
+    padding: 40px 20px;
+    font-size: 14px;
+  }
+  .container { max-width: 800px; margin: 0 auto; }
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    padding-bottom: 16px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #18181b;
+  }
+  .subtitle { color: #71717a; font-size: 13px; margin-bottom: 32px; }
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    padding-left: 10px;
+    border-left: 4px solid #18181b;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+  code {
+    background: #f4f4f5;
+    color: #18181b;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: #18181b;
+    color: #f4f4f5;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0 16px;
+    font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  pre code { background: none; color: inherit; padding: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 16px;
+    font-size: 13px;
+  }
+  th, td {
+    border: 1px solid #e4e4e7;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f4f4f5;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+  }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .checklist {
+    background: #f4f4f5;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    padding: 16px 20px 16px 44px;
+    margin: 12px 0;
+  }
+  .checklist li { list-style: none; margin-bottom: 6px; }
+  .checklist li::before {
+    content: "☐";
+    margin-left: -24px;
+    margin-right: 8px;
+    color: #71717a;
+  }
+  .summary {
+    background: #18181b;
+    color: #ffffff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    margin-top: 32px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .red { color: #dc2626; font-weight: 600; }
+  .green { color: #16a34a; font-weight: 600; }
+  hr { border: none; border-top: 1px dashed #d4d4d8; margin: 24px 0; }
+  @media print {
+    body { padding: 20px; font-size: 12px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 16px; page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+    .checklist { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>代码规范</h1>
+  <div class="subtitle">适用所有写代码场景 · AI 触及写代码即加载 · 可直接打印张贴</div>
+
+  <!-- 一、代码风格 -->
+  <h2>一、代码风格</h2>
+
+  <h3>通用</h3>
+  <ul>
+    <li>缩进：<code>2 空格</code>（禁用 Tab）</li>
+    <li>引号：单引号 <code>' '</code></li>
+    <li>分号：必加</li>
+    <li>换行：<code>LF</code></li>
+    <li>编码：<code>UTF-8</code></li>
+  </ul>
+
+  <h3>TypeScript / JavaScript</h3>
+  <ul>
+    <li>用 <code>const</code> / <code>let</code>，禁用 <code>var</code></li>
+    <li>用 <code>===</code> 严格相等，禁用 <code>==</code></li>
+    <li>用箭头函数（对象方法除外）</li>
+    <li>用模板字符串，禁用字符串拼接</li>
+  </ul>
+
+  <!-- 二、命名规则 -->
+  <h2>二、命名规则</h2>
+
+  <table>
+    <thead>
+      <tr><th>类型</th><th>规则</th><th>示例</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>变量</td><td>驼峰，见名知义</td><td><code>userAge</code>, <code>fetchData</code></td></tr>
+      <tr><td>函数</td><td>动词开头</td><td><code>getUser()</code>, <code>sendEmail()</code></td></tr>
+      <tr><td>类</td><td>帕斯卡</td><td><code>UserService</code>, <code>OrderModel</code></td></tr>
+      <tr><td>常量</td><td>大写下划线</td><td><code>MAX_RETRY</code>, <code>API_BASE</code></td></tr>
+      <tr><td>文件</td><td>小写连字符</td><td><code>user-service.ts</code></td></tr>
+      <tr><td>布尔</td><td>is/has/can 开头</td><td><code>isReady</code>, <code>hasPermission</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>函数命名动词表</h3>
+  <table>
+    <thead>
+      <tr><th>动词</th><th>用途</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>get</code> / <code>set</code></td><td>查 / 改</td></tr>
+      <tr><td><code>add</code> / <code>update</code> / <code>delete</code></td><td>加 / 更新 / 删</td></tr>
+      <tr><td><code>fetch</code> / <code>save</code> / <code>load</code></td><td>远程取 / 持久化 / 读本地</td></tr>
+      <tr><td><code>create</code> / <code>build</code> / <code>parse</code> / <code>format</code></td><td>新建 / 组装 / 解析 / 格式化</td></tr>
+    </tbody>
+  </table>
+
+  <!-- 三、文件组织 -->
+  <h2>三、文件组织</h2>
+
+  <h3>单文件限制</h3>
+  <ul>
+    <li>一个文件 <span class="red">≤ 300 行</span></li>
+    <li>一个函数 <span class="red">≤ 50 行</span></li>
+    <li>一个文件只做一件事</li>
+  </ul>
+
+  <h3>模块结构</h3>
+<pre><code>模块名/
+├── README.md           ← 模块说明
+├── xxx.routes.ts       ← 路由
+├── xxx.service.ts      ← 业务逻辑
+├── xxx.model.ts        ← 数据模型
+└── xxx.test.ts         ← 测试</code></pre>
+
+  <!-- 四、注释规范 -->
+  <h2>四、注释规范</h2>
+
+  <h3>必写</h3>
+  <ul>
+    <li>函数：说明"干啥的" + 参数 + 返回值</li>
+    <li>复杂逻辑：说明"为什么"</li>
+    <li>TODO：标记未完成项</li>
+    <li>安全相关：说明风险点</li>
+  </ul>
+
+  <h3>不用写</h3>
+  <ul>
+    <li>显而易见的代码（<code>let count = 0</code>）</li>
+    <li>命名已说清的（<code>getUserById(id)</code>）</li>
+  </ul>
+
+  <h3>注释格式</h3>
+<pre><code>/**
+ * 查用户信息
+ * @param userId - 用户ID
+ * @returns 用户信息对象
+ */
+function getUser(userId: string) { ... }</code></pre>
+
+  <!-- 五、错误处理 -->
+  <h2>五、错误处理</h2>
+
+  <h3>必须处理</h3>
+  <ul>
+    <li>外部输入：校验类型 / 范围 / 格式</li>
+    <li>异步操作：try/catch 或 .catch()</li>
+    <li>空值：用可选链 <code>?.</code> 或默认值 <code>??</code></li>
+    <li>边界：数组越界、除零、溢出</li>
+  </ul>
+
+  <h3>正确示例 <span class="badge badge-green">推荐</span></h3>
+<pre><code>try {
+  await saveUser(user);
+} catch (err) {
+  logger.error('保存用户失败', err);
+  throw new Error('保存失败，请重试');
+}</code></pre>
+
+  <h3>反面示例 <span class="badge badge-red">禁止</span></h3>
+<pre><code>try { ... } catch (e) {}  // 吞掉错误，不要这样写</code></pre>
+
+  <!-- 六、安全规范 -->
+  <h2>六、安全规范</h2>
+
+  <h3>绝不能做</h3>
+  <ul>
+    <li class="red">不写死密钥 / token / 密码（用环境变量）</li>
+    <li class="red">不拼接 SQL（用参数化查询）</li>
+    <li class="red">不执行用户传入的代码</li>
+    <li class="red">不信任前端输入（后端必须校验）</li>
+    <li class="red">不在日志里打印密码 / 敏感信息</li>
+  </ul>
+
+  <h3>必须做</h3>
+  <ul>
+    <li class="green">密码加密存储（bcrypt）</li>
+    <li class="green">JWT 放 HttpOnly Cookie</li>
+    <li class="green">文件操作校验路径（防目录穿越）</li>
+    <li class="green">用户输入做转义（防 XSS）</li>
+    <li class="green">每个敏感接口做权限校验</li>
+  </ul>
+
+  <!-- 七、TS 规范 -->
+  <h2>七、TypeScript 特定规范</h2>
+
+  <h3>类型</h3>
+  <ul>
+    <li>禁用 <code>any</code>（必须用 <code>unknown</code> 替代）</li>
+    <li>优先用 <code>type</code> 定义联合类型，<code>interface</code> 定义对象</li>
+    <li>函数必须标返回类型</li>
+    <li>API 响应有统一的 <code>Response&lt;T&gt;</code> 类型</li>
+  </ul>
+
+  <h3>导入导出</h3>
+  <ul>
+    <li>用 ES Module（import/export）</li>
+    <li>禁用 CommonJS（require / module.exports）</li>
+    <li>按需导入，禁用 <code>import * as</code></li>
+  </ul>
+
+  <!-- 八、自查清单 -->
+  <h2>八、快速自查清单</h2>
+  <p style="color:#71717a;font-size:13px;margin-bottom:8px;">写完代码对照这张表，逐项勾选：</p>
+
+  <ul class="checklist">
+    <li>缩进 2 空格、单引号、分号</li>
+    <li>命名符合规则（驼峰 / 帕斯卡 / 大写下划线）</li>
+    <li>文件 ≤ 300 行、函数 ≤ 50 行</li>
+    <li>复杂逻辑有注释</li>
+    <li>外部输入有校验</li>
+    <li>异步操作有 try/catch</li>
+    <li>没写死密钥</li>
+    <li>没拼接 SQL</li>
+    <li>TS 函数有返回类型</li>
+    <li>禁用 any</li>
+  </ul>
+
+  <!-- 总结 -->
+  <div class="summary">
+    统一风格 + 清晰命名 + 单一职责 + 安全第一
+  </div>
+
+</div>
+</body>
+</html>

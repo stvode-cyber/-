@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "@user_865e3592/ui-new": {
+      "name": "UI设计Skill",
+      "zip_url": "https://api.skillhub.cn/api/v1/download?slug=ui-new&namespace=user_865e3592",
+      "source": "community",
+      "version": "1.0.0",
+      "namespace": {
+        "canonicalName": "@user_865e3592/ui-new",
+        "displayName": "user_865e3592",
+        "handle": "user_865e3592",
+        "publicSlug": "ui-new"
+      },
+      "internalSlug": "ui-new",
+      "publicSlug": "ui-new",
+      "installDir": "C:\\Users\\Administrator\\Desktop\\助理项目\\助理项目\\APP-AIE\\ai-skills\\@user_865e3592\\ui-new"
+    }
+  }
+}

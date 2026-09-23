@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.log
+# 环境变量：所有 .env 系列文件均不入库（含密钥/口令）
+.env
+.env.local
+.env.*.local
+dev.db
+dev.db-journal
+# P1-10 修复：覆盖数据库备份文件，防止误提交含用户数据
+dev.db.bak*
+*.db.bak*
+prisma/migrations/

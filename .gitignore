@@ -1,0 +1,21 @@
+node_modules/
+*.log
+.DS_Store
+.idea/
+.vscode/
+# 构建产物（全是二进制，体积巨大，绝对不入库）
+dist/
+build/
+admin-dist/
+releases/
+electron/release*/
+electron/build/
+# Vite 临时缓存
+*.timestamp-*.mjs
+# 环境变量：所有 .env 系列文件均不入库（含密钥/口令）
+.env
+.env.local
+.env.*.local
+# 台账：只忽略临时文件和归档区，4 个核心文件要入库（团队知识积累）
+.trae/memory/归档/
+.session-memory.md

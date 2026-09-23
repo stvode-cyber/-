@@ -1,0 +1,588 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+      'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+
+    /* === 语义变量（ui-new 升级版：极简白 + 暖灰纸感 + 靛蓝点缀） === */
+    --color-bg-base: 250 250 252;        /* 页面背景 暖白纸感 #FAFAFC */
+    --color-text-base: 26 26 40;         /* 正文文字 深墨 #1A1A28 */
+    --color-card-bg: 255 255 255;        /* 卡片背景 纯白 */
+    --color-card-border: 235 235 240;    /* 卡片边框 极浅中性 #EBEBF0 */
+    --color-shell-from: 252 252 254;     /* app-shell 渐变起点 */
+    --color-shell-to: 245 246 250;       /* app-shell 渐变终点 */
+    --color-surface: 255 255 255;        /* bg-white 覆盖目标 */
+    --color-scrollbar: 210 214 222;
+    --color-scrollbar-hover: 160 166 178;
+
+    /* === Primary 靛蓝（极简白系：黑墨主调，靛蓝做焦点） === */
+    --color-primary-50: 240 243 253;
+    --color-primary-100: 224 230 248;
+    --color-primary-200: 196 208 238;
+    --color-primary-300: 160 178 224;
+    --color-primary-400: 110 136 205;
+    --color-primary-500: 76 102 178;    /* 靛蓝 #4C66B2：焦点/主操作 */
+    --color-primary-600: 58 80 148;
+    --color-primary-700: 44 60 116;
+    --color-primary-800: 30 42 84;
+    --color-primary-900: 18 26 52;
+
+    /* === Accent 深墨（标题/重点文字，Apple 风格高对比） === */
+    --color-accent-50: 247 248 250;
+    --color-accent-100: 240 241 245;
+    --color-accent-200: 224 226 232;
+    --color-accent-300: 199 202 211;
+    --color-accent-400: 148 152 166;
+    --color-accent-500: 100 105 120;
+    --color-accent-600: 71 76 90;
+    --color-accent-700: 50 54 66;
+    --color-accent-800: 26 26 40;
+    --color-accent-900: 15 16 24;
+
+    /* === Panel === */
+    --color-panel-50: 255 255 255;
+    --color-panel-100: 252 252 254;
+    --color-panel-200: 248 249 251;
+    --color-panel-300: 255 255 255;
+    --color-panel-400: 242 243 246;
+    --color-panel-500: 226 228 233;
+    --color-panel-600: 208 211 218;
+    --color-panel-700: 160 164 174;
+    --color-panel-800: 110 114 126;
+    --color-panel-900: 78 82 94;
+  }
+
+  /* === 深色模式：覆盖变量 === */
+  .dark {
+    color-scheme: dark;
+
+    --color-bg-base: 15 23 42;
+    --color-text-base: 226 232 240;
+    --color-card-bg: 30 41 59;
+    --color-card-border: 51 65 85;
+    --color-shell-from: 15 23 42;
+    --color-shell-to: 15 23 42;
+    --color-surface: 30 41 59;
+    --color-scrollbar: 51 65 85;
+    --color-scrollbar-hover: 71 85 105;
+
+    /* Primary：深色模式下靛蓝提亮（浅容器变深，主色变亮蓝） */
+    --color-primary-50: 18 26 52;
+    --color-primary-100: 26 38 74;
+    --color-primary-200: 38 54 100;
+    --color-primary-300: 56 78 136;
+    --color-primary-400: 88 116 172;
+    --color-primary-500: 128 156 214;
+    --color-primary-600: 160 184 228;
+    --color-primary-700: 190 206 240;
+    --color-primary-800: 214 224 247;
+    --color-primary-900: 235 240 252;
+
+    /* Accent 反转：深色模式下浅色变深、深色变亮 */
+    --color-accent-50: 15 23 42;
+    --color-accent-100: 30 41 59;
+    --color-accent-200: 51 65 85;
+    --color-accent-300: 71 85 105;
+    --color-accent-400: 100 116 139;
+    --color-accent-500: 148 163 184;
+    --color-accent-600: 203 213 225;
+    --color-accent-700: 226 232 240;
+    --color-accent-800: 241 245 249;
+    --color-accent-900: 248 250 252;
+
+    /* Panel 反转 */
+    --color-panel-50: 30 41 59;
+    --color-panel-100: 30 41 59;
+    --color-panel-200: 30 41 59;
+    --color-panel-300: 30 41 59;
+    --color-panel-400: 51 65 85;
+    --color-panel-500: 71 85 105;
+    --color-panel-600: 100 116 139;
+    --color-panel-700: 148 163 184;
+    --color-panel-800: 203 213 225;
+    --color-panel-900: 226 232 240;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: rgb(var(--color-bg-base));
+    color: rgb(var(--color-text-base));
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    background: rgb(var(--color-bg-base));
+  }
+
+  /* 浮窗模式（桌宠/便签/壁纸）：html/body/#root 全部透明 */
+  html.float-mode,
+  html.float-mode body {
+    background: transparent !important;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  html.float-mode #root {
+    background: transparent !important;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+  }
+
+  /* 模拟手机容器 - 居中 480px */
+  .app-shell {
+    max-width: 480px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(180deg, rgb(var(--color-shell-from)) 0%, rgb(var(--color-shell-to)) 100%);
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+    overflow-x: hidden;
+  }
+
+  /* 管理后台用宽屏 */
+  .admin-shell {
+    width: 100%;
+    min-height: 100vh;
+    background: rgb(var(--color-bg-base));
+  }
+
+  /* 桌面端布局壳 */
+  .desktop-shell {
+    width: 100%;
+    height: 100vh;
+    background: rgb(var(--color-bg-base));
+  }
+
+  /* 桌面端登录页 */
+  .desktop-login {
+    width: 100%;
+    height: 100vh;
+  }
+
+  /* 桌面端内容区自适应 */
+  .desktop-content .app-shell {
+    max-width: none;
+    min-height: auto;
+    margin: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* 侧边栏滚动条美化（深色背景） */
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 3px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* 深色模式下 bg-white → 卡片背景色（text-white 不受影响） */
+  .dark .bg-white {
+    background-color: rgb(var(--color-surface));
+  }
+
+  /* 深色模式：Tailwind 状态色的浅色背景（-50/-100）→ 半透明深色 */
+  .dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
+  .dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.18); }
+  .dark .bg-amber-50 { background-color: rgba(245, 158, 11, 0.12); }
+  .dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.18); }
+  .dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.12); }
+  .dark .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.18); }
+  .dark .bg-sky-50 { background-color: rgba(14, 165, 233, 0.12); }
+  .dark .bg-sky-100 { background-color: rgba(14, 165, 233, 0.18); }
+  .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.12); }
+  .dark .bg-rose-100 { background-color: rgba(244, 63, 94, 0.18); }
+  .dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.12); }
+  .dark .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.18); }
+  .dark .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12); }
+  .dark .bg-orange-100 { background-color: rgba(249, 115, 22, 0.18); }
+  .dark .bg-yellow-50 { background-color: rgba(234, 179, 8, 0.12); }
+  .dark .bg-yellow-100 { background-color: rgba(234, 179, 8, 0.18); }
+  .dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
+  .dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.18); }
+  .dark .bg-green-50 { background-color: rgba(34, 197, 94, 0.12); }
+  .dark .bg-green-100 { background-color: rgba(34, 197, 94, 0.18); }
+  .dark .bg-violet-50 { background-color: rgba(139, 92, 246, 0.12); }
+  .dark .bg-violet-100 { background-color: rgba(139, 92, 246, 0.18); }
+  .dark .bg-pink-50 { background-color: rgba(236, 72, 153, 0.12); }
+  .dark .bg-pink-100 { background-color: rgba(236, 72, 153, 0.18); }
+  .dark .bg-cyan-50 { background-color: rgba(6, 182, 212, 0.12); }
+  .dark .bg-cyan-100 { background-color: rgba(6, 182, 212, 0.18); }
+  .dark .bg-teal-50 { background-color: rgba(20, 184, 166, 0.12); }
+  .dark .bg-teal-100 { background-color: rgba(20, 184, 166, 0.18); }
+
+  /* 深色模式：状态色文字（-700/-800）提亮到 -300/-200 级别 */
+  .dark .text-red-700 { color: rgb(252 165 165); }
+  .dark .text-red-800 { color: rgb(254 202 202); }
+  .dark .text-amber-700 { color: rgb(253 224 71); }
+  .dark .text-amber-800 { color: rgb(254 215 170); }
+  .dark .text-emerald-700 { color: rgb(110 231 183); }
+  .dark .text-emerald-800 { color: rgb(167 243 208); }
+  .dark .text-sky-700 { color: rgb(125 211 252); }
+  .dark .text-sky-800 { color: rgb(186 230 253); }
+  .dark .text-rose-700 { color: rgb(253 164 175); }
+  .dark .text-rose-800 { color: rgb(254 205 211); }
+  .dark .text-indigo-700 { color: rgb(165 180 252); }
+  .dark .text-indigo-800 { color: rgb(199 210 254); }
+  .dark .text-orange-700 { color: rgb(253 186 116); }
+  .dark .text-orange-800 { color: rgb(254 215 170); }
+  .dark .text-blue-700 { color: rgb(147 197 253); }
+  .dark .text-blue-800 { color: rgb(191 219 254); }
+  .dark .text-green-700 { color: rgb(134 239 172); }
+  .dark .text-green-800 { color: rgb(187 247 208); }
+  .dark .text-violet-700 { color: rgb(196 181 253); }
+  .dark .text-violet-800 { color: rgb(221 214 254); }
+  .dark .text-purple-700 { color: rgb(192 132 252); }
+  .dark .text-purple-800 { color: rgb(216 180 254); }
+}
+
+
+@layer utilities {
+  /* 深色模式：渐变卡片回退为纯色卡片
+     （from-X-50 via-white 等浅色渐变是 background-image，
+      .dark 的 background-color 覆盖无法生效，深色下会刺眼） */
+  .dark .card[class*='bg-gradient-to'] {
+    background-image: none;
+  }
+
+  /* 小说阅读器：DOCX / Markdown 渲染内容的基础排版 */
+  .novel-rich h1, .novel-rich h2, .novel-rich h3, .novel-rich h4 {
+    font-weight: 700; margin: 1.2em 0 0.6em; line-height: 1.5;
+  }
+  .novel-rich h1 { font-size: 1.5em; }
+  .novel-rich h2 { font-size: 1.3em; }
+  .novel-rich h3 { font-size: 1.15em; }
+  .novel-rich p { margin: 0.6em 0; }
+  .novel-rich ul { padding-left: 1.5em; margin: 0.6em 0; list-style: disc; }
+  .novel-rich li { margin: 0.25em 0; }
+  .novel-rich blockquote {
+    margin: 0.8em 0; padding: 0.4em 1em; border-left: 3px solid currentColor;
+    opacity: 0.75; background: rgba(128, 128, 128, 0.08); border-radius: 0 6px 6px 0;
+  }
+  .novel-rich code {
+    font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    font-size: 0.9em; background: rgba(128, 128, 128, 0.15); padding: 0.1em 0.4em; border-radius: 4px;
+  }
+  .novel-rich pre {
+    margin: 0.8em 0; padding: 0.8em 1em; background: rgba(128, 128, 128, 0.12);
+    border-radius: 8px; overflow-x: auto; line-height: 1.6;
+  }
+  .novel-rich pre code { background: none; padding: 0; }
+  .novel-rich img { max-width: 100%; border-radius: 6px; }
+  .novel-rich table { border-collapse: collapse; margin: 0.8em 0; }
+  .novel-rich td, .novel-rich th { border: 1px solid rgba(128, 128, 128, 0.35); padding: 0.35em 0.7em; }
+  .novel-rich a { color: rgb(var(--color-primary-500)); }
+
+  /* 淡入动画 */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 主页头像呼吸光环（IDLE 状态语言） */
+  @keyframes heroBreathe {
+    0%, 100% { transform: scale(1); opacity: 0.95; }
+    50% { transform: scale(1.06); opacity: 1; }
+  }
+
+  /* 在线状态脉冲点 */
+  @keyframes statusPulse {
+    0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }
+    70% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+  }
+
+  /* 滑入动画（弹窗用）：纯纵向位移，不破坏 mx-auto 居中
+     注意：translate(-50%) 会把 mx-auto 居中的弹窗向左推半个宽度，
+     导致弹窗超出屏幕左侧。这里只做 Y 轴位移。 */
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out forwards;
+  }
+
+  /* 慢速旋转 */
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 2s linear infinite;
+  }
+
+  /* 渐变背景 - 薄荷绿 */
+  .bg-gradient-primary {
+    background: linear-gradient(135deg, rgb(var(--color-primary-500)) 0%, rgb(var(--color-primary-600)) 100%);
+  }
+  .bg-gradient-soft {
+    background: linear-gradient(135deg, rgb(var(--color-primary-50)) 0%, rgb(var(--color-primary-100)) 100%);
+  }
+}
+
+@layer components {
+  /* 卡片基础（Material 3 elevated：双层阴影 + 微位移 hover） */
+  .card {
+    @apply rounded-2xl p-4 border transition-shadow duration-200;
+    background: rgb(var(--color-card-bg));
+    border-color: rgb(var(--color-card-border));
+    box-shadow: 0 1px 2px rgba(18, 26, 52, 0.04),
+                0 4px 16px rgba(18, 26, 52, 0.06);
+  }
+  .card-primary {
+    @apply rounded-2xl p-4 border transition-shadow duration-200;
+    background: rgb(var(--color-card-bg));
+    border-color: rgb(var(--color-card-border));
+    box-shadow: 0 1px 2px rgba(58, 80, 148, 0.06),
+                0 6px 20px rgba(58, 80, 148, 0.09);
+  }
+  .card-soft {
+    @apply rounded-2xl p-4 border;
+    background: rgb(var(--color-panel-200));
+    border-color: rgb(var(--color-card-border));
+    box-shadow: 0 1px 2px rgba(18, 26, 52, 0.03);
+  }
+  /* 可交互卡片（整卡可点场景）：hover 深度提升，Apple 弹性曲线 */
+  .card-interactive {
+    cursor: pointer;
+    transition: box-shadow 200ms cubic-bezier(0.2, 0, 0, 1),
+                transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .card-interactive:hover {
+    box-shadow: 0 2px 6px rgba(18, 26, 52, 0.07),
+                0 10px 32px rgba(18, 26, 52, 0.11);
+    transform: translateY(-2px);
+  }
+  .card-interactive:active {
+    transform: translateY(0);
+  }
+
+  /* 按钮基础（Apple HIG：44px 触控 + 弹性按压） */
+  .btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-xl font-medium;
+    transition: filter 150ms ease, transform 150ms ease,
+                box-shadow 150ms ease, background-color 150ms ease;
+    min-height: 44px;
+  }
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  /* 主按钮 - 靛蓝（Material Filled：纯色 + 克制阴影，不用渐变） */
+  .btn-primary {
+    @apply btn text-white;
+    background: rgb(var(--color-primary-500));
+    box-shadow: 0 1px 2px rgba(44, 60, 116, 0.2),
+                0 4px 12px rgba(44, 60, 116, 0.22);
+  }
+  .btn-primary:hover {
+    background: rgb(var(--color-primary-600));
+    box-shadow: 0 2px 4px rgba(44, 60, 116, 0.24),
+                0 8px 20px rgba(44, 60, 116, 0.28);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    background: rgb(var(--color-primary-700));
+    transform: scale(0.97);
+  }
+
+  /* 次要按钮（Material Filled Tonal：主色调浅容器） */
+  .btn-secondary {
+    @apply btn;
+    background: rgb(var(--color-primary-100));
+    color: rgb(var(--color-primary-700));
+  }
+  .btn-secondary:hover {
+    background: rgb(var(--color-primary-200));
+  }
+
+  /* 危险按钮 */
+  .btn-danger {
+    @apply btn text-white;
+    background: #E5484D;
+    box-shadow: 0 1px 2px rgba(229, 72, 77, 0.2),
+                0 4px 12px rgba(229, 72, 77, 0.22);
+  }
+  .btn-danger:hover {
+    background: #D93A3F;
+    transform: translateY(-1px);
+  }
+  .btn-danger:active {
+    background: #C02E33;
+    transform: scale(0.97);
+  }
+
+  /* 输入框（Apple 风格：大圆角 + 焦点环带缩进感） */
+  .input {
+    @apply w-full px-4 py-2.5 rounded-xl border transition-all duration-200;
+    background: rgb(var(--color-card-bg));
+    border-color: rgb(var(--color-card-border));
+    color: rgb(var(--color-text-base));
+  }
+  .input::placeholder {
+    color: rgb(var(--color-accent-400));
+  }
+  .input:focus {
+    border-color: rgb(var(--color-primary-500));
+    box-shadow: 0 0 0 3px rgba(76, 102, 178, 0.14);
+    outline: none;
+  }
+
+  /* 徽章 */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  /* 渐变文字 */
+  .text-gradient {
+    background: linear-gradient(135deg, rgb(var(--color-primary-500)) 0%, rgb(var(--color-primary-700)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* 滚动条美化 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-scrollbar));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-scrollbar-hover));
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ============ 天气形象动效 ============ */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.8;
+    box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.5);
+  }
+}
+@keyframes sun-ray {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+@keyframes rain-fall {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(70px);
+    opacity: 0;
+  }
+}
+@keyframes snow-fall {
+  from {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(70px) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+@keyframes cloud-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(20px);
+  }
+}
+@keyframes flash {
+  0%,
+  90%,
+  100% {
+    opacity: 0;
+  }
+  92%,
+  94% {
+    opacity: 0.4;
+  }
+  93% {
+    opacity: 0.7;
+  }
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes fog-drift {
+  0%,
+  100% {
+    transform: translateX(-10px);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateX(10px);
+    opacity: 0.5;
+  }
+}

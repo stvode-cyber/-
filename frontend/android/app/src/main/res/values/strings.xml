@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">绿角犀</string>
+    <string name="title_activity_main">绿角犀</string>
+    <string name="package_name">com.aie.assistant</string>
+    <string name="custom_url_scheme">com.aie.assistant</string>
+    <!-- 随手记主屏小部件 -->
+    <string name="widget_quick_note_label">随手记</string>
+    <string name="widget_quick_note_hint">点击快速记录…</string>
+    <string name="widget_quick_note_title">随手记</string>
+    <string name="widget_quick_note_subtitle">AI 自动分类</string>
+</resources>

@@ -1,0 +1,1339 @@
+// AI助理系统 - Prisma Schema (MVP 阶段一)
+// 对应文档：账户系统 / 任务日程 / 饮食记账 / 钱包V1 / 对话 / 提醒 / 管理后台
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============ 用户与认证 ============
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  email        String?  @unique
+  phone        String?  @unique
+  password    String
+  nickname     String?
+  avatar       String?
+  role         String   @default("user") // user | admin
+  // 冷启动画像
+  onboarded    Boolean  @default(false)
+  preferredTone String? @default("gentle") // 语气模式
+  aiNickname   String? @default("角角") // AI助理备注名
+  primaryGoal   String? // 本周最想搞定的事
+  // 实名认证等级（SA-08）：Lv0 未认证 / Lv1 基础实名 / Lv2 已实名 / Lv3 企业 / Lv4 专业 / Lv5 顶级
+  verifyLevel  String   @default("Lv0")
+  // 等级系统（LV-01）：按在线时间累计
+  totalOnlineMinutes Int     @default(0)
+  lastHeartbeatAt     DateTime?
+  // 合规：用户协议与隐私政策接受时间（注册时写入，可选以兼容旧用户）
+  agreedToTermsAt     DateTime?
+  // 钱包关联
+  wallet       Wallet?
+  // 桌面便签（一对多）
+  stickyNotes  StickyNote[]
+  // 桌面动态壁纸配置（一对一）
+  wallpaperSetting WallpaperSetting?
+  // 业务数据
+  tasks        Task[]
+  diets        Diet[]
+  sleeps       Sleep[]
+  bills        Bill[]
+  reminders    Reminder[]
+  chatSessions ChatSession[]
+  handovers    Handover[]
+  // 社区
+  posts        Post[]
+  comments     Comment[]
+  postLikes    PostLike[]
+  postFavorites PostFavorite[]
+  // 相册
+  photos       Photo[]
+  // 审计
+  lastLoginAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  // 实名认证记录（一对多：可多次提交，保留历史）
+  realNames   RealName[]
+  // 碎片信息（DG-07）：对话中自动提取的文字/链接/想法
+  fragments   Fragment[]
+  vaultNotes  VaultNote[]
+  // 事件手动管理（EV-06）：用户手动添加的事件 + 隐藏的自动事件
+  manualEvents  ManualEvent[]
+  hiddenEvents  HiddenEvent[]
+  // 录音直达纪要（DG-10）：用户录音 → 转写文本 → 提取待办/纪要
+  voiceMemos  VoiceMemo[]
+  // 会话系统（微信式好友/群聊/AI助理）：当前用户视角的会话列表项
+  conversations  Conversation[]
+  // 好友关系（发起方视角）
+  friendshipsOf    Friendship[]    @relation("FriendshipInitiator")
+  friendshipsAs   Friendship[]    @relation("FriendshipTarget")
+  // 群组成员关系
+  groupMemberships GroupMember[]
+  // 群组（作为创建者）
+  ownedGroups      Group[]
+  // 倒计时（CD-XX 倒计时功能）
+  countdowns      Countdown[]
+  // 倒计时提醒未读项
+  countdownReminders CountdownReminder[]
+  // Web Push 推送订阅（一个用户可有多端订阅）
+  pushSubscriptions  PushSubscription[]
+  // 用户习惯档案（对话中自动提取的兴趣/习惯/偏好）
+  habits       UserHabit[]
+  // 习惯打卡追踪
+  trackHabits  TrackHabit[]
+  // 桌面宠物（支持多宠物）
+  pets         Pet[]
+  // 当前激活的宠物 ID（为空时自动取第一只）
+  activePetId  String?
+  // P3 隐私四档：off=完全不写库 / text=仅理解纯文本 / local=仅本地正则 / full=全开
+  privacyMode         String   @default("full")
+  // 是否开启 AI 主动聊天（proactive.lib 调度器按此过滤用户）
+  proactiveChatEnabled Boolean @default(false)
+  // 云端订阅控权（上架多用户激活）：AI 网关按此判权，false 返回 403
+  aiEnabled   Boolean  @default(false)
+  aiPlan      String? // none | basic | pro
+  aiExpiresAt DateTime?
+
+  @@map("users")
+}
+
+// ============ 用户习惯档案 ============
+// 从对话中自动提取或用户手动编辑的个人习惯、兴趣、偏好。
+// AI 在对话时注入这些信息，实现个性化回复。
+// category 分类：
+//   - interest（兴趣爱好：看电影/打篮球/旅行等）
+//   - routine（日常习惯：早起/夜猫子/不吃早餐等）
+//   - preference（偏好：喜欢简洁回复/不爱用emoji等）
+//   - personality（性格特点：内向/乐观/容易焦虑等）
+//   - work（工作相关：做开发的/经常开会/加班多等）
+//   - other（其他）
+// source 来源：auto（AI自动提取）| manual（用户手动添加）
+model UserHabit {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 分类
+  category    String   @default("interest")
+  // 习惯内容（如"喜欢打篮球""不吃早餐""做前端开发"）
+  content     String
+  // 来源：auto | manual
+  source      String   @default("auto")
+  // AI 提取的标签（JSON 数组字符串，如["运动","团队"]）
+  tags        String?
+  // 置信度（0-1，auto 提取时标注）
+  confidence  Float    @default(0.5)
+  // 出现次数（同一习惯被多次提到时累加）
+  hitCount    Int      @default(1)
+  // 最后提及时间
+  lastMentionedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("user_habits")
+  @@index([userId])
+  @@index([category])
+}
+
+// ============ 习惯打卡追踪 ============
+// 用户创建的每日打卡习惯（如喝水、运动、阅读），支持连续天数统计。
+model TrackHabit {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 习惯名称（如"喝水8杯"、"运动30分钟"）
+  name        String
+  // 图标 emoji
+  icon        String   @default("✅")
+  // 主题色（hex）
+  color       String   @default("#10b981")
+  // 频率：daily（每天）、weekly（每周N次）
+  frequency   String   @default("daily")
+  // 目标次数（每周N次中的N）
+  targetCount Int      @default(1)
+  // 提醒时间（HH:mm 格式，可选）
+  remindAt    String?
+  // 是否归档（软删除）
+  archived    Boolean  @default(false)
+  // 排序权重
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs        TrackHabitLog[]
+
+  @@map("track_habits")
+  @@index([userId])
+  @@index([archived])
+}
+
+// 习惯打卡记录（每天最多一条）
+model TrackHabitLog {
+  id          String   @id @default(cuid())
+  habitId     String
+  habit       TrackHabit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId      String
+  // 打卡日期（YYYY-MM-DD，每天最多一条）
+  date        String
+  // 备注（可选）
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([habitId, date])
+  @@map("track_habit_logs")
+  @@index([habitId])
+  @@index([userId])
+  @@index([date])
+}
+
+// ============ 事件手动管理（EV-06） ============
+// 用户手动添加的自定义事件（聚会/生日/外出等），聚合到事件总览中。
+// scope：work | life | finance，与 home.events 的 scope 字段对齐。
+// hidden：用户可在事件总览中手动隐藏该事件（不影响数据）。
+model ManualEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  // 开始时间（必填，作为事件时间线排序依据）
+  startTime   DateTime
+  // 结束时间（可选，跨时间段事件用，如旅行/会议）
+  endTime     DateTime?
+  // 视角：work | life | finance
+  scope       String   @default("life")
+  // 地点（可选）
+  location    String?
+  // 参与人物（JSON 数组字符串，如 ["张三","李四"]）
+  attendees   String?
+  // 颜色标识（可选，前端展示用）
+  color       String?  @default("blue")
+  // 是否在事件总览中隐藏（用户手动隐藏，默认显示）
+  hidden      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("manual_events")
+  @@index([userId])
+  @@index([startTime])
+  @@index([scope])
+}
+
+// ============ 自动事件隐藏记录（EV-06） ============
+// 用户在事件总览中隐藏 AI 自动采集的事件（Task/Reminder 等）时记录。
+// 通过 sourceType + sourceId 联合标识一条自动事件，便于在 home 聚合时过滤。
+// sourceType：task | reminder | diet | sleep 等（与 home.events.type 对齐）
+// sourceId：原始记录 ID
+// 联合唯一约束：同一用户不能重复隐藏同一自动事件
+model HiddenEvent {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 来源类型：task | reminder | diet | sleep 等
+  sourceType  String
+  // 来源记录 ID
+  sourceId    String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, sourceType, sourceId])
+  @@map("hidden_events")
+  @@index([userId])
+}
+
+// ============ 碎片信息收集（DG-07） ============
+// 用户在对话中发送的文字/链接/图片说明，AI 自动分类存储。
+// 隔夜整合卡片（DG-08）会将当日碎片汇总为结构化总结。
+// kind：note（想法/笔记） | link（URL） | todo（待办线索） | idea（灵感） | snippet（代码/引用）
+model Fragment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 原始内容
+  content     String
+  // AI 分类：note | link | todo | idea | snippet
+  kind        String   @default("note")
+  // AI 提取的标签（JSON 字符串数组，如 ["工作","灵感"]）
+  tags        String?  // JSON array string
+  // 来源消息 ID（关联对话消息，便于回溯）
+  sourceMsgId String?
+  // 是否已被隔夜整合（DG-08）：true 表示已纳入隔日总结
+  digested    Boolean  @default(false)
+  // 备注（AI 提取的摘要或用户补充）
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@map("fragments")
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([kind])
+  @@index([createdAt])
+  @@index([digested])
+}
+
+// ============ 用户资料库（AI 记忆 / Obsidian 式） ============
+// 每个账号在服务端有独立"资料库"：对话中 AI 自动提炼值得长期记住的用户资料，
+// 结构化为 Markdown 笔记（类 Obsidian vault），对话时检索注入 LLM 上下文。
+// category：person（人物）| preference（偏好）| event（事项）| timeline（时间线）| other
+model VaultNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 笔记标题（唯一维度：userId + title，重复提炼时更新而非新建）
+  title     String
+  // 分类：person | preference | event | timeline | other
+  category  String   @default("other")
+  // Markdown 正文
+  content   String
+  // 标签（JSON 字符串数组）
+  tags      String?  // JSON array string
+  // 置顶：置顶笔记始终注入对话上下文
+  pinned    Boolean  @default(false)
+  // 来源：auto（AI 提炼）| manual（用户手动创建）
+  source    String   @default("auto")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, title])
+  @@map("vault_notes")
+  @@index([userId])
+  @@index([userId, category])
+  @@index([userId, pinned])
+  @@index([updatedAt])
+}
+
+// ============ 录音直达纪要（DG-10） ============
+// 用户在对话页长按录音按钮，上传录音文件：
+// 1. 后端存储原始音频 base64（audioData 字段）
+// 2. 调用 AI 转写服务（mock 或真实 STT）生成 transcript
+// 3. 调用 AI 提取待办/纪要（todoItems / summary）
+// 4. 用户可在录音纪要列表页查看与一键转任务
+//
+// status 流转：uploaded → transcribed → extracted
+// - uploaded: 已上传，待转写
+// - transcribed: 已转写，待提取待办
+// - extracted: 已提取纪要，可操作
+// - failed: 转写或提取失败
+model VoiceMemo {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 录音标题（用户可编辑，默认按时间生成）
+  title       String
+  // 录音时长（秒，前端上传时携带）
+  duration    Int      @default(0)
+  // 原始音频 base64（受限于 express body 限制，单条不超过 10MB）
+  audioData   String
+  // 音频 MIME 类型（如 audio/webm、audio/mp4）
+  audioFormat String   @default("audio/webm")
+  // 转写文本（STT 输出）
+  transcript  String?
+  // AI 提取的待办事项（JSON 数组字符串，如 ["买牛奶","写周报"]）
+  todoItems   String?
+  // AI 生成的纪要摘要
+  summary     String?
+  // 状态：uploaded | transcribed | extracted | failed
+  status      String   @default("uploaded")
+  // 失败原因（status=failed 时填）
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("voice_memos")
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+// ============ 实名认证（SA-08 基础版） ============
+// 用户提交实名信息（姓名 + 身份证号 + 可选证件照），
+// 管理员审核通过后，User.verifyLevel 提升至 Lv2（已实名）。
+// status 流转：pending → approved | rejected
+model RealName {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 真实姓名
+  realName    String
+  // 身份证号（存储时脱敏，仅保留前6后4）
+  idCard      String
+  // 联系电话（可选）
+  phone       String?
+  // 证件照 URL（可选，未来支持上传）
+  idCardImage String?
+  // 审核状态：pending | approved | rejected
+  status      String   @default("pending")
+  // 审核人（管理员 ID）
+  reviewerId  String?
+  // 驳回原因
+  rejectReason String?
+  submittedAt DateTime @default(now())
+  reviewedAt  DateTime?
+
+  @@map("real_names")
+  @@index([userId])
+  @@index([status])
+}
+
+// ============ 钱包 ============
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Float    @default(0)
+  paymentPwd   String?  // 6位支付密码 hash
+  frozen       Boolean  @default(false)
+  newDeviceUntil DateTime? // 新设备消费限制解除时间
+  transactions Transaction[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId      String
+  type        String   // recharge | consume | refund
+  amount      Float
+  balanceAfter Float
+  title       String
+  category    String?  // 消费分类
+  orderId     String?  // 关联订单号
+  status      String   @default("success") // pending | success | failed
+  remark      String?
+  createdAt   DateTime @default(now())
+
+  @@map("transactions")
+  @@index([walletId])
+  @@index([userId])
+}
+
+// ============ 任务与日程 ============
+model Task {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  // status: todo | in_progress | done | cancelled
+  status       String   @default("todo")
+  // priority: low | medium | high | urgent
+  priority     String   @default("medium")
+  progress     Int      @default(0) // 0-100
+  dueDate      DateTime?
+  remindAt     DateTime?
+  // 标签/分类
+  category     String?  // work | life | finance | custom
+  tags         String?  // JSON 数组字符串
+  important    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("tasks")
+  @@index([userId])
+  @@index([dueDate])
+}
+
+// ============ 饮食记录 ============
+model Diet {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealType    String   // breakfast | lunch | dinner | snack
+  foodName    String
+  portion     String?
+  calories    Int?
+  protein     Float?
+  carbs       Float?
+  fat         Float?
+  // 拍照/语音备注
+  note        String?
+  imageUrl    String?
+  eatenAt     DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@map("diets")
+  @@index([userId])
+  @@index([eatenAt])
+}
+
+// ============ 睡眠记录 ============
+// 阶段二「睡眠分析」基础版：手动记录入睡/起床时间，
+// 后端计算睡眠时长与质量评分，为健康摘要与未来可穿戴接入预留数据。
+model Sleep {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 睡眠归属日期（入睡所在的自然日，便于按日聚合与展示）
+  sleepDate    DateTime
+  // 入睡时间
+  bedtime     DateTime
+  // 起床时间
+  wakeTime    DateTime
+  // 睡眠时长（分钟，由后端计算）
+  durationMin Int
+  // 质量评分：1-5（1=很差，5=极好），可选手动评级
+  quality     Int?
+  // 备注（梦境/中断/主观感受等）
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@map("sleeps")
+  @@index([userId])
+  @@index([sleepDate])
+}
+
+// ============ 账单/记账 ============
+model Bill {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   // income | expense
+  amount      Float
+  category    String   // 食物/交通/购物/工资等
+  account     String?  // 微信/支付宝/银行卡/现金
+  title       String
+  note        String?
+  billDate    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@map("bills")
+  @@index([userId])
+  @@index([billDate])
+}
+
+// ============ 提醒 ============
+model Reminder {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  content     String?
+  // level: urgent | proper | normal | silent
+  level       String   @default("proper")
+  remindAt    DateTime
+  // 重复: once | daily | weekly | monthly
+  repeat      String   @default("once")
+  // 关联
+  relatedType String?  // task | bill | diet | custom
+  relatedId   String?
+  done        Boolean  @default(false)
+  doneAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@map("reminders")
+  @@index([userId])
+  @@index([remindAt])
+}
+
+// ============ 对话 ============
+model ChatSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String   @default("新对话")
+  tone        String?  // 当前会话语气
+  messages    Message[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("chat_sessions")
+  @@index([userId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId      String
+  role        String   // user | assistant | system
+  content     String
+  // 消息类型：text | image | file | location | task_card | diet_card | bill_card | suggestion
+  messageType String   @default("text")
+  metadata    String?  // JSON：卡片数据 / 多模态附件信息
+  // 多模态附件（DG-02）：图片/文件的 base64 data URL；位置消息时为 null
+  mediaUrl    String?
+  // 反馈
+  feedback    String?  // like | dislike | null
+  // 是否为 AI 主动推送消息（proactive.lib 调度器写入，用于当日去重）
+  isProactive Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("messages")
+  @@index([sessionId])
+}
+
+// ============ 工作交接表 ============
+// 用户记录一个时段内的工作总结、已完成事项、待跟进事项、注意事项，
+// 便于班次/阶段之间的工作移交与回顾。
+// status 流转：draft → submitted → archived
+model Handover {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 交接单标题，便于检索与展示
+  title           String
+  // 班次/时段：morning | afternoon | night | all-day | custom
+  shift           String   @default("all-day")
+  // 交接日期（仅日期部分，存为 DateTime 当天 00:00:00）
+  handoverDate    DateTime @default(now())
+  // 本期工作总结
+  summary         String?
+  // 已完成事项（JSON 字符串数组，例如 ["完成 PRD 评审","修复登录 bug"]）
+  completedItems  String?  // JSON
+  // 待跟进事项（JSON 数组，每项结构 { text, priority, dueDate? }）
+  pendingItems    String?  // JSON
+  // 注意事项 / 备注
+  notes           String?
+  // 状态：draft(草稿) | submitted(已提交) | archived(已归档)
+  status          String   @default("draft")
+  // 提交时间（从 draft → submitted 时记录）
+  submittedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("handovers")
+  @@index([userId])
+  @@index([handoverDate])
+  @@index([status])
+}
+
+// ============ 社区 ============
+// 用户发帖、评论、点赞、收藏，构成社区互动闭环。
+// 帖子分类：life | work | finance，与 Tab 一一对应。
+model Post {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 帖子正文（无标题，类朋友圈/微博体）
+  content       String
+  // 配图（QQ空间说说九宫格）：JSON 数组，存 data URL，最多 9 张
+  images        String?
+  // 分类：life | work | finance
+  category      String   @default("life")
+  // AI 资料卡（可选）：AI 自动检索的参考资料
+  aiSource      String?  // JSON: { name, confidence }
+  // 统计字段（冗余计数，避免每次 count 查询）
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+  favoritesCount Int     @default(0)
+  // 关联
+  comments      Comment[]
+  likes         PostLike[]
+  favorites     PostFavorite[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("posts")
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+// 帖子评论
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+  @@index([postId])
+  @@index([userId])
+}
+
+// 点赞（用户 + 帖子 联合唯一，一人一帖一赞）
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_likes")
+  @@index([userId])
+}
+
+// 收藏（用户 + 帖子 联合唯一，一人一帖一收藏）
+model PostFavorite {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_favorites")
+  @@index([userId])
+}
+
+// ============ 相册（QQ空间式） ============
+// 个人照片库：前端按月份分组渲染时间线宫格，dataUrl 直存（与聊天图片/宠物形象一致的 MVP 方案）
+model Photo {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 图片内容（data URL，上传前前端已压缩到 1280px / ~500KB）
+  dataUrl   String
+  // 照片说明（可选）
+  caption   String?
+  // 拍摄时间（可选，用于时间线分组；缺省用上传时间）
+  takenAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@map("photos")
+  @@index([userId])
+  @@index([takenAt])
+}
+
+// ============ 台账 / 动作记录 ============
+// 记录用户在系统中的关键操作流水，用于审计、行为分析、问题追溯。
+// 与具体业务数据（Task/Bill/Wallet 等）解耦，只保留"谁、在何时、做了什么"。
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?  // 用户ID（未登录场景为 null，如登录失败）
+  username    String?  // 冗余用户名，便于无关联查询
+  // 动作分类：auth | task | diet | bill | wallet | chat | reminder | handover | community | admin | system
+  category    String
+  // 具体动作：login | register | create | update | delete | recharge | consume | ...
+  action      String
+  // 关联资源类型/ID（如 Task / Bill），便于追溯
+  targetType  String?
+  targetId    String?
+  // 简要描述，可读性更好，例如 "创建任务: 产品方案V3评审"
+  summary     String
+  // 详细数据 JSON：请求体 / 响应摘要 / 关键变更字段
+  detail      String?
+  // 结果：success | fail
+  result      String   @default("success")
+  // 客户端信息
+  ip          String?
+  userAgent   String?
+  // 耗时(ms)
+  durationMs  Int?
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+  @@index([userId])
+  @@index([category, action])
+  @@index([createdAt])
+}
+
+// ============ 会话系统（微信式好友/群聊/AI助理） ============
+// 统一会话列表：每个用户视角独立拥有一份会话列表项。
+// type=ai    → AI 助理对话（sessionId 指向 ChatSession）
+// type=user  → 与另一用户的私聊（targetUserId 指向对方，需先成为好友）
+// type=group → 群聊（groupId 指向 Group，需为 GroupMember）
+// 微信式字段：lastMessageAt（最近消息时间，排序用）、lastMessagePreview（最近消息预览）、
+//            unreadCount（未读数）、muted（免打扰）、pinned（置顶）
+model Conversation {
+  id              String   @id @default(cuid())
+  userId          String  // 会话列表拥有者（当前用户视角）
+  user            User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String  // ai | user | group
+  // 三选一：根据 type 填对应字段
+  sessionId       String? // type=ai 时，指向 ChatSession.id
+  targetUserId    String? // type=user 时，对方用户 ID
+  groupId         String? // type=group 时，指向 Group.id
+  // 微信式展示字段
+  remark          String? // 备注名（覆盖昵称显示，仅 type=user 时有效）
+  pinned          Boolean @default(false)
+  muted           Boolean @default(false)
+  unreadCount     Int     @default(0)
+  lastMessageAt   DateTime?
+  lastMessagePreview String? // 最近一条消息预览（前 50 字）
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  messages        ConversationMessage[]
+
+  @@unique([userId, type, targetUserId]) // 同一用户与同一对方只能有一个私聊会话
+  @@unique([userId, type, groupId])      // 同一用户在同一群只有一个会话
+  @@unique([userId, type, sessionId])    // 同一用户只有一个 AI 会话
+  @@map("conversations")
+  @@index([userId])
+  @@index([lastMessageAt])
+}
+
+// ============ 好友关系 ============
+// 双向好友关系：A 加 B 后，A→B 与 B→A 各存一条（status 同步）。
+// status: pending（发起方待对方同意）/ accepted / blocked
+// remark: 发起方给对方设的备注名（微信式），仅本视角可见
+model Friendship {
+  id          String   @id @default(cuid())
+  userId      String  // 发起方
+  user        User     @relation("FriendshipInitiator", fields: [userId], references: [id], onDelete: Cascade)
+  friendId    String  // 被加方
+  friend      User     @relation("FriendshipTarget", fields: [friendId], references: [id], onDelete: Cascade)
+  remark      String? // 发起方视角的备注名
+  status      String   @default("pending") // pending | accepted | blocked
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, friendId])
+  @@map("friendships")
+  @@index([userId])
+  @@index([friendId])
+  @@index([status])
+}
+
+// ============ 群组 ============
+// 用户创建的群聊。ownerId 为创建者（自动成为群主）。
+// members 通过 GroupMember 关联表管理，支持 owner/admin/member 三种角色。
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  avatar      String?
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("groups")
+  @@index([ownerId])
+}
+
+// ============ 群成员 ============
+// 用户与群的多对多关系。role: owner（群主）/ admin（管理员）/ member（普通成员）。
+// joinedAt 为入群时间，便于按时间排序与权限校验。
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("member") // owner | admin | member
+  joinedAt  DateTime @default(now())
+
+  @@unique([groupId, userId])
+  @@map("group_members")
+  @@index([groupId])
+  @@index([userId])
+}
+
+// ============ 用户间/群聊消息 ============
+// AI 助理对话继续走 Message 表（与 ChatSession 关联，保留现有 DG-* 卡片能力）。
+// 用户间私聊与群聊消息走本表，通过 conversationId 关联到 Conversation。
+// senderId 为发送者 ID；type=user 时接收方通过 Conversation.unreadCount 累计未读。
+model ConversationMessage {
+  id              String   @id @default(cuid())
+  conversationId  String
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId        String  // 发送者用户 ID（群聊中标识谁发的）
+  content         String
+  // 消息类型：text | image | file | location | system
+  messageType     String   @default("text")
+  // 多模态附件（DG-02 同款）：图片/文件的 base64 data URL；位置消息为 null
+  mediaUrl        String?
+  createdAt       DateTime @default(now())
+
+  @@map("conversation_messages")
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ============ 倒计时功能 ============
+// 4 种类型：single（单次目标）/recurring（固定循环）/important（重要日）/goal（目标分化）
+// 关联模块通过 linkedModules JSON 字段存储（wishFund/goalPlan/importantDay）
+// 递减提醒规则、循环配置、庆祝配置均以 JSON 存储，避免过度规范化
+model Countdown {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            String   // single | recurring | important | goal
+  title           String
+  description     String?
+  // 目标日期（UTC）：single/important/goal 类型必填；recurring 可空（由 recurringConfig 决定）
+  targetDate      DateTime?
+  createdDate     DateTime @default(now())
+
+  // 循环配置（仅 type=recurring 时有效）
+  // pattern: daily | weekly | monthly | yearly | custom
+  // customRule: 自定义规则描述（如"每周五 18:00"）
+  // nextTrigger: 下次触发时间（由后端 cron 定时更新）
+  // 存储为 JSON 字符串（SQLite 不支持 Json 类型）
+  recurringConfig String?
+
+  // 里程碑节点：JSON 字符串 [{ label, percentage, reached }]
+  milestones      String?
+
+  // 提醒配置：JSON 字符串
+  // rule: decreasing（递减，按剩余天数自动选频率）/ fixed（固定间隔）/ custom（自定义）
+  // decreasingRule: 递减规则配置（按剩余天数区间映射频率）
+  // customReminders: 自定义提醒列表 [{ daysBefore, time, level }]
+  reminderConfig  String?
+
+  // 庆祝配置：JSON 字符串
+  // style: confetti | fireworks | milestone | minimal
+  // sound: 音效文件名（前端播放）
+  // message: 完成时显示的祝福语
+  celebrationConfig String?
+
+  // 关联模块（联动用）：JSON 字符串
+  // wishFund / goalPlan / importantDay: 关联 ID
+  linkedModules   String?
+
+  // 状态：active（进行中）/ paused（暂停）/ completed（已完成）/ cancelled（已取消）
+  status          String   @default("active")
+  // 当前进度百分比（0-100，由关联模块自动更新或手动设置）
+  progress        Int      @default(0)
+  // 主页置顶
+  isPinned        Boolean  @default(false)
+  // 重要事项标记（影响主页展示优先级）
+  isImportant     Boolean  @default(false)
+  // 上次通知时间（用于递减式提醒的频率控制）
+  lastNotified    DateTime?
+  // 完成时间（status=completed 时有值）
+  completedAt     DateTime?
+  // 完成时的回顾数据快照（用于庆祝动画后展示）：JSON 字符串
+  completionSnapshot String?
+
+  reminders       CountdownReminder[]
+
+  updatedAt       DateTime @updatedAt
+
+  @@map("countdowns")
+  @@index([userId])
+  @@index([status])
+  @@index([targetDate])
+  @@index([isPinned])
+}
+
+// ============ 倒计时提醒（未读项） ============
+// 由 cron 定时生成，用户标记已读后删除
+// level: normal（普通静默）/ appropriate（适当横幅）/ urgent（紧急全屏）
+model CountdownReminder {
+  id           String   @id @default(cuid())
+  countdownId  String
+  countdown    Countdown @relation(fields: [countdownId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 触发时间（用于排序与去重）
+  triggerAt    DateTime @default(now())
+  // 提醒等级：normal | appropriate | urgent
+  level        String   @default("normal")
+  // 提醒内容（动态生成）
+  content      String
+  // 是否已读
+  isRead       Boolean  @default(false)
+
+  @@map("countdown_reminders")
+  @@index([countdownId])
+  @@index([userId])
+  @@index([isRead])
+  @@index([triggerAt])
+}
+
+// ============ Web Push 推送订阅 ============
+// 一个用户可订阅多个端点（不同设备/浏览器）
+// endpoint 唯一（Web Push 协议去重）
+model PushSubscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint    String   @unique
+  // Web Push 协议订阅对象 JSON（keys.auth / keys.p256dh）：JSON 字符串
+  subscription String
+  // 用户代理（用于显示"Chrome on Windows"等多端管理）
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@map("push_subscriptions")
+  @@index([userId])
+}
+
+// =====================================================================
+// 资料管理 DAM-lite（吸收自《资料管理软件设计》《功能说明》《远程提取分级授权功能设计》）
+// 说明：本模块自包含，用户归属字段(ownerId/requesterId/operatorId)使用普通 String，
+//       不反向挂到 User 模型，以降低对既有 schema 的侵入。其余关系为模块内自洽。
+// SQLite 不支持 Json 类型，故 rulesJson/metadata 等异构字段统一用 String 存储 JSON 字符串。
+// =====================================================================
+
+// 空间（个人/小团队资料库）
+model Space {
+  id          String   @id @default(cuid())
+  ownerId     String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       SpaceMember[]
+  folders       Folder[]
+  tags          Tag[]
+  assets        Asset[]
+  categoryRules CategoryRule[]
+  resourceZones ResourceZone[]
+  fetchJobs     FetchJob[]
+
+  @@map("spaces")
+  @@index([ownerId])
+}
+
+// 空间成员（RBAC：owner | member | operator | viewer）
+model SpaceMember {
+  id       String   @id @default(cuid())
+  spaceId  String
+  userId   String
+  role     String   @default("viewer") // owner | member | operator | viewer
+  createdAt DateTime @default(now())
+  space    Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@map("space_members")
+  @@index([userId])
+  @@index([spaceId])
+}
+
+// 文件夹树（parent 自引用）
+model Folder {
+  id       String   @id @default(cuid())
+  spaceId  String
+  parentId String?
+  name     String
+  path     String // 冗余展示路径，如 /工作/合同
+  createdAt DateTime @default(now())
+  space    Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderTree")
+  assets   Asset[]
+
+  @@map("folders")
+  @@index([spaceId])
+  @@index([parentId])
+}
+
+// 标签（空间内唯一）
+model Tag {
+  id        String   @id @default(cuid())
+  spaceId   String
+  name      String
+  createdAt DateTime @default(now())
+  space     Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  assetTags AssetTag[]
+
+  @@unique([spaceId, name])
+  @@map("tags")
+  @@index([spaceId])
+}
+
+// 资产-标签多对多
+model AssetTag {
+  id      String @id @default(cuid())
+  assetId String
+  tagId   String
+  asset   Asset  @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, tagId])
+  @@map("asset_tags")
+  @@index([tagId])
+  @@index([assetId])
+}
+
+// 资产（文档/图片/音频/视频统一模型）
+model Asset {
+  id       String  @id @default(cuid())
+  spaceId  String
+  ownerId  String
+  folderId String?
+  // type: document | image | audio | video（按 MIME/扩展名推断的粗类）
+  type     String  @default("document")
+  // category: 离线语义分类（票据/截图/合同/文档/照片/代码/音频/视频/归档/其他），由 classifyAsset 规则引擎推断，不依赖云端
+  category String  @default("other")
+  name     String
+  mime     String?
+  size     Int     @default(0)
+  storageKey String // 本地存储相对路径
+  checksum String? // sha256 去重
+  // 桌面端自动采集来源：本地绝对路径 + 修改时间（用于增量同步、跳过重同步、避免重复入库）
+  localPath  String?  // 采集自本机哪个文件（同一空间内按此定位已同步资产）
+  localMtime BigInt?  // 本地文件修改时间（毫秒时间戳），与 size/checksum 配合做增量判断
+  // status: ready | processing | failed
+  status   String  @default("ready")
+  // 各类型差异字段（描述/EXIF/转写稿/摘要等），JSON 字符串
+  metadata String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  space     Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags      AssetTag[]
+  versions  AssetVersion[]
+  shareLinks ShareLink[]
+  assetSources AssetSource[]
+
+  @@map("assets")
+  @@index([spaceId, type])
+  @@index([spaceId, category])
+  @@index([ownerId])
+  @@index([folderId])
+  @@index([checksum])
+  @@index([spaceId, localPath])
+}
+
+// 分类自定义映射规则（用户可覆盖内置分类引擎的口径，按空间维度生效）
+// matchType: extension(扩展名) | nameContains(文件名包含) | mimeStartsWith(MIME 前缀)
+model CategoryRule {
+  id             String   @id @default(cuid())
+  spaceId        String
+  ownerId        String
+  matchType      String // extension | nameContains | mimeStartsWith
+  pattern        String // 与 matchType 对应的匹配串（小写比对）
+  targetCategory String // 命中后归入的分类（建议取 ASSET_CATEGORIES，允许自定义）
+  priority       Int      @default(0) // 数值越大越优先；同空间内按 priority 降序匹配
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, matchType, pattern])
+  @@index([spaceId])
+  @@map("category_rules")
+}
+
+// 资产版本快照
+model AssetVersion {
+  id         String   @id @default(cuid())
+  assetId    String
+  storageKey String
+  size       Int      @default(0)
+  note       String?
+  createdAt  DateTime @default(now())
+  asset      Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_versions")
+  @@index([assetId])
+}
+
+// 外链分享（有效期/密码）
+model ShareLink {
+  id        String    @id @default(cuid())
+  assetId   String
+  token     String    @unique
+  expireAt  DateTime?
+  // password 为 bcrypt hash，可空（无密码）
+  password  String?
+  // permission: view | download
+  permission String   @default("view")
+  // 访问审计：最近一次取回/下载时间、累计访问次数
+  accessedAt   DateTime?
+  accessedCount Int      @default(0)
+  createdAt DateTime  @default(now())
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("share_links")
+  @@index([assetId])
+}
+
+// ===================== 远程提取·分级授权 =====================
+
+// 执行实例（替代桌面版 device）：绑定到账号的 Worker 节点
+model ExecInstance {
+  id            String    @id @default(cuid())
+  ownerId       String
+  name          String
+  fingerprint   String // 实例指纹（机器/容器标识）
+  bound         Boolean   @default(false)
+  boundAt       DateTime?
+  lastHeartbeat DateTime?
+  // status: online | offline
+  status        String    @default("offline")
+  // 实例令牌：实例侧拉取/确认/执行任务时使用（绑定后返回一次）
+  token         String?
+  // 令牌过期时间（null = 永不过期，兼容存量已绑定实例）；新绑定统一设 TTL
+  tokenExpireAt DateTime?
+  // 吊销标记：吊销（如令牌泄漏后解绑）后令牌立即失效
+  revoked       Boolean   @default(false)
+  // 最近一次使用令牌的时间
+  lastUsedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  resourceZones ResourceZone[]
+  fetchJobs     FetchJob[]
+  assetSources  AssetSource[]
+
+  @@map("exec_instances")
+  @@index([ownerId])
+  @@index([fingerprint])
+}
+
+// 受保护资源区（替代桌面版 folder_watch）：登记在实例上的提取源
+model ResourceZone {
+  id              String   @id @default(cuid())
+  instanceId      String
+  spaceId         String
+  sourcePath      String // 服务端受保护目录（或 PC 端本地目录）
+  rulesJson       String? // JSON：类型/正则包含排除/大小上限/去重规则
+  enabled         Boolean  @default(true)
+  // watchMode: always(持续监听) | on_demand(按需·受保护资源区)
+  watchMode       String   @default("on_demand")
+  remoteFetchable Boolean  @default(false) // 是否可被远程指令提取
+  zoneName        String? // 资源区友好名（控制台可见）
+  // fetchScope: specified_zone(指定资源区,默认,最安全) | full_instance(全实例,高危)
+  fetchScope      String   @default("specified_zone")
+  lastScanAt      DateTime?
+  instance        ExecInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  space           Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  fetchJobs       FetchJob[]
+  assetSources    AssetSource[]
+
+  @@map("resource_zones")
+  @@index([instanceId])
+  @@index([spaceId])
+}
+
+// 远程提取任务
+model FetchJob {
+  id              String   @id @default(cuid())
+  instanceId      String
+  resourceZoneId  String
+  spaceId         String
+  requesterId     String
+  // status: pending | dispatched | running | done | failed | rejected
+  status          String   @default("pending")
+  requireConfirm  Boolean  @default(true)
+  stepUpVerified  Boolean  @default(false) // 二次验证是否通过
+  requestedAt     DateTime @default(now())
+  dispatchedAt    DateTime?
+  finishedAt      DateTime?
+  resultCount     Int      @default(0)
+  errorMsg        String?
+  instance        ExecInstance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  resourceZone    ResourceZone @relation(fields: [resourceZoneId], references: [id], onDelete: Cascade)
+  space           Space        @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@map("fetch_jobs")
+  @@index([instanceId, status])
+  @@index([requesterId])
+}
+
+// 本地文件 ↔ 库资产映射与同步状态
+model AssetSource {
+  id              String   @id @default(cuid())
+  assetId         String
+  instanceId      String
+  resourceZoneId  String?
+  localPath       String
+  // syncState: pending | synced | conflict
+  syncState       String   @default("pending")
+  localChecksum   String?
+  localMtime      BigInt? // 毫秒时间戳（本地文件修改时间，使用 BigInt 以容纳 13 位毫秒值）
+  asset           Asset       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  instance        ExecInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  resourceZone    ResourceZone? @relation(fields: [resourceZoneId], references: [id], onDelete: SetNull)
+
+  @@map("asset_sources")
+  @@index([instanceId, localPath])
+  @@index([assetId])
+}
+
+// 桌面宠物（QQ宠物式陪伴）：状态随时间衰减，互动恢复。支持多宠物。
+model Pet {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String   @default("豆豆")
+  species     String   @default("cat") // cat | dog | blob
+  level       Int      @default(1)
+  exp         Int      @default(0)
+  hunger      Int      @default(80) // 0-100
+  mood        Int      @default(80) // 0-100
+  clean       Int      @default(80) // 0-100
+  energy      Int      @default(80) // 0-100
+  coins       Int      @default(0)
+  lastCheckinDate String @default("") // 最近签到日期 YYYY-MM-DD（本地时区）
+  checkinStreak   Int    @default(0)  // 连续签到天数
+  checkinTotal    Int    @default(0)  // 累计签到天数
+  lastUpdated DateTime @default(now())
+  // 已装备装扮（JSON 字符串：{ hat, glasses, collar, toy, background }，各存 itemKey 或 null）
+  equipped    String   @default("{}")
+  // 自定义桌宠形象：用户上传照片经 rembg 抠图后的 PNG base64（透明背景），24小时有效
+  customSprite      String?
+  customSpriteExpireAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pets")
+  @@index([userId])
+}
+
+// ============ 宠物装扮持有记录（用户购买后拥有的商品） ============
+model PetOwnedItem {
+  id        String   @id @default(cuid())
+  userId    String // 仅标量字段，按 userId 直接查询，避免改动 User 模型
+  itemKey   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemKey])
+  @@map("pet_owned_items")
+  @@index([userId])
+}
+
+// ============ 桌面便签（PC 端浮动便签） ============
+model StickyNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @default("") // 便签文本（空字符串=空白便签）
+  color     String   @default("yellow") // yellow | pink | blue | green | purple | orange
+  // 桌面坐标 / 尺寸（像素，相对于屏幕；浮窗与完整页共用同一坐标体系）
+  x         Int      @default(80)
+  y         Int      @default(120)
+  w         Int      @default(220)
+  h         Int      @default(180)
+  z         Int      @default(1) // 叠放层级
+  pinned    Boolean  @default(false) // 置顶
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sticky_notes")
+  @@index([userId])
+}
+
+// ============ 桌面动态壁纸配置（每用户唯一） ============
+model WallpaperSetting {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled   Boolean  @default(false) // 是否在桌面端启用动态壁纸
+  theme     String   @default("aurora") // aurora | bubbles | gradient | starfield | pet
+  speed     Int      @default(50) // 动画速度 0-100
+  opacity   Int      @default(70) // 整体不透明度 0-100
+  showPet   Boolean  @default(true) // 壁纸上是否显示宠物漫游
+  updatedAt DateTime @updatedAt
+
+  @@map("wallpaper_settings")
+}
+
+
+
+
+// ============ Windows 桌面端版本发布（在线更新 API 数据源） ============
+model WindowsRelease {
+  id           String   @id @default(cuid())
+  version      String   @unique            // "1.0.6" semver
+  isLatest     Boolean  @default(false)     // current latest (only one true)
+  sizeMB       Float                      // Setup.exe size
+  setupUrl     String                     // Setup.exe download URL
+  portableUrl  String?                    // Portable.exe URL (optional)
+  setupSha256  String                     // Setup.exe SHA256 (uppercase)
+  notes        String   @default("")       // release notes (Markdown)
+  forceUpdate  Boolean  @default(false)    // force update flag
+  publishedAt  DateTime @default(now())
+
+  @@map("windows_releases")
+}
