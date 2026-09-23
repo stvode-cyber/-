@@ -7,14 +7,14 @@ Electron 桌面端（Windows）+ React 18 + Node.js/Express + Prisma/MySQL，本
 
 ## 当前状态
 - **版本**：v1.0.6（内测中）
-- **Git**：main 分支，commit `30e2542`，remote = git@github.com:stvode-cyber/APP-AIE.git（**本地已配但远端仓库还没建，正在建**）
+- **Git**：main 分支，最新 commit `a490a83`，remote = **git@github.com:stvode-cyber/-.git**（已 push 成功）
 - **服务器**：47.116.59.141，pm2 aie-backend（3100 端口，online）
 - **后端日志**：windows-version API 调用日志已生效 + X-Forwarded-For 真实 IP
 
 ## 远程资源清单
 | 资源 | URL/位置 | 状态 | 备注 |
 |------|---------|------|------|
-| GitHub | git@github.com:stvode-cyber/APP-AIE.git | 🟡 本地 remote 已配，远端仓库待建 | SSH key 在 C:\Users\Administrator\.ssh\id_rsa |
+| GitHub | git@github.com:stvode-cyber/-.git | ✅ 已 push | 仓库名是 `-`（自动化失败 + 误输入，保持原名），SSH key 在 C:\Users\Administrator\.ssh\id_rsa |
 | 云端 API | https://47.116.59.141/api/v1 | ✅ 在线 | nginx greenrhino-cloud-ssl.conf，已补 X-Forwarded-For |
 | 下载链接 | https://47.116.59.141/apk/lvjiaoxi-setup-1.0.6.exe | ✅ 生效 | 301 跳 HTTPS，软链接 lvjiaoxi-setup/portable-1.0.6 |
 | APK 目录 | 服务器 /apk/ | ✅ 已清理（1.2G→326M） | 旧 v1.0.2 + 历史备份已删 |
@@ -45,9 +45,9 @@ lsattr /etc/nginx/conf.d/*.conf   # 查 immutable 锁
 - 所有文件改动记录在 .trae/memory/growth/
 
 ## 下一步
-- [ ] **GitHub 仓库 stvode-cyber/APP-AIE 创建**（正在等 device code C49F-7D3D 授权 → API 建仓库 → git push）
 - [ ] 等同事内测反馈（更新检查按钮 + DEV 一键登录）
 - [ ] 清理服务器旧 nginx conf 备份（greenrhino-cloud.conf.bak.* 等 15 份）
+- [ ] （可选）后续把仓库名从 `-` 改成 APP-AIE（Settings → Repository name）
 
 ## 最近踩坑标签
-#编码修复 #GS-002 #nginx #PS5.1 #immutable锁 #记忆错位 #GH-auth #device-code
+#编码修复 #GS-002 #nginx #PS5.1 #immutable锁 #记忆错位 #CDP #Chrome #bot防护 #device-code #user-data-dir
