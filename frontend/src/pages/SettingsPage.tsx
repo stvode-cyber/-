@@ -3,7 +3,7 @@ import {
   ChevronRight, Shield, Award, Info, Trash2, User, MessageSquare, LogOut, SunMoon, DatabaseBackup, ShieldCheck,
   ListTodo, UtensilsCrossed, Bell, Clock, Coins, Wallet, Sparkles, FolderOpen, ClipboardList, Puzzle, Mic, Radio,
   PawPrint, Timer, Flame, BarChart3, CalendarCheck, StickyNote, Image as ImageIcon, Smartphone, Brain,
-  Server,
+  Server, Team,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Header from '../components/Header'
@@ -160,6 +160,13 @@ export default function SettingsPage() {
         { to: '/settings/vault', icon: Brain, label: 'AI 记忆库', desc: 'AI 记住的你的资料 · 可管理' },
         { to: '/pet', icon: PawPrint, label: '我的宠物', desc: '桌面陪伴 · 互动小游戏' },
         { to: '/horoscope', icon: Sparkles, label: '趣味占卜', desc: '星座 · 八卦 · 八字 · 配对' },
+      ],
+    },
+    {
+      title: '功能 · 团队协作',
+      items: [
+        { to: '/team/tasks', icon: ClipboardList, label: '团队任务', desc: '分配 · 流转 · 逾期提醒' },
+        { to: '/team/settings', icon: Team, label: '团队设置', desc: '成员角色 · 部门管理 · 任务转移' },
       ],
     },
     {

@@ -6,6 +6,7 @@ import {
   LogOut, Bell, ChevronLeft,
   Command, Sun,
   ShieldCheck, ChevronDown, Camera,
+  Team, ClipboardList,
 } from 'lucide-react'
 // LogOut 仅用于顶栏用户菜单中的退出登录入口
 import { useAuthStore } from '../stores/auth'
@@ -46,6 +47,13 @@ const NAV_GROUPS: NavGroup[] = [
       { to: '/chat', label: '对话', icon: MessageCircle },
       { to: '/community', label: '好友/社区', icon: Users },
       { to: '/profile', label: '我的', icon: User },
+    ],
+  },
+  {
+    title: '团队',
+    items: [
+      { to: '/team/tasks', label: '团队任务', icon: ClipboardList },
+      { to: '/team/settings', label: '团队设置', icon: Team },
     ],
   },
 ]
