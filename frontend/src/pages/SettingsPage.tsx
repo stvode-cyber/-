@@ -1,9 +1,9 @@
-import { Link, useNavigate } from 'react-router-dom'
+﻿import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronRight, Shield, Award, Info, Trash2, User, MessageSquare, LogOut, SunMoon, DatabaseBackup, ShieldCheck,
   ListTodo, UtensilsCrossed, Bell, Clock, Coins, Wallet, Sparkles, FolderOpen, ClipboardList, Puzzle, Mic, Radio,
   PawPrint, Timer, Flame, BarChart3, CalendarCheck, StickyNote, Image as ImageIcon, Smartphone, Brain,
-  Server, Team,
+  Server, Group,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Header from '../components/Header'
@@ -166,7 +166,7 @@ export default function SettingsPage() {
       title: '功能 · 团队协作',
       items: [
         { to: '/team/tasks', icon: ClipboardList, label: '团队任务', desc: '分配 · 流转 · 逾期提醒' },
-        { to: '/team/settings', icon: Team, label: '团队设置', desc: '成员角色 · 部门管理 · 任务转移' },
+        { to: '/team/settings', icon: Group, label: '团队设置', desc: '成员角色 · 部门管理 · 任务转移' },
       ],
     },
     {
@@ -271,4 +271,5 @@ export default function SettingsPage() {
     </div>
   )
 }
+
 
