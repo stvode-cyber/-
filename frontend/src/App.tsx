@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate, useLocation, useSearchParams, Outlet, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useSearchParams, Outlet, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './stores/auth'
 import { useHeartbeat } from './hooks/useHeartbeat'
@@ -212,8 +212,6 @@ export default function App() {
             <Route path="/preview-separator" element={<PreviewSeparatorPage />} />
             {/* 合规协议页：未登录也可访问（注册流程需展示） */}
             <Route path="/terms" element={<TermsPage />} />
-<Route path="/team/tasks" element={<TeamTasksPage />} />
-<Route path="/team/settings" element={<TeamSettingsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
@@ -305,6 +303,8 @@ export default function App() {
                 <Route path="/zodiac-match" element={<ZodiacMatchPage />} />
                 <Route path="/weekly-report" element={<WeeklyReportPage />} />
                 <Route path="/office-doc/:id" element={<OfficeDocPage />} />
+                <Route path="/team/tasks" element={<TeamTasksPage />} />
+                <Route path="/team/settings" element={<TeamSettingsPage />} />
                 {/* 合规协议页 */}
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -383,6 +383,8 @@ export default function App() {
               <Route path="/zodiac-match" element={<ZodiacMatchPage />} />
               <Route path="/weekly-report" element={<WeeklyReportPage />} />
               <Route path="/office-doc/:id" element={<OfficeDocPage />} />
+              <Route path="/team/tasks" element={<TeamTasksPage />} />
+              <Route path="/team/settings" element={<TeamSettingsPage />} />
               <Route path="/profile-panel" element={<ProfilePanelPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               {/* 合规协议页 */}
