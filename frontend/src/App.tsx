@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useLocation, useSearchParams, Outlet, useNavigate } from 'react-router-dom'
+﻿import { Routes, Route, Navigate, useLocation, useSearchParams, Outlet, useNavigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './stores/auth'
 import { useHeartbeat } from './hooks/useHeartbeat'
@@ -90,6 +90,8 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 // 合规：用户协议 + 隐私政策纯文本页（未登录也可访问）
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const TeamTasksPage = lazy(() => import('./pages/TeamTasksPage'))
+const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
 
 /** 懒加载路由的加载占位 */
 function RouteFallback() {
@@ -210,6 +212,8 @@ export default function App() {
             <Route path="/preview-separator" element={<PreviewSeparatorPage />} />
             {/* 合规协议页：未登录也可访问（注册流程需展示） */}
             <Route path="/terms" element={<TermsPage />} />
+<Route path="/team/tasks" element={<TeamTasksPage />} />
+<Route path="/team/settings" element={<TeamSettingsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
