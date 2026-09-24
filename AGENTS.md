@@ -14,21 +14,22 @@
 
 ## 台账铁律（每次新对话第一动作，强制执行）
 
-**入场后必须先 Invoke ledger-keeper Skill**（位于 `.trae/skills/ledger-keeper/SKILL.md`），并行 Read 以下 5 份台账文件：
+**入场后必须先 Invoke work-growth-logger Skill**（位于 `.trae/skills/work-growth-logger/SKILL.md`），并行 Read 以下台账文件：
 
-1. `.trae/memory/台账/context.md`         ← 当前状态 + 硬性规则（别再问）
-2. `.trae/memory/台账/issues.md`          ← 踩过的坑（11 条：4 P0 / 5 P1 / 2 P2）
-3. `.trae/memory/台账/decisions.md`       ← 关键决策（7 条 active）
-4. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑（10 条 GS-001~010）
-5. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策（9 条 G-Dc-001~009）
+1. `.trae/memory/growth/handover.md`      ← 当前状态 + 远程资源 + 铁律（30 秒接手）
+2. `.trae/memory/growth/pitfalls.md`      ← 踩过的坑（8 条：5 P0 / 3 P1，持续积累）
+3. `.trae/memory/growth/decisions.md`     ← 关键决策（7 条 active）
+4. `.trae/memory/growth/daily/YYYY-MM-DD.md` ← 当日流水（改了啥 + 踩了啥坑）
+5. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑（10 条 GS-001~010）
+6. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策（9 条 G-Dc-001~009）
 
 读完后**主动用 3-6 条 bullet 贴出提醒**：当前版本 + 进行中任务 + P0/P1 历史坑 + 硬性规则摘要。等用户反馈后再开始处理新需求。
 
-**改文件前强制扫坑**：准备编辑/运行任何具体文件前，必须 Grep issues.md 里的路径匹配，命中历史坑就用 🚨 格式提醒后再动手。
+**改文件前强制扫坑**：准备编辑/运行任何具体文件前，必须 Grep pitfalls.md 里的路径匹配，命中历史坑就用 🚨 格式提醒后再动手。
 
-**提炼归档触发点**：对话 ≥20 条 / 用户说「记台账」 → 把 `.session-memory.md` 提炼进 4 个长期台账 → 清空临时文件。
-
-**预防规则跟着代码走**：issues 里的核心规则已自动写成 `// TODO: [坑标签] 预防：xxx` 注入 17 个关联文件顶部（已打 ✅ 标记的都已落地）。Read 文件时如果看到 TODO，就按里面的预防规则执行。
+**防失忆双铁律**（work-growth-logger 核心规则）：
+1. **关键操作前先查记录**：`git ls-remote` / API 查 / `pm2 list`，查到才算做过
+2. **关键操作后立刻同步**：别等对话结束，改完远程资源（服务器/仓库/数据库）立刻追加 handover.md + daily
 
 ## 技术栈速查
 
@@ -91,6 +92,8 @@ APP-AIE/
 
 8. **回复用大白话**：不说"该方案已验证完毕"、"综上所述"这种套话。直接说"搞定了"、"这里踩了个坑"、"下一步你要拍板一下"。代码和命令输出保持原样，但**给人看的解释性文字全用大白话**，能省就省。
 
+9. **Electron SHA256 必同步**：每次 electron-builder 重新打包后，EXE 的 SHA256 会变（Electron 每次打包产物 SHA 不固定），必须立刻 `sha256sum /usr/share/nginx/html/apk/*.exe` + 更新 SQLite `windows_releases` 表。否则客户端校验 SHA 对不上。
+
 ## 质量基线
 
 - TypeScript strict 零错误
@@ -105,11 +108,15 @@ APP-AIE/
 
 - SSH：`root@47.116.59.141`
 - 后端目录：`/root/backend/`
-- 生产库：`/root/backend/prisma/prod.db`
+- 生产库：`/root/backend/prisma/prod.db`（**SQLite**，不是 MySQL！更新用 `sqlite3 prod.db < update.sql`）
+- GitHub：`git@github.com:stvode-cyber/-.git`（仓库名是短横线，SSH key 在 C:\Users\Administrator\.ssh\id_rsa）
 - PM2：`pm2 aie-backend`（restart / logs，Node 监听 127.0.0.1:3100）
 - 后端在线更新 API：`GET /api/v1/app/windows-version?current=X.Y.Z`（Prisma WindowsRelease model 数据源）
-- Nginx：`/etc/nginx/conf.d/greenrhino-cloud-ssl.conf`（443 location /apk/ 托管安装包 + location / proxy_pass 3100 API）
-公网 API：`https://47.116.59.141/api/v1/app/windows-version?current=X.Y.Z`（返回最新桌面版本 + 下载链接 + SHA256）
+- Nginx：`/etc/nginx/conf.d/greenrhino-cloud-ssl.conf`（443 location /apk/ 托管安装包 → `root /usr/share/nginx/html`，实际路径 `/usr/share/nginx/html/apk/`；location / proxy_pass 3100 API）
+- EXE 托管目录：`/usr/share/nginx/html/apk/`（两个中文文件名 + 两个软链接：`lvjiaoxi-setup-1.0.6.exe` → `绿角犀-Setup-1.0.6.exe`）
+- EXE 传服务器：本地 `scp "electron/release-v*/绿角犀-*.exe" root@47.116.59.141:/usr/share/nginx/html/apk/`
+- 更新 SHA256：服务器 `sha256sum /usr/share/nginx/html/apk/绿角犀-Setup-1.0.6.exe` → 写临时 SQL → `sqlite3 prod.db < update.sql`
+- 公网 API：`https://47.116.59.141/api/v1/app/windows-version?current=X.Y.Z`（返回最新桌面版本 + 下载链接 + SHA256）
 - 备份：本地 `D:\源码存档\助理项目\服务器存档\prod-db-备份\`
 
 ## 交接文档（AI 接手必读，从这里开始）
