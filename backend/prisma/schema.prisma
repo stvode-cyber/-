@@ -99,6 +99,21 @@ model User {
   aiPlan      String? // none | basic | pro
   aiExpiresAt DateTime?
 
+  // ============ 团队跟踪系统（方案 A：任务管理 + 权限归属）============
+  // 团队角色：user（普通成员）| supervisor（部门主管）| boss（老板）
+  employeeRole  String   @default("user")
+  // 所属部门（关联 Department.id）
+  departmentId  String?
+  // 直接上级主管 ID（用于逾期通知链）
+  supervisorId  String?
+
+  // 团队关联
+  assignedTasks  Task[]  @relation("TaskAssignee")
+  // 作为部门主管（leader）
+  departments    Department[]  @relation("DepartmentLeader")
+  // 作为部门成员（多对一，departmentId 为外键）
+  department     Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+
   @@map("users")
 }
 
@@ -415,29 +430,50 @@ model Transaction {
 }
 
 // ============ 任务与日程 ============
+// origin: personal（私人任务，userId=创建人=归属人）| team（团队任务，userId=创建人，assigneeId=归属人）
+// status 扩展：todo → pending，加 paused（已暂停），overdue（系统自动标逾期）
+//   旧 status 值：todo | in_progress | done | cancelled
+//   新 status 值：pending | in_progress | completed | paused | overdue
+//   旧数据迁移：todo→pending, done→completed, cancelled 保留
 model Task {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   description  String?
-  // status: todo | in_progress | done | cancelled
-  status       String   @default("todo")
+  // status: pending（待开始）| in_progress（进行中）| completed（已完成）| paused（已暂停）| overdue（已逾期·系统自动）
+  status       String   @default("pending")
   // priority: low | medium | high | urgent
   priority     String   @default("medium")
   progress     Int      @default(0) // 0-100
   dueDate      DateTime?
   remindAt     DateTime?
   // 标签/分类
-  category     String?  // work | life | finance | custom
+  category     String?  // work | life | finance | custom | team
   tags         String?  // JSON 数组字符串
   important    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // ============ 团队跟踪扩展字段 ============
+  // 来源：personal（私人任务）| team（团队任务）
+  origin       String   @default("personal")
+  // 归属人（可以是别人也可以是自己，默认等于 userId）
+  assigneeId   String?
+  assignee     User?    @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  // 完成时间（status=completed 时自动写入）
+  completedAt  DateTime?
+  // 逾期通知是否已发过（防重复通知）
+  overdueNotified Boolean @default(false)
+  // 备注（执行记录/交接说明等）
+  remark       String?
+
   @@map("tasks")
   @@index([userId])
   @@index([dueDate])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([origin])
 }
 
 // ============ 饮食记录 ============
@@ -1336,4 +1372,20 @@ model WindowsRelease {
   publishedAt  DateTime @default(now())
 
   @@map("windows_releases")
+}
+
+// ============ 团队跟踪系统：部门 ============
+// 管理员创建的组织架构单位。一个部门有一个 leader（主管），可包含多个成员（通过 User.departmentId 关联）。
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  leaderId    String?  // 主管用户 ID（关联 User.employeeRole=supervisor）
+  leader      User?    @relation("DepartmentLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  members     User[]   @relation("DepartmentMembers")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("departments")
+  @@index([leaderId])
 }
