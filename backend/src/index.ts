@@ -1,4 +1,4 @@
-﻿import 'dotenv/config'
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
@@ -50,6 +50,7 @@ import remoteAccessRoutes from './routes/remoteAccess.routes.js'
 import aiRoutes from './routes/ai.routes.js'
 import taskTeamRoutes from './routes/task-team.routes.js'
 import teamRoutes from './routes/team.routes.js'
+import pmRoutes from './routes/pm.routes.js'
 import { initRemoteFileServer } from './services/remoteFileServer.js'
 import { startCountdownScheduler } from './utils/countdown.lib.js'
 import { startMorningGreetingScheduler } from './utils/morningGreeting.lib.js'
@@ -143,6 +144,7 @@ app.use('/api/v1/remote-access', remoteAccessRoutes)
 app.use('/api/v1/ai', aiRoutes)
 app.use('/api/v1/task-team', taskTeamRoutes)
 app.use('/api/v1/team', teamRoutes)
+app.use('/api/v1/pm', pmRoutes)
 
 // 独立管理后台网页（云端浏览器访问）：后端静态托管 /admin
 // - 管理页构建产物由 admin-vite.config.ts 输出到 frontend/admin-dist，

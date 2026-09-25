@@ -1,4 +1,4 @@
-﻿import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   ChevronRight, Shield, Award, Info, Trash2, User, MessageSquare, LogOut, SunMoon, DatabaseBackup, ShieldCheck,
   ListTodo, UtensilsCrossed, Bell, Clock, Coins, Wallet, Sparkles, FolderOpen, ClipboardList, Puzzle, Mic, Radio,
@@ -140,6 +140,7 @@ export default function SettingsPage() {
       items: [
         { to: '/finance', icon: Coins, label: '财务记账', desc: '收支流水 · 分类统计' },
         { to: '/wallet', icon: Wallet, label: '我的钱包', desc: '余额 · 充值 · 流水明细' },
+        { to: '/pm', icon: BarChart3, label: '项目账款', desc: '采购→销售→收付款→发票全链路' },
       ],
     },
     {

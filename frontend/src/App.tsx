@@ -92,6 +92,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const TeamTasksPage = lazy(() => import('./pages/TeamTasksPage'))
 const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
+const PMBoardPage = lazy(() => import('./pages/PMBoardPage'))
 
 /** 懒加载路由的加载占位 */
 function RouteFallback() {
@@ -305,6 +306,7 @@ export default function App() {
                 <Route path="/office-doc/:id" element={<OfficeDocPage />} />
                 <Route path="/team/tasks" element={<TeamTasksPage />} />
                 <Route path="/team/settings" element={<TeamSettingsPage />} />
+                <Route path="/pm" element={<PMBoardPage />} />
                 {/* 合规协议页 */}
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -385,6 +387,7 @@ export default function App() {
               <Route path="/office-doc/:id" element={<OfficeDocPage />} />
               <Route path="/team/tasks" element={<TeamTasksPage />} />
               <Route path="/team/settings" element={<TeamSettingsPage />} />
+              <Route path="/pm" element={<PMBoardPage />} />
               <Route path="/profile-panel" element={<ProfilePanelPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               {/* 合规协议页 */}

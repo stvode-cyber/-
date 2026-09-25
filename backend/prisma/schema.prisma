@@ -113,6 +113,8 @@ model User {
   departments    Department[]  @relation("DepartmentLeader")
   // 作为部门成员（多对一，departmentId 为外键）
   department     Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  // PM 项目订单账款
+  pmProjects     Project[]
 
   @@map("users")
 }
@@ -1388,4 +1390,85 @@ model Department {
 
   @@map("departments")
   @@index([leaderId])
+
+  projects Project[]  // PM 项目（可选，不强制）
+}
+
+// ============ 项目订单账款管理（PM） ============
+// 采购→销售→收付款→发票 全链路追踪，按用户隔离，支持多部门
+model Project {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId   String?
+  department     Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  name           String          // 项目名称
+  client         String          // 客户名称
+  contractNo     String?         // 合同号
+  productType    String?         // 产品类型
+  purchaseAmount Float           @default(0)  // 采购额（成本）
+  saleAmount     Float           @default(0)  // 销售额（收入）
+  note           String?         // 备注
+  status         String          @default("active")  // active | done | cancelled
+  sample         Boolean         @default(false)
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  payments       Payment[]
+  receipts       Receipt[]
+  invoices       Invoice[]
+
+  @@map("pm_projects")
+  @@index([userId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_payments")
+  @@index([projectId])
+  @@index([date])
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_receipts")
+  @@index([projectId])
+  @@index([date])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   // in = 进项（成本侧） | out = 销项（收入侧）
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_invoices")
+  @@index([projectId])
+  @@index([type])
+  @@index([date])
 }

@@ -1,4 +1,4 @@
-﻿import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import {
   Home, MessageCircle, Users, User,
@@ -6,7 +6,7 @@ import {
   LogOut, Bell, ChevronLeft,
   Command, Sun,
   ShieldCheck, ChevronDown, Camera,
-  Group, ClipboardList,
+  Group, ClipboardList, BarChart3,
 } from 'lucide-react'
 // LogOut 仅用于顶栏用户菜单中的退出登录入口
 import { useAuthStore } from '../stores/auth'
@@ -54,6 +54,12 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/team/tasks', label: '团队任务', icon: ClipboardList },
       { to: '/team/settings', label: '团队设置', icon: Group },
+    ],
+  },
+  {
+    title: '财务',
+    items: [
+      { to: '/pm', label: '项目账款', icon: BarChart3 },
     ],
   },
 ]

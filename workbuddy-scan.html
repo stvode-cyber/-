@@ -1,0 +1,2776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#7c5cff">
+<title>项目订单汇总管理台</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1b1e2b; --muted:#6b7280;
+    --purple:#7c5cff; --purple2:#a78bfa; --purple-soft:#f0ecff;
+    --green:#16a34a; --green-soft:#e8f7ee;
+    --blue:#2563eb; --blue-soft:#e8effd;
+    --red:#e5484d; --red-soft:#fdecec;
+    --amber:#d97706; --amber-soft:#fdf3e3;
+    --panel:#fbfbfe;
+    --border:#e6e8f0; --shadow:0 1px 3px rgba(27,30,43,.06),0 8px 24px rgba(27,30,43,.05);
+    --grad:linear-gradient(135deg,#7c5cff,#a78bfa);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:15px; line-height:1.6;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:15px}
+  input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink);outline:none}
+  svg{flex:none}
+
+  /* ---------- 布局骨架 ---------- */
+  .app{display:flex;min-height:100vh}
+  main{flex:1;min-width:0;padding:20px;max-width:1280px;margin:0 auto;width:100%}
+  .tab{display:none}
+  .tab.active{display:block}
+
+  /* 侧边栏（电脑） */
+  .sidebar{display:none;width:216px;flex:none;background:var(--card);border-right:1px solid var(--border);padding:22px 14px;position:sticky;top:0;height:100vh;flex-direction:column;gap:6px}
+  .brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px}
+  .brand .logo{width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff}
+  .brand b{font-size:16px}
+  .brand small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+  .navbtn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 12px;border-radius:10px;color:var(--muted);font-size:15px;min-height:44px;text-align:left}
+  .navbtn:hover{background:#f3f4fa}
+  .navbtn.active{background:var(--purple-soft);color:var(--purple);font-weight:600}
+  .side-foot{margin-top:auto;padding:10px 12px;color:var(--muted);font-size:12px;border-top:1px solid var(--border)}
+
+  /* 顶部导航（平板） */
+  .topnav{display:none;position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .topnav-inner{display:flex;align-items:center;gap:8px;max-width:1080px;margin:0 auto;padding:10px 18px;overflow-x:auto}
+
+  /* 底部 Tab（手机） */
+  .bottombar{display:none;position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom)}
+  .bottombar-inner{display:grid;grid-template-columns:repeat(4,1fr)}
+  .bb-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;color:var(--muted);font-size:11px;min-height:52px}
+  .bb-btn.active{color:var(--purple);font-weight:600}
+
+  @media(min-width:768px){
+    .topnav{display:block}
+    main{padding:26px}
+  }
+  @media(min-width:1024px){
+    .sidebar{display:flex}
+    .topnav{display:none}
+    main{padding:30px 34px}
+  }
+
+  /* ---------- 通用组件 ---------- */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px}
+  .card + .card{margin-top:14px}
+  .card-title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;margin-bottom:12px}
+  .card-title .ic{color:var(--purple)}
+  .card-title .spacer{flex:1}
+  .muted{color:var(--muted)}
+  .small{font-size:12.5px}
+  .money{font-variant-numeric:tabular-nums;font-weight:600}
+  .m-green{color:var(--green)} .m-red{color:var(--red)} .m-amber{color:var(--amber)} .m-purple{color:var(--purple)} .m-blue{color:var(--blue)}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:10px 16px;border-radius:11px;font-weight:600;transition:transform .05s,box-shadow .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(124,92,255,.35)}
+  .btn-ghost{background:var(--purple-soft);color:var(--purple)}
+  .btn-plain{background:#f3f4fa;color:var(--ink)}
+  .btn-danger{background:var(--red-soft);color:var(--red)}
+  .btn:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+  .btn-sm{position:relative;min-height:36px;padding:5px 11px;font-size:13px;border-radius:9px}
+  .btn-sm::after{content:"";position:absolute;inset:-4px}
+  .btn-full{width:100%}
+
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+  .field label{font-size:12.5px;color:var(--muted);font-weight:600}
+  .field input,.field select,.field textarea{border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;background:#fbfbfe;width:100%}
+  .field input:focus,.field select:focus{border-color:var(--purple)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .excel-range{grid-template-columns:1fr 1fr}
+  .excel-range.single{grid-template-columns:1fr}
+  @media(min-width:768px){.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}}
+
+  .chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+  .chip-red{background:var(--red-soft);color:var(--red)}
+  .chip-green{background:var(--green-soft);color:var(--green)}
+  .chip-amber{background:var(--amber-soft);color:var(--amber)}
+  .chip-purple{background:var(--purple-soft);color:var(--purple)}
+  .chip-gray{background:#f1f2f7;color:var(--muted)}
+
+  /* 部门选择条（四个板块上方，始终可见） */
+  .company-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
+  .company-bar .cb-lab{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--purple);flex:none}
+  .company-bar .cb-sel{flex:1;min-width:140px;max-width:340px;padding:8px 10px;font-size:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--panel);color:var(--ink);outline:none;cursor:pointer}
+
+  /* 首屏 Hero */
+  .today-hero{background:var(--grad);border-radius:18px;color:#fff;padding:20px;box-shadow:0 8px 26px rgba(124,92,255,.35);margin-bottom:14px}
+  .today-hero h2{font-size:20px;margin-bottom:2px}
+  .today-hero p{font-size:13px;opacity:.9}
+  .hero-btns{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .hero-btns .btn{background:rgba(255,255,255,.18);color:#fff;backdrop-filter:blur(4px)}
+  .hero-btns .btn.primary{background:#fff;color:var(--purple)}
+
+  /* 项目列表 */
+
+  .proj-item{display:flex;align-items:flex-start;gap:12px;padding:14px;border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background:#fff;transition:box-shadow .15s}
+  .proj-item:hover{box-shadow:var(--shadow)}
+  .proj-main{flex:1;min-width:0}
+  .proj-name{font-weight:700;word-break:break-all;cursor:pointer}
+  .proj-name:hover{color:var(--purple)}
+  .proj-meta{font-size:12.5px;color:var(--muted);margin-top:2px;word-break:break-all}
+  .proj-amounts{display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:13px}
+  .proj-acts{display:flex;gap:6px;flex:none}
+  .iconbtn{position:relative;width:38px;height:38px;min-height:38px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);background:#f3f4fa}
+  .iconbtn::after{content:"";position:absolute;inset:-4px}
+  .iconbtn.danger{color:var(--red);background:var(--red-soft)}
+  .iconbtn.purple{color:var(--purple);background:var(--purple-soft)}
+  .iconbtn:hover{filter:brightness(.96)}
+
+  /* 快速录入：付款/收款多行 */
+  .qrow{display:grid;grid-template-columns:1fr 1fr 36px;gap:8px;align-items:center;margin-bottom:8px}
+  .qrow input{border:1.5px solid var(--border);border-radius:10px;padding:9px 10px;background:#fbfbfe;width:100%}
+  .qrow .qdel{width:36px;height:36px;min-height:36px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--red);background:var(--red-soft)}
+  .qrow-add{display:inline-flex;align-items:center;gap:6px;color:var(--purple);font-size:13.5px;font-weight:600;padding:6px 4px;min-height:44px}
+  .sub-block{border:1.5px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:12px}
+  .sub-block .sub-title{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;margin-bottom:9px}
+
+  /* 看板 */
+  .board-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .board-sum .bs{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px 12px;min-width:0}
+  .board-sum .bs-l{font-size:11px;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .board-sum .bs-v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .board-sum .bs-v.warn{color:#ffe08a}
+  @media(max-width:600px){.board-sum{grid-template-columns:1fr 1fr}.board-sum .bs-v{font-size:15px}}
+  @media(min-width:1024px){.board-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.board-grid .card + .card{margin-top:0}}
+  .ring-row{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:8px 0 4px}
+  .ring-wrap{display:flex;align-items:center;gap:10px}
+  .ring-box{position:relative;width:64px;height:64px}
+  .ring-box svg{transform:rotate(-90deg)}
+  .ring-label{font-size:12px;color:var(--muted)}
+  .ring-label b{display:block;font-size:14px;color:var(--ink)}
+  .rec-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13.5px}
+  .rec-item:last-child{border-bottom:none}
+  .rec-date{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+  .rec-amount{font-weight:700;flex:none;font-variant-numeric:tabular-nums}
+  .rec-note{flex:1;min-width:0;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rec-del{position:relative;width:30px;height:30px;min-height:30px;border-radius:8px;color:var(--muted);flex:none;display:inline-flex;align-items:center;justify-content:center}
+  .rec-del::after{content:"";position:absolute;inset:-7px}
+  .rec-del:hover{color:var(--red);background:var(--red-soft)}
+  .rec-edit{position:relative;width:30px;height:30px;min-height:30px;border-radius:8px;color:var(--muted);flex:none;display:inline-flex;align-items:center;justify-content:center}
+  .rec-edit::after{content:"";position:absolute;inset:-7px}
+  .rec-edit:hover{color:var(--purple);background:var(--purple-soft)}
+  /* 汇总板块·期间明细（含工厂合同号） */
+  .range-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .range-list{margin-top:6px}
+  .rec-cno{flex:none;font-size:12px;font-weight:700;color:var(--purple);background:var(--purple-soft);border-radius:6px;padding:2px 7px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .rec-tag{color:var(--muted);font-size:12.5px}
+  .rec-add{margin-top:6px}
+  .rec-add-btn{width:100%;border:1px dashed var(--bd);color:var(--muted);background:transparent}
+  .rec-add-btn:hover{color:var(--purple);border-color:var(--purple);background:var(--purple-soft)}
+
+  /* 历史输入联想（新建下单 / 编辑项目 的文本字段） */
+  .field-ac{position:relative}
+  .ac-panel{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:60;background:#fff;border:1px solid var(--border);
+    border-radius:12px;box-shadow:0 10px 28px rgba(20,22,35,.13);padding:5px;max-height:216px;overflow:auto;display:none}
+  .ac-panel.show{display:block}
+  .ac-hint{font-size:11px;color:var(--muted);padding:4px 9px 5px;display:flex;align-items:center;gap:5px}
+  .ac-item{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:8px;cursor:pointer;font-size:13.5px;line-height:1.35}
+  .ac-item:hover,.ac-item.on{background:var(--purple-soft)}
+  .ac-txt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ac-item mark{background:transparent;color:var(--purple);font-weight:700;padding:0}
+  .ac-sub{flex:none;font-size:11.5px;color:var(--muted);background:var(--bg);border-radius:999px;padding:1px 7px;max-width:130px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ac-item.on .ac-sub{background:#fff}
+  .ac-tip{font-size:11.5px;color:var(--muted);display:block;margin-top:4px}
+
+  /* 汇总 */
+  .sum-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(min-width:768px){.sum-cards{grid-template-columns:repeat(4,1fr)}}
+  .sum-card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px}
+  .sum-card .lab{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .sum-card .val{font-size:20px;font-weight:800;margin-top:4px;font-variant-numeric:tabular-nums}
+  .sum-card .val.small{font-size:16px}
+  .sum-group{border:1px solid var(--border);border-radius:16px;padding:13px 13px 15px;margin-bottom:12px;background:rgba(255,255,255,.55)}
+  .sum-group .g-title{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:800;margin-bottom:10px}
+  .sum-group .g-title .g-ic{width:22px;height:22px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .sum-group .g-title .g-sub{font-size:11.5px;font-weight:500;color:var(--muted);padding:1px 8px;border-radius:999px;background:var(--bg)}
+  .sum-group .g-title .g-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent);margin-left:2px}
+  .sum-group .sum-cards{gap:8px}
+  @media(min-width:768px){.sum-group .sum-cards{grid-template-columns:repeat(3,1fr)}}
+  /* 合计报表分组行：三组竖向排列，每组独占一行 */
+  .sum-row{display:grid;grid-template-columns:1fr;gap:12px}
+  .sum-row + .sum-row{margin-top:12px}
+  .sum-row .sum-group{margin-bottom:0}
+  @media(min-width:768px){.sum-row-wide .sum-cards{grid-template-columns:repeat(2,1fr)}}
+  .total-bar{background:var(--grad);border-radius:14px;color:#fff;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+  .total-bar .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+  table.rpt{width:100%;border-collapse:collapse;font-size:13.5px}
+  table.rpt th{text-align:left;color:var(--muted);font-size:12.5px;padding:8px 6px;border-bottom:2px solid var(--border);white-space:nowrap}
+  .proj-select-bar.rpt-sel-bar{padding:2px 2px 10px}
+  table.rpt th.m-purple{color:var(--purple)} table.rpt th.m-green{color:var(--green)} table.rpt th.m-red{color:var(--red)}
+  table.rpt td{padding:9px 6px;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums}
+  table.rpt tr:last-child td{border-bottom:none}
+  table.rpt tr.rpt-click{cursor:pointer}
+  table.rpt tr.rpt-click:hover td{background:var(--purple-soft)}
+  table.rpt tr.rpt-click.sel td{background:var(--purple-soft)}
+  table.rpt .rpt-act{white-space:nowrap}
+  table.rpt .rpt-act .rpt-detail{border:1px solid var(--purple);color:var(--purple);background:transparent;font-size:12px;padding:2px 10px;border-radius:999px;cursor:pointer;transition:all .15s}
+  table.rpt .rpt-act .rpt-detail:hover{background:var(--purple);color:#fff}
+  table.rpt .r{text-align:right}
+  /* 汇总报表：表格区域自身可滚动，表头吸附在滚动区顶部（横向滚动时表头与数据同步移动） */
+  .table-scroll{overflow:auto;max-height:min(66vh, 620px)}
+  /* 付款计划：比例输入框 */
+  .pp-input{width:74px;padding:5px 6px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;text-align:center;font-variant-numeric:tabular-nums;background:var(--card);color:var(--txt)}
+  .pp-input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+  .pp-in-g:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+  table.rpt thead th{position:sticky;top:0;z-index:5;background:var(--card);box-shadow:0 1px 0 var(--border)}
+  .day-total{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .range-quick{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+  .rq-btn{cursor:pointer;padding:5px 12px;border:none;font-size:12.5px;transition:opacity .15s;background:#f3f4fa;color:var(--muted)}
+  .rq-btn:hover{opacity:.75}
+  .rq-btn.chip-purple{background:var(--purple-soft);color:var(--purple)}
+  .range-title{font-size:13px;color:var(--muted);margin-top:10px}
+  .range-title b{color:var(--ink)}
+  .proj-filter{display:flex;gap:8px;margin:2px 0 12px;flex-wrap:wrap}
+  /* 项目多选工具条 */
+  .proj-select-bar{display:flex;align-items:center;gap:12px;padding:6px 2px 12px;flex-wrap:wrap}
+  .sel-all{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;user-select:none}
+  .sel-all input,.proj-sel input{width:16px;height:16px;accent-color:var(--purple);cursor:pointer;vertical-align:middle}
+  .proj-sel{flex:none;margin-top:13px;cursor:pointer;line-height:0}
+  .proj-sel:hover input{outline:2px solid var(--purple-soft);outline-offset:2px;border-radius:4px}
+  .search-box{flex:1;position:relative;min-width:0}
+  .search-box svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none}
+  .search-box input{width:100%;padding:10px 12px 10px 32px;font-size:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--panel);color:var(--ink);outline:none;transition:border-color .15s}
+  .search-box input:focus{border-color:var(--purple)}
+  .search-box input.active{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+  .pf-group{display:flex;align-items:center;gap:6px;flex:none}
+  .pf-lbl{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;transition:color .15s}
+  .pf-group.active .pf-lbl{color:var(--purple)}
+  .pf-sel{padding:9px 10px;font-size:13.5px;border-radius:10px;border:1.5px solid var(--border);background:var(--panel);color:var(--ink);outline:none;cursor:pointer;flex:none;max-width:200px}
+  .pf-sel.active{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+  /* 汇总工具条「仅看选中」开关按钮：开启时紫色高亮 */
+  .rpt-only-btn.active{border-color:var(--purple);color:var(--purple);background:var(--purple-soft);font-weight:600;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+  .day-pill{background:#f3f4fa;border-radius:10px;padding:8px 12px;font-size:13px}
+  .day-pill b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+
+  /* 我的 */
+  .step-list{counter-reset:step}
+  .step-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px dashed var(--border)}
+  .step-item:last-child{border-bottom:none}
+  .step-num{counter-increment:step;width:30px;height:30px;flex:none;border-radius:50%;background:var(--purple-soft);color:var(--purple);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .step-num::before{content:counter(step)}
+
+  /* 弹窗 */
+  .overlay{position:fixed;inset:0;background:rgba(20,22,35,.45);z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:18px;width:100%;max-width:440px;max-height:86vh;overflow-y:auto;padding:22px}
+  .modal h3{margin-bottom:14px;font-size:17px}
+  .modal-acts{display:flex;gap:10px;margin-top:6px}
+  .modal-acts .btn{flex:1}
+  .excel-pick{flex-direction:column;gap:8px;padding:16px 10px;height:auto;border:1px solid var(--border);background:var(--panel);color:var(--text);align-items:center;box-shadow:none}
+  .excel-pick svg{color:var(--purple)}
+  .excel-pick-all svg{color:var(--blue)}
+  .excel-pick b{font-size:14px}
+  .excel-pick:hover{border-color:var(--purple);background:var(--purple-soft);transform:translateY(-1px)}
+  .excel-pick-all:hover{border-color:var(--blue);background:var(--blue-soft)}
+  .excel-pick-sel{border-color:var(--purple);background:var(--purple-soft)}
+  .excel-pick-sel svg{color:var(--purple)}
+  .excel-pick-sel b{color:var(--purple)}
+  .exp-opts{display:flex;flex-wrap:wrap;gap:8px 18px;padding:2px 2px 0}
+  .exp-opt{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text);cursor:pointer;user-select:none}
+  .exp-opt input{width:16px;height:16px;accent-color:var(--purple);cursor:pointer}
+  .modal-wide{max-width:640px}
+  .modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+  .modal-head h3{margin-bottom:0}
+  .modal-x{flex:none;width:32px;height:32px;min-height:32px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);background:#f3f4fa;border:none;cursor:pointer;transition:color .15s,background .15s}
+  .modal-x:hover{color:var(--red);background:#fdecec}
+  #confirmModal{z-index:150}
+  .modal-confirm{max-width:400px;text-align:center}
+  .confirm-msg{margin:2px 0 18px;line-height:1.75;color:#444;white-space:pre-line;font-size:14px;word-break:break-word}
+  #confirmModal .btn-danger{background:var(--red);color:#fff}
+  .detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .detail-grid .d-item{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+  .detail-grid .d-item .d-lab{font-size:11.5px;color:var(--muted)}
+  .detail-grid .d-item .d-val{font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;word-break:break-all}
+  .detail-sec{margin-bottom:14px}
+  .detail-sec:last-child{margin-bottom:0}
+  .detail-sec .ds-head{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;margin-bottom:7px}
+  .detail-sec .ds-head .ds-ic{width:20px;height:20px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .detail-sec .ds-head .ds-count{font-size:11px;font-weight:600;color:var(--muted);background:var(--bg);padding:1px 8px;border-radius:999px}
+  .detail-list{border:1px solid var(--border);border-radius:12px;padding:5px 9px;max-height:172px;overflow-y:auto}
+  .detail-block{border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;background:#fff}
+  .detail-block .db-head{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:800;margin-bottom:10px}
+  .detail-block .db-head .db-tag{font-size:11px;font-weight:600;color:var(--muted);background:var(--bg);padding:1px 8px;border-radius:999px}
+  .note-input{width:100%;min-height:64px;resize:vertical;border:1.5px solid var(--border);border-radius:10px;padding:9px 11px;background:#fbfbfe;font:inherit;font-size:13px;color:var(--ink);outline:none;box-sizing:border-box}
+  .note-input:focus{border-color:var(--purple)}
+
+  /* Toast */
+  #toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:rgba(27,30,43,.92);color:#fff;padding:10px 18px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:200;max-width:86vw;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(min-width:768px){#toast{bottom:34px}}
+
+  /* 彩带 */
+  .confetti{position:fixed;top:-14px;width:9px;height:14px;z-index:300;pointer-events:none;animation:confetti-fall linear forwards}
+  @keyframes confetti-fall{
+    0%{transform:translateY(0) rotate(0);opacity:1}
+    100%{transform:translateY(105vh) rotate(720deg);opacity:.9}
+  }
+
+  /* 备份提示条 */
+  .backup-tip{display:flex;align-items:center;gap:10px;background:var(--amber-soft);color:var(--amber);border-radius:12px;padding:10px 14px;font-size:13px;margin-bottom:14px}
+  .backup-tip button{color:var(--amber);font-weight:700;text-decoration:underline;min-height:44px}
+
+  .empty{text-align:center;color:var(--muted);padding:22px 10px;font-size:13.5px}
+  .mobile-pad{padding-bottom:76px}
+  @media(min-width:768px){.mobile-pad{padding-bottom:0}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- 电脑侧边栏 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="logo"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+      <div><b>项目订单汇总管理台</b><small>销售 · 下单 · 收付款 · 发票</small></div>
+    </div>
+    <button class="navbtn active" data-tab="new" onclick="switchTab('new')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>新建</button>
+    <button class="navbtn" data-tab="board" onclick="switchTab('board')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>看板</button>
+    <button class="navbtn" data-tab="summary" onclick="switchTab('summary')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="13" y="8" width="3" height="10" rx="1"/></svg>汇总</button>
+    <button class="navbtn" data-tab="payplan" onclick="switchTab('payplan')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>付款计划</button>
+    <button class="navbtn" data-tab="mine" onclick="switchTab('mine')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</button>
+    <div class="side-foot">数据保存在本机浏览器<br>建议定期导出 JSON 备份</div>
+  </aside>
+
+  <!-- 平板顶部导航 -->
+  <header class="topnav">
+    <div class="topnav-inner">
+      <span class="logo" style="width:32px;height:32px;border-radius:9px;background:var(--grad);display:inline-flex;align-items:center;justify-content:center;color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></span>
+      <button class="navbtn active" data-tab="new" onclick="switchTab('new')">新建</button>
+      <button class="navbtn" data-tab="board" onclick="switchTab('board')">看板</button>
+      <button class="navbtn" data-tab="summary" onclick="switchTab('summary')">汇总</button>
+      <button class="navbtn" data-tab="payplan" onclick="switchTab('payplan')">付款计划</button>
+      <button class="navbtn" data-tab="mine" onclick="switchTab('mine')">我的</button>
+    </div>
+  </header>
+
+  <main class="mobile-pad">
+    <!-- 部门选择条：新建 / 看板 / 汇总 / 我的 四个板块上方，多部门区分登记 -->
+    <div class="company-bar">
+      <span class="cb-lab"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M9 13h.01M9 17h.01M15 9h.01M15 13h.01M15 17h.01"/></svg>部门</span>
+      <select id="companySel" class="cb-sel" onchange="switchCompany(this.value)" title="切换部门"></select>
+      <button class="btn btn-sm btn-ghost" onclick="openCompanyModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>新建部门</button>
+      <button class="btn btn-sm btn-plain" onclick="delCompanyFlow()">删除部门</button>
+    </div>
+
+    <!-- ================= Tab 1 新建 ================= -->
+    <section id="tab-new" class="tab active">
+      <div class="today-hero">
+        <h2 id="heroDate">项目订单汇总</h2>
+        <p id="heroSub">下单时即可分开登记每笔付款与收款、登记发票进出项</p>
+        <div class="hero-btns">
+          <button class="btn primary" onclick="focusQuickForm()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>新建下单</button>
+          <button class="btn" onclick="exportJSON()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>导出备份</button>
+          <button class="btn" onclick="document.getElementById('importFile').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 8 5-5 5 5"/><path d="M12 3v12"/></svg>导入恢复</button>
+        </div>
+      </div>
+
+      <div id="backupTip"></div>
+
+      <!-- 新下单快速录入 -->
+      <div class="card" id="quickFormCard">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15h6"/></svg></span>新下单</div>
+        <div class="grid2">
+          <div class="field field-ac" id="quickNoWrap"><label>工厂下单合同号</label><input id="quickNo" type="text" placeholder="如 HT-2026-001" maxlength="40" autocomplete="off" oninput="acInput('quickNo')" onfocus="acInput('quickNo')" onkeydown="acKey('quickNo',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+          <div class="field field-ac" id="quickClientWrap"><label>客户公司名称</label><input id="quickClient" type="text" placeholder="如 XX 科技有限公司" maxlength="50" autocomplete="off" oninput="acInput('quickClient')" onfocus="acInput('quickClient')" onkeydown="acKey('quickClient',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+        </div>
+        <div class="field field-ac" id="quickNameWrap"><label>项目名称</label><input id="quickName" type="text" placeholder="如 A 车间自动化改造" maxlength="50" autocomplete="off" oninput="acInput('quickName')" onfocus="acInput('quickName')" onkeydown="acKey('quickName',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+        <div class="grid2">
+          <div class="field"><label>采购金额 ¥</label><input id="quickPurchase" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" oninput="updateQuickTotals()"></div>
+          <div class="field"><label>销售金额 ¥</label><input id="quickSale" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" oninput="updateQuickTotals()"></div>
+        </div>
+
+        <div class="field field-ac" id="quickProdTypeWrap"><label>产品类型备注</label><input id="quickProdType" type="text" maxlength="100" placeholder="如 自动化设备 / 配电柜 / 货架，可文字备注" autocomplete="off" oninput="acInput('quickProdType')" onfocus="acInput('quickProdType')" onkeydown="acKey('quickProdType',event)" onblur="acBlur()"><span class="ac-tip">输入时下方会列出历史已用过的内容，点击即可选用</span><div class="ac-panel"></div></div>
+
+        <div class="sub-block">
+          <div class="sub-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>每次付款</div>
+          <div id="quickPayRows"></div>
+          <button class="qrow-add" onclick="addQuickRow('pay')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>添加付款</button>
+        </div>
+
+        <div class="sub-block">
+          <div class="sub-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>每次收款</div>
+          <div id="quickRecvRows"></div>
+          <button class="qrow-add" onclick="addQuickRow('recv')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>添加收款</button>
+        </div>
+
+        <div class="sub-block">
+          <div class="sub-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>每次进项发票</div>
+          <div id="quickInvRows"></div>
+          <button class="qrow-add" onclick="addQuickRow('inv')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>添加进项发票</button>
+        </div>
+
+        <div class="sub-block">
+          <div class="sub-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>每次销项发票</div>
+          <div id="quickOutvRows"></div>
+          <button class="qrow-add" onclick="addQuickRow('outv')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>添加销项发票</button>
+        </div>
+
+        <div class="sum-cards" id="quickTotals"></div>
+        <button class="btn btn-primary btn-full" onclick="quickAddProject()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>保存下单</button>
+      </div>
+
+      <!-- 项目订单列表 -->
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span>新下单的合同<span class="spacer"></span><span id="projCount" class="chip chip-purple">0</span></div>
+        <div class="proj-filter">
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="projSearch" type="text" placeholder="搜索合同号 / 项目名 / 客户 / 产品类型" maxlength="30" oninput="renderNew()"></div>
+          <div class="pf-group"><span class="pf-lbl">采购项</span>
+          <select id="projBuyFilter" class="pf-sel" onchange="renderNew()">
+            <option value="all">全部</option>
+            <option value="settle">已结清</option>
+            <option value="paid">已付款</option>
+            <option value="unpaid">未付款</option>
+            <option value="noInv" title="进项发票金额未达采购金额 99.8% 的项目">未开发票</option>
+            <option value="invOk" title="进项发票金额已达采购金额 99.8% 的项目">已开发票</option>
+          </select></div>
+          <div class="pf-group"><span class="pf-lbl">销售项</span>
+          <select id="projSellFilter" class="pf-sel" onchange="renderNew()">
+            <option value="all">全部</option>
+            <option value="settle">已结清</option>
+            <option value="paid">已付款</option>
+            <option value="unpaid">未付款</option>
+            <option value="noInv">未开发票</option>
+            <option value="invOk">已开发票</option>
+          </select></div>
+        </div>
+        <div class="proj-select-bar" id="projSelBar">
+          <label class="sel-all" title="选择当前列表全部项目"><input type="checkbox" id="projSelAll" onchange="toggleSelAll()"> 全选</label>
+          <span class="muted small" id="projSelInfo">已选 0 项</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm btn-danger" id="projSelDel" onclick="delSelectedProjs()" disabled>删除选中</button>
+        </div>
+        <div id="projList"></div>
+      </div>
+
+    </section>
+
+    <!-- ================= Tab 2 看板 ================= -->
+    <section id="tab-board" class="tab">
+      <div class="card" style="background:var(--grad);color:#fff;border:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:13px;opacity:.9">收付款总览</div>
+            <div style="font-size:12px;opacity:.75;margin-top:2px">按当前筛选的项目合计（可搜索过滤后查看）</div>
+          </div>
+          <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff" onclick="switchTab('new');focusQuickForm()">新建项目</button>
+        </div>
+        <div class="board-sum">
+          <div class="bs" title="当前筛选范围内各项目的已付款合计（付给工厂）"><div class="bs-l">已付款给工厂</div><div class="bs-v" id="bPaySum">¥0.00</div></div>
+          <div class="bs" title="各项目「采购金额 − 已付款」的欠款合计，多付项目按 0 计"><div class="bs-l">未付款给工厂</div><div class="bs-v warn" id="bPayDue">¥0.00</div></div>
+          <div class="bs" title="当前筛选范围内各项目的客户已付款合计"><div class="bs-l">客户已付款</div><div class="bs-v" id="bRecvSum">¥0.00</div></div>
+          <div class="bs" title="各项目「销售金额 − 已收款」的欠款合计，多收项目按 0 计"><div class="bs-l">客户未付款</div><div class="bs-v warn" id="bRecvDue">¥0.00</div></div>
+        </div>
+      </div>
+      <div class="proj-filter" style="margin:14px 0 0">
+        <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="boardSearch" type="text" placeholder="搜索合同号 / 项目名 / 客户 / 产品类型" maxlength="30" oninput="renderBoard()"></div>
+        <span id="boardCount" class="chip chip-purple">0</span>
+      </div>
+      <div class="board-grid" style="margin-top:14px" id="boardGrid"></div>
+    </section>
+
+    <!-- ================= Tab 3 汇总 ================= -->
+    <section id="tab-summary" class="tab">
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="13" y="8" width="3" height="10" rx="1"/></svg></span>筛选</div>
+        <div class="range-quick"><span class="muted small">快捷：</span><button class="chip chip-purple rq-btn" onclick="setSumRange('all')">未选择</button><button class="chip rq-btn" onclick="setSumRange('today')">今天</button><button class="chip rq-btn" onclick="setSumRange('30d')">近30天</button></div>
+        <div class="grid2">
+          <div class="field"><label>起始日期</label><input id="sumFrom" type="date" onchange="renderSummary()"></div>
+          <div class="field"><label>截止日期</label><input id="sumTo" type="date" onchange="renderSummary()"></div>
+        </div>
+        <div id="dayTotal"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h8M8 14h5"/></svg></span>合计报表<span class="spacer"></span>
+        </div>
+        <div class="sum-cards" id="sumCards"></div>
+        <div class="proj-filter" style="margin-top:16px">
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="rptSearch" type="text" placeholder="搜索合同号 / 项目名 / 客户 / 产品类型" maxlength="30" oninput="renderSummary()"></div>
+          <div class="pf-group"><span class="pf-lbl">采购项</span>
+          <select id="rptBuyFilter" class="pf-sel" onchange="renderSummary()">
+            <option value="all">全部</option>
+            <option value="settle">已结清</option>
+            <option value="paid">已付款</option>
+            <option value="unpaid">未付款</option>
+            <option value="noInv" title="进项发票金额未达采购金额 99.8% 的项目">未开发票</option>
+            <option value="invOk" title="进项发票金额已达采购金额 99.8% 的项目">已开发票</option>
+          </select></div>
+          <div class="pf-group"><span class="pf-lbl">销售项</span>
+          <select id="rptSellFilter" class="pf-sel" onchange="renderSummary()">
+            <option value="all">全部</option>
+            <option value="settle">已结清</option>
+            <option value="paid">已付款</option>
+            <option value="unpaid">未付款</option>
+            <option value="noInv">未开发票</option>
+            <option value="invOk">已开发票</option>
+          </select></div>
+        </div>
+        <div id="rptCount" class="small muted" style="margin:2px 0 4px"></div>
+        <div class="proj-select-bar rpt-sel-bar" id="rptSelBar">
+          <label class="sel-all" title="选择当前列表全部项目"><input type="checkbox" id="rptSelAll" onchange="toggleRptSelAll()"> 全选</label>
+          <span class="muted small" id="rptSelInfo">已选 0 项</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm" id="rptSelExport" onclick="openExcelModal()" disabled>导出选中</button>
+          <button class="btn btn-sm rpt-only-btn" id="rptSelOnly" onclick="toggleRptOnlySel()" disabled title="只在列表中显示已勾选的项目">仅看选中</button>
+          <button class="btn btn-sm btn-danger" id="rptSelDel" onclick="rptDelSelected()" disabled>删除选中</button>
+        </div>
+        <div class="table-scroll">
+          <table class="rpt" id="rptTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Tab 4 我的 ================= -->
+    <!-- ================= Tab 付款计划 ================= -->
+    <section id="tab-payplan" class="tab">
+      <div class="card" style="background:var(--grad);color:#fff;border:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-size:13px;opacity:.9">付款计划</div>
+            <div style="font-size:15px;font-weight:700">未付清项目自动列入 · 填比例即时算本次金额</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;opacity:.9" id="ppCount">0 个待计划项目</div>
+            <div style="font-size:18px;font-weight:800;font-variant-numeric:tabular-nums" id="ppTotal">本次付款 ¥0.00 · 本次收款 ¥0.00</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="proj-filter" style="margin-top:4px">
+          <div class="search-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="ppSearch" type="text" placeholder="搜索合同号 / 项目名 / 客户 / 产品类型" maxlength="30" oninput="renderPayPlan()"></div>
+        </div>
+        <div id="ppFilterInfo" class="small muted" style="margin:2px 0 4px"></div>
+        <div class="proj-select-bar rpt-sel-bar" id="ppSelBar">
+          <label class="sel-all" title="选择当前列表全部项目"><input type="checkbox" id="ppSelAll" onchange="togglePpSelAll()"> 全选</label>
+          <span class="muted small" id="ppSelInfo">已选 0 项</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm rpt-only-btn" id="ppSelOnly" onclick="togglePpOnlySel()" disabled title="只在列表中显示已勾选的项目">仅看选中</button>
+        </div>
+        <div class="table-scroll">
+          <table class="rpt">
+            <thead>
+              <tr>
+                <th>项目名称</th><th>工厂合同号</th>
+                <th class="r m-purple">采购金额</th><th class="r m-purple">已付款</th><th class="r m-purple">已付款比例</th><th class="r m-red">未付款</th>
+                <th style="text-align:center;color:var(--purple)">付款比例%</th><th class="r m-purple">本次付款金额</th>
+                <th class="r m-green">销售金额</th><th class="r m-green">已收款</th><th class="r m-green">已收款比例</th><th class="r m-red">未收款</th>
+                <th style="text-align:center;color:var(--green)">收款比例%</th><th class="r m-green">本次收款金额</th>
+              </tr>
+            </thead>
+            <tbody id="ppBody"></tbody>
+          </table>
+        </div>
+        <p class="small muted" style="margin-top:10px">只列出尚未结清的项目（未付款 &lt; 0 或未收款 &lt; 0）。<b>已付款比例 / 已收款比例</b>为实际进度（已付款 ÷ 采购金额、已收款 ÷ 销售金额，保留 1 位小数、可超 100%）；「付款比例% / 收款比例%」为您填写的本次计划比例，按采购金额 / 销售金额计算本次金额（例：采购 10,000 填 30% → 本次付款 3,000）；比例即时自动计算并自动保存；点击行可勾选，配合搜索与「仅看选中」聚焦关注的项目；总览合计跟随当前显示列表；本板块不含发票进销项信息。</p>
+      </div>
+    </section>
+    <section id="tab-mine" class="tab">
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></span>数据备份与表格导入</div>
+        <div class="grid2">
+          <div>
+            <button class="btn btn-primary btn-full" onclick="exportJSON()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>导出 JSON 备份</button>
+          </div>
+          <div>
+            <button class="btn btn-ghost btn-full" onclick="document.getElementById('importFile').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 8 5-5 5 5"/><path d="M12 3v12"/></svg>导入恢复（覆盖）</button>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <button class="btn btn-ghost btn-full" onclick="document.getElementById('importExcelFile').click()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>导入表格记录</button>
+          </div>
+          <div>
+            <button class="btn btn-plain btn-full" onclick="migrateOld()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>旧版本数据迁移</button>
+          </div>
+        </div>
+        <p class="small muted" style="margin-top:10px">「导入表格记录」读取本页导出的 EXCEL 报表（.xls），按项目名称自动匹配：同名项目更新客户/合同/金额，新项目自动创建；收付款、发票明细按 日期+金额 去重并入账，不覆盖现有数据。导入恢复为整包覆盖。可迁移上一版「项目订单管理工作台」（key: wb_pms_v2_data）的数据。</p>
+        <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importJSON(this)">
+        <input type="file" id="importExcelFile" accept=".xls,.xml,application/vnd.ms-excel,text/xml" style="display:none" onchange="importExcel(this)">
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span>示例与清空</div>
+        <div class="grid2">
+          <button class="btn btn-plain btn-full" onclick="clearSamples()">清空示例数据</button>
+          <button class="btn btn-danger btn-full" onclick="clearAllFlow()">清空全部数据</button>
+        </div>
+        <div class="field" style="margin-top:12px;margin-bottom:0"><label>如确认清空全部，请输入「清空」二字</label><input id="clearWord" type="text" placeholder="清空" maxlength="2"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>添加到手机主屏幕</div>
+        <div class="step-list">
+          <div class="step-item"><span class="step-num"></span><div><b>手机浏览器打开本页面</b><div class="small muted">把此 HTML 文件发送到手机（微信/网盘均可），用浏览器打开。</div></div></div>
+          <div class="step-item"><span class="step-num"></span><div><b>点击浏览器「分享」按钮</b><div class="small muted">通常在地址栏旁边或底部菜单。</div></div></div>
+          <div class="step-item"><span class="step-num"></span><div><b>选择「添加到主屏幕」</b><div class="small muted">确认后桌面会出现图标，点开即可像 APP 一样全屏使用。</div></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>关于</div>
+        <p class="small muted">单文件离线工作台 · 无外部依赖 · 数据保存在本机浏览器 localStorage（key 前缀 wb_pom_）。换设备请用导出/导入迁移。隐私提示：请勿在此页面预填涉密合同信息后分发给他人。</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- 手机底部 Tab -->
+  <nav class="bottombar">
+    <div class="bottombar-inner">
+      <button class="bb-btn active" data-tab="new" onclick="switchTab('new')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>新建</button>
+      <button class="bb-btn" data-tab="board" onclick="switchTab('board')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v11"/><path d="M12 5v6"/><path d="M18 5v14"/></svg>看板</button>
+      <button class="bb-btn" data-tab="summary" onclick="switchTab('summary')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6" rx="1"/><rect x="13" y="8" width="3" height="10" rx="1"/></svg>汇总</button>
+      <button class="bb-btn" data-tab="payplan" onclick="switchTab('payplan')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>付款计划</button>
+      <button class="bb-btn" data-tab="mine" onclick="switchTab('mine')"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>我的</button>
+    </div>
+  </nav>
+</div>
+
+<!-- 新建部门弹窗 -->
+<div class="overlay" id="companyModal">
+  <div class="modal">
+    <h3>新建部门</h3>
+    <p class="small muted" style="margin-bottom:12px">不同部门的项目、收付款与发票将分开登记与统计，切换部门即可查看对应数据。</p>
+    <div class="field"><label>部门名称</label><input id="cmName" type="text" maxlength="30" placeholder="如 一车间 / 二车间"></div>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeModal('companyModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveCompanyModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 项目编辑弹窗 -->
+<div class="overlay" id="projModal">
+  <div class="modal">
+    <h3 id="projModalTitle">编辑项目订单</h3>
+    <div class="field field-ac" id="pmNameWrap"><label>项目名称</label><input id="pmName" type="text" maxlength="50" placeholder="如 A 车间改造" autocomplete="off" oninput="acInput('pmName')" onfocus="acInput('pmName')" onkeydown="acKey('pmName',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+    <div class="field field-ac" id="pmClientWrap"><label>客户公司名称</label><input id="pmClient" type="text" maxlength="50" placeholder="客户公司" autocomplete="off" oninput="acInput('pmClient')" onfocus="acInput('pmClient')" onkeydown="acKey('pmClient',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+    <div class="field field-ac" id="pmNoWrap"><label>工厂下单合同号</label><input id="pmNo" type="text" maxlength="40" placeholder="HT-2026-001" autocomplete="off" oninput="acInput('pmNo')" onfocus="acInput('pmNo')" onkeydown="acKey('pmNo',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+    <div class="grid2">
+      <div class="field"><label>采购金额 ¥</label><input id="pmPurchase" type="number" inputmode="decimal" min="0" step="0.01"></div>
+      <div class="field"><label>销售金额 ¥</label><input id="pmSale" type="number" inputmode="decimal" min="0" step="0.01"></div>
+    </div>
+    <div class="field field-ac" id="pmProdTypeWrap"><label>产品类型备注</label><input id="pmProdType" type="text" maxlength="100" placeholder="如 自动化设备 / 配电柜 / 货架，可文字备注" autocomplete="off" oninput="acInput('pmProdType')" onfocus="acInput('pmProdType')" onkeydown="acKey('pmProdType',event)" onblur="acBlur()"><div class="ac-panel"></div></div>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeModal('projModal')">取消</button>
+      <button class="btn btn-primary" onclick="saveProjectModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 收付款弹窗 -->
+<div class="overlay" id="payModal">
+  <div class="modal">
+    <h3 id="payModalTitle">记一笔</h3>
+    <p class="small muted" id="payModalSub" style="margin-bottom:12px"></p>
+    <div class="field"><label>类型</label>
+      <select id="payType"><option value="payments">付款（工厂 / 采购）</option><option value="receipts">收款（客户 / 销售）</option><option value="invoice_in">进项发票</option><option value="invoice_out">销项发票</option></select>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>日期</label><input id="payDate" type="date"></div>
+      <div class="field"><label>金额 ¥</label><input id="payAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"></div>
+    </div>
+    <div class="field"><label>备注</label><input id="payNote" type="text" maxlength="60" placeholder="如 首付款 / 银行转账"></div>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeModal('payModal')">取消</button>
+      <button class="btn btn-primary" id="payModalSaveBtn" onclick="savePayModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- 合同详情弹窗 -->
+<div class="overlay" id="detailModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 id="detailTitle">合同详情</h3>
+      <button class="modal-x" title="关闭" aria-label="关闭" onclick="closeModal('detailModal')">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="small muted" id="detailSub" style="margin-bottom:12px"></p>
+    <div id="detailBody"></div>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeModal('detailModal')">关闭</button>
+      <button class="btn btn-plain" onclick="openPayModal(detailProjId)">记一笔</button>
+      <button class="btn btn-primary" onclick="openProjectModal(detailProjId)">编辑合同</button>
+    </div>
+  </div>
+</div>
+
+<!-- 应用内确认弹窗（替代系统 confirm，避免预览环境拦截） -->
+<div class="overlay" id="confirmModal">
+  <div class="modal modal-confirm">
+    <h3>操作确认</h3>
+    <p class="confirm-msg" id="confirmMsg"></p>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeConfirm()">取消</button>
+      <button class="btn btn-danger" id="confirmOkBtn" onclick="confirmOk()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 导出 Excel 选择弹窗 -->
+<div class="overlay" id="excelModal">
+  <div class="modal modal-wide">
+    <h3>导出 EXCEL 报表</h3>
+    <p class="small muted" id="excelModalSub" style="margin-bottom:12px"></p>
+    <div class="grid2 excel-range" id="excelRangeBtns">
+      <button class="btn excel-pick excel-pick-sel" id="excelBtnSelected" onclick="exportExcelNow('selected')" style="display:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <b>导出选中项目</b>
+        <small id="excelBtnSelectedSub">已选 0 项</small>
+      </button>
+      <button class="btn excel-pick excel-pick-all" id="excelBtnAll" onclick="exportExcelNow('all')" style="display:flex">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+        <b>导出当前部门全部</b>
+        <small id="excelBtnAllSub">0 个项目</small>
+      </button>
+    </div>
+    <p class="small muted" style="margin-top:12px;margin-bottom:4px">导出内容（可多选，勾选后点击上方范围按钮导出）：</p>
+    <div class="exp-opts">
+      <label class="exp-opt"><input type="checkbox" id="expOptReport" checked> 项目报表</label>
+      <label class="exp-opt"><input type="checkbox" id="expOptPay" checked> 收付款明细</label>
+      <label class="exp-opt"><input type="checkbox" id="expOptInv" checked> 发票明细</label>
+    </div>
+    <p class="small muted" style="margin-top:10px">仅导出当前部门的项目；「导出选中项目」以合计报表列表勾选为准，三个工作表都只含所选项目；「导出当前部门全部」三个工作表为部门内全部记录</p>
+    <div class="modal-acts">
+      <button class="btn btn-plain" onclick="closeModal('excelModal')">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================
+   项目订单汇总管理台 · 单文件版
+   数据层 → 计算层 → 渲染层 单向调用，refreshAll() 统一刷新
+   ===================================================== */
+
+var STORE_KEY = "wb_pom_v2_data";
+var LEGACY_KEYS = ["wb_pms_v2_data"];
+
+/* ---------------- 数据层 ---------------- */
+var state = null;
+
+function defaultState(){ return { version: 2, companies: [], currentCompanyId: "", projects: [], invoices: [] }; }
+
+function loadState(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if(raw){ state = normalize(JSON.parse(raw)); return; }
+  }catch(e){ /* 损坏则重建 */ }
+  state = defaultState();
+  ensureDefaultCompany();
+  seedSamples();
+  saveState();
+}
+
+function normalize(s){
+  s = s || {};
+  /* 部门列表兼容：旧数据无部门 → 自动创建「默认部门」 */
+  var companies = Array.isArray(s.companies) && s.companies.length
+    ? s.companies.map(function(c){ return { id: c.id || uid(), name: String(c.name || "").trim() || "默认部门" }; })
+    : [ { id: uid(), name: "默认部门" } ];
+  var cur = s.currentCompanyId, curOk = false;
+  companies.forEach(function(c){ if (c.id === cur) curOk = true; });
+  if (!curOk) cur = companies[0].id;
+  var defCid = companies[0].id;
+  var projects = Array.isArray(s.projects) ? s.projects : [];
+  /* 兼容旧版字段：contractAmount → purchaseAmount */
+  projects = projects.map(function(p){
+    return {
+      id: p.id || uid(), name: p.name || "未命名项目", client: p.client || "",
+      contractNo: p.contractNo || "", createdAt: p.createdAt || todayStr(),
+      updatedAt: p.updatedAt || p.createdAt || todayStr(),
+      purchaseAmount: num(p.purchaseAmount != null ? p.purchaseAmount : p.contractAmount),
+      saleAmount: num(p.saleAmount),
+      payments: Array.isArray(p.payments) ? p.payments : [],
+      receipts: Array.isArray(p.receipts) ? p.receipts : [],
+      productType: String(p.productType || ""),
+      note: String(p.note || ""),
+      companyId: p.companyId || defCid,
+      sample: !!p.sample
+    };
+  });
+  return { version: 2, companies: companies, currentCompanyId: cur, projects: projects, invoices: Array.isArray(s.invoices) ? s.invoices : [] };
+}
+
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){ toast("保存失败：浏览器存储空间不足"); }
+}
+
+function seedSamples(){
+  var t = todayStr();
+  var d3 = shiftDate(t, -3);
+  var d10 = shiftDate(t, -10);
+  var d6 = shiftDate(t, -6);
+  var cid = (state.companies[0] || { id: "" }).id;
+  state.projects = [
+    {
+      id: uid(), name: "一号车间自动化改造", client: "华辰精密制造有限公司",
+      contractNo: "HT-2026-0812", purchaseAmount: 360000, saleAmount: 420000,
+      createdAt: d10, sample: true, companyId: cid,
+      productType: "自动化控制设备",
+      payments: [ { id: uid(), date: d10, amount: 108000, note: "预付款 30%" } ],
+      receipts: [ { id: uid(), date: d6, amount: 126000, note: "首期款 30%" } ]
+    },
+    {
+      id: uid(), name: "配电柜批量供货", client: "蓝湖机电工程有限公司",
+      contractNo: "HT-2026-0903", purchaseAmount: 152000, saleAmount: 178000,
+      createdAt: d3, sample: true, companyId: cid,
+      productType: "低压配电成套",
+      payments: [ { id: uid(), date: d3, amount: 45600, note: "订金" } ],
+      receipts: [ { id: uid(), date: d3, amount: 89000, note: "首批款" } ]
+    },
+    {
+      id: uid(), name: "仓储货架系统", client: "启润物流股份公司",
+      contractNo: "HT-2026-0768", purchaseAmount: 88000, saleAmount: 105000,
+      createdAt: shiftDate(t, -20), sample: true, companyId: cid,
+      productType: "仓储货架设备",
+      payments: [ { id: uid(), date: shiftDate(t, -18), amount: 88000, note: "全款付清" } ],
+      receipts: [ { id: uid(), date: shiftDate(t, -15), amount: 50000, note: "第一期" } ]
+    }
+  ];
+  state.invoices = [
+    { id: uid(), type: "in",  date: d10, amount: 108000, note: "华辰预付款专票", pid: state.projects[0].id, sample: true },
+    { id: uid(), type: "out", date: d6,  amount: 126000, note: "开给华辰首期款", pid: state.projects[0].id, sample: true }
+  ];
+}
+
+/* ---------------- 工具函数（计算层基础） ---------------- */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+/* 归零浮点误差：|n| 不足 0.005（四舍五入到分后为 0）一律按 0 处理，避免出现 -0 / -¥0.00 与负号误判 */
+function fixZero(n){ return Math.abs(n) < 0.005 ? 0 : n; }
+function money(n){ n = fixZero(num(n)); return (n < 0 ? "-¥" : "¥") + Math.abs(n).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function todayStr(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function pad(n){ return (n < 10 ? "0" : "") + n; }
+/* 统一日期显示：兼容 2026/8/27、2026-8-27、2026年08月27日、ISO带时间、YYYYMMDD、Excel数字序列号 → YYYY-M-D（不补零） */
+function fmtDate(d){
+  d = String(d == null ? "" : d).trim();
+  if (!d) return "";
+  var m = d.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return m[1] + "-" + parseInt(m[2], 10) + "-" + parseInt(m[3], 10);
+  m = d.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if (m) return m[1] + "-" + parseInt(m[2], 10) + "-" + parseInt(m[3], 10);
+  m = d.match(/^(\d{8})$/);
+  if (m){
+    var y = parseInt(m[1].slice(0, 4), 10), mo = parseInt(m[1].slice(4, 6), 10), da = parseInt(m[1].slice(6, 8), 10);
+    if (y >= 1900 && y <= 9999 && mo >= 1 && mo <= 12 && da >= 1 && da <= 31) return y + "-" + mo + "-" + da;
+  }
+  m = d.match(/^(\d+(?:\.\d+)?)$/);
+  if (m){
+    var sn = parseFloat(m[1]);
+    if (sn >= 1 && sn <= 2958465){
+      var dt = new Date(Math.round((sn - 25569) * 86400000));
+      if (!isNaN(dt.getTime())) return dt.getUTCFullYear() + "-" + (dt.getUTCMonth() + 1) + "-" + dt.getUTCDate();
+    }
+  }
+  return d;
+}
+/* 规范化存储日期：任意格式 → YYYY-MM-DD（补零），保证字符串筛选/去重一致；无法解析原样返回 */
+function normDate(d){
+  var s = fmtDate(d);
+  if (!s || s.indexOf("-") < 0) return s;
+  var p = s.split("-");
+  if (p.length !== 3) return s;
+  var y = parseInt(p[0], 10), mo = parseInt(p[1], 10), da = parseInt(p[2], 10);
+  if (isNaN(y) || isNaN(mo) || isNaN(da)) return s;
+  return y + "-" + pad(mo) + "-" + pad(da);
+}
+function shiftDate(dateStr, days){
+  var p = dateStr.split("-"); var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+  d.setDate(d.getDate() + days);
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function isRestDay(dateStr){ var p = dateStr.split("-"); var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10)); var w = d.getDay(); return w === 0 || w === 6; }
+function sum(list){ return list.reduce(function(a, r){ return a + num(r.amount); }, 0); }
+function paySum(p){ return sum(p.payments || []); }
+function recvSum(p){ return sum(p.receipts || []); }
+/* 未付款 = 已付款 - 采购金额：欠款（已付<采购）为负数、多付（已付>采购）为正数、结清为 0，与未收款语义对称 */
+function unPaid(p){ return fixZero(paySum(p) - num(p.purchaseAmount)); }
+/* 未收款 = 已收款 - 销售金额：少收（销售>收款）为负数、多收（收款>销售）为正数、结清为 0，便于区分多收/少收 */
+function unRecv(p){ return fixZero(recvSum(p) - num(p.saleAmount)); }
+/* 未付/未收差额着色（共用）：欠款或少收（负数）红色、多付或多收（正数）绿色、结清（0）默认色 */
+function recvDiffCls(v){ return v < 0 ? "m-red" : (v > 0 ? "m-green" : ""); }
+function invInSum(p){ var s = 0; state.invoices.forEach(function(v){ if (v.pid === p.id && v.type === "in") s += num(v.amount); }); return s; }
+function invOutSum(p){ var s = 0; state.invoices.forEach(function(v){ if (v.pid === p.id && v.type === "out") s += num(v.amount); }); return s; }
+function pct(a, b){ if (b <= 0) return 0; return Math.min(1, a / b); }
+/* 导出用百分比文本：不封顶（多付/多收可超 100%），保留 1 位小数；基数为 0 或负时显示 — */
+function pctStr(a, b){ if (!(num(b) > 0)) return "—"; return (Math.round(num(a) / num(b) * 1000) / 10) + "%"; }
+function findProj(id){ for (var i = 0; i < state.projects.length; i++){ if (state.projects[i].id === id) return state.projects[i]; } return null; }
+
+/* ---------------- 部门（多部门区分登记） ---------------- */
+function ensureDefaultCompany(){
+  if (!Array.isArray(state.companies) || !state.companies.length){
+    state.companies = [ { id: uid(), name: "默认部门" } ];
+  }
+  var cur = state.currentCompanyId, ok = false;
+  state.companies.forEach(function(c){ if (c.id === cur) ok = true; });
+  if (!ok) state.currentCompanyId = state.companies[0].id;
+}
+function currentCompany(){
+  for (var i = 0; i < state.companies.length; i++){
+    if (state.companies[i].id === state.currentCompanyId) return state.companies[i];
+  }
+  return state.companies[0] || { id: "", name: "默认部门" };
+}
+/* 当前部门的全部项目 */
+function companyProjects(){
+  var cid = state.currentCompanyId || (state.companies[0] || { id: "" }).id;
+  return state.projects.filter(function(p){ return (p.companyId || "") === cid; });
+}
+/* 发票是否属于当前部门（无 pid 的旧数据归第一个部门） */
+function invBelongs(v){
+  if (v && v.pid){
+    var p = findProj(v.pid);
+    return p ? (p.companyId || "") === currentCompany().id : false;
+  }
+  return (state.companies[0] || { id: "" }).id === currentCompany().id;
+}
+function renderCompanySel(){
+  var sel = document.getElementById("companySel");
+  if (!sel) return;
+  var cur = currentCompany();
+  sel.innerHTML = state.companies.map(function(c){
+    var n = state.projects.filter(function(p){ return (p.companyId || "") === c.id; }).length;
+    return '<option value="' + c.id + '"' + (c.id === cur.id ? ' selected' : '') + '>' + esc(c.name) + '（' + n + ' 个项目）</option>';
+  }).join("");
+  sel.value = cur.id;
+}
+function switchCompany(cid){
+  if (!cid) return;
+  var ok = false;
+  state.companies.forEach(function(c){ if (c.id === cid) ok = true; });
+  if (!ok) return;
+  state.currentCompanyId = cid;
+  selIds = {};
+  rptSelIds = {};
+  saveState(); refreshAll();
+  toast("已切换到「" + currentCompany().name + "」");
+}
+function openCompanyModal(){
+  document.getElementById("cmName").value = "";
+  showModal("companyModal");
+}
+function saveCompanyModal(){
+  var nm = document.getElementById("cmName").value.trim();
+  if (!nm){ toast("请填写部门名称"); return; }
+  for (var i = 0; i < state.companies.length; i++){
+    if (state.companies[i].name === nm){ toast("已存在同名部门"); return; }
+  }
+  var cid = uid();
+  state.companies.push({ id: cid, name: nm });
+  state.currentCompanyId = cid;
+  selIds = {};
+  rptSelIds = {};
+  closeModal("companyModal");
+  saveState(); renderCompanySel(); refreshAll();
+  toast("已创建部门「" + nm + "」并切换");
+}
+function delCompanyFlow(){
+  if (state.companies.length <= 1){ toast("至少保留一个部门"); return; }
+  var c = currentCompany();
+  var cnt = companyProjects().length;
+  if (cnt > 0){ toast("「" + c.name + "」下还有 " + cnt + " 个项目，请先处理后再删除部门"); return; }
+  askConfirm("确定删除部门「" + c.name + "」吗？\n该部门暂无项目，删除后不可恢复。", function(){
+    state.companies = state.companies.filter(function(x){ return x.id !== state.currentCompanyId; });
+    state.currentCompanyId = state.companies[0].id;
+    selIds = {};
+    rptSelIds = {};
+    saveState(); renderCompanySel(); refreshAll();
+    toast("部门已删除");
+  });
+}
+function totalRecordCount(){
+  var n = state.invoices.length;
+  state.projects.forEach(function(p){ n += (p.payments || []).length + (p.receipts || []).length; });
+  return n + state.projects.length;
+}
+function toast(msg){
+  var el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ el.classList.remove("show"); }, 2200);
+}
+/* 日期是否落在 [from,to] 区间内（均留空 = 全部；只填一个 = 单日） */
+function inRange(dt, from, to){
+  if (!dt) return false;
+  if (!from && !to) return true;
+  var f = from || to, t = to || from;
+  if (f > t){ var x = f; f = t; t = x; }
+  return dt >= f && dt <= t;
+}
+/* 某日期范围的付款/收款/进项/销项汇总（计算层，供两个 Tab 复用）
+   明细行 rows 额外携带 date/proj/contractNo/type/note，供期间明细展示工厂合同号与排序导出 */
+function rangeTotals(from, to){
+  var dp = 0, dr = 0, di = 0, do_ = 0, rows = [];
+  companyProjects().forEach(function(p){
+    var pname = p.name || "未命名项目", cno = p.contractNo || "";
+    (p.payments || []).forEach(function(r){
+      if (inRange(r.date, from, to)){
+        dp += num(r.amount);
+        rows.push({ kind: "付款 · " + pname, date: r.date || "", proj: pname, contractNo: cno, type: "付款", note: r.note || "", amount: r.amount, cls: "m-purple" });
+      }
+    });
+    (p.receipts || []).forEach(function(r){
+      if (inRange(r.date, from, to)){
+        dr += num(r.amount);
+        rows.push({ kind: "收款 · " + pname, date: r.date || "", proj: pname, contractNo: cno, type: "收款", note: r.note || "", amount: r.amount, cls: "m-green" });
+      }
+    });
+  });
+  state.invoices.filter(invBelongs).forEach(function(v){
+    if (inRange(v.date, from, to)){
+      if (v.type === "in"){ di += num(v.amount); } else { do_ += num(v.amount); }
+      var ip = null;
+      state.projects.forEach(function(p){ if (p.id === v.pid) ip = p; });
+      rows.push({
+        kind: (v.type === "in" ? "进项发票" : "销项发票") + (v.note ? " · " + v.note : ""),
+        date: v.date || "", proj: ip ? (ip.name || "未命名项目") : "", contractNo: ip ? (ip.contractNo || "") : "",
+        type: v.type === "in" ? "进项发票" : "销项发票", note: v.note || "",
+        amount: v.amount, cls: v.type === "in" ? "m-purple" : "m-green"
+      });
+    }
+  });
+  return { dp: dp, dr: dr, di: di, do_: do_, rows: rows };
+}
+/* 期间明细按日期倒序排列（同日保持原有登记顺序） */
+function sortRangeRowsDesc(rows){
+  return rows.map(function(r, i){ return { r: r, i: i }; }).sort(function(a, b){
+    var c = String(b.r.date || "").localeCompare(String(a.r.date || ""));
+    return c ? c : a.i - b.i;
+  }).map(function(x){ return x.r; });
+}
+/* 期间明细的导出行序（按日期倒序，其次按类型分组：付款/收款/进项/销项） */
+function rangeRowsForExport(rows){
+  var sorted = rows.slice().sort(function(a, b){
+    var c = String(b.date || "").localeCompare(String(a.date || ""));
+    if (c) return c;
+    return String(a.type || "").localeCompare(String(b.type || ""));
+  });
+  return sorted;
+}
+function rangeLabel(from, to){
+  if (!from && !to) return "未选择";
+  if (from === to) return from;
+  if (!from || !to) return from || to;
+  return from + " ~ " + to;
+}
+/* 期间明细行的展示前缀：工厂合同号（有则显示，排在最前便于对账） */
+function rangeCnoPrefix(x){
+  return x && x.contractNo ? '<span class="rec-cno">' + esc(x.contractNo) + '</span>' : '';
+}
+/* 按所选日期范围（含单日）渲染期间合计与明细 */
+function renderRangeBox(containerId, from, to){
+  var box = document.getElementById(containerId);
+  if (!box) return;
+  var r = rangeTotals(from, to);
+  var net = r.dr - r.dp;
+  var hasRange = !!(from || to);
+  var head = hasRange
+    ? '<div class="range-title">已选：<b>' + rangeLabel(from, to) + '</b><span class="muted small">（' + r.rows.length + ' 条记录）</span></div>'
+    : '<div class="range-title">当前状态：<b>未选择</b><span class="muted small">（未限定日期，仅显示合计）</span></div>';
+  var html = head
+    + '<div class="day-total">'
+    + '<div class="day-pill">期间付款合计<b class="m-purple">' + money(r.dp) + '</b></div>'
+    + '<div class="day-pill">期间收款合计<b class="m-green">' + money(r.dr) + '</b></div>'
+    + '<div class="day-pill">进项发票<b class="m-purple">' + money(r.di) + '</b></div>'
+    + '<div class="day-pill">销项发票<b class="m-green">' + money(r.do_) + '</b></div>'
+    + '<div class="day-pill">期间净流入<b class="' + (net >= 0 ? "m-green" : "m-red") + '">' + money(net) + '</b></div>'
+    + (from && from === to && isRestDay(from) ? '<div class="day-pill" style="background:var(--amber-soft);color:var(--amber)">该日为休息日</div>' : '')
+    + '</div>';
+  if (hasRange){
+    if (r.rows.length){
+      var show = sortRangeRowsDesc(r.rows).slice(0, 50);
+      html += '<div class="range-acts">'
+        + '<span class="small muted">明细含工厂合同号，可导出该期间全部记录</span><span class="spacer"></span>'
+        + '<button class="btn btn-sm btn-primary" onclick="exportRangeExcel()">导出此期间明细</button>'
+        + '</div>'
+        + '<div class="range-list">'
+        + show.map(function(x){
+            return '<div class="rec-item">'
+              + '<span class="rec-date">' + esc(fmtDate(x.date)) + '</span>'
+              + rangeCnoPrefix(x)
+              + '<span class="rec-note" title="' + esc((x.contractNo ? "工厂合同号 " + x.contractNo + " · " : "") + x.kind + (x.note ? " · " + x.note : "")) + '">' + esc(x.kind) + (x.note ? ' <span class="rec-tag">' + esc(x.note) + '</span>' : '') + '</span>'
+              + '<span class="rec-amount ' + x.cls + '">' + money(x.amount) + '</span></div>';
+          }).join("")
+        + (r.rows.length > 50 ? '<div class="empty">仅显示前 50 条（按日期倒序），导出可获取全部 ' + r.rows.length + ' 条</div>' : '')
+        + '</div>';
+    } else {
+      html += '<div class="empty">该期间暂无收付款与发票记录</div>';
+    }
+  }
+  box.innerHTML = html;
+}
+/* 导出当前所选日期范围的收付款+发票明细（含工厂合同号），文件名带日期范围 */
+function exportRangeExcel(){
+  var from = document.getElementById("sumFrom").value, to = document.getElementById("sumTo").value;
+  if (!from && !to){ toast("请先选择日期范围"); return; }
+  var rows = rangeRowsForExport(rangeTotals(from, to).rows);
+  if (!rows.length){ toast("该期间暂无记录可导出"); return; }
+  var label = (from || to || "").replace(/-/g, "");
+  var W = [];
+  W.push('<?xml version="1.0" encoding="UTF-8"?>');
+  W.push('<?mso-application progid="Excel.Sheet"?>');
+  W.push('<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">');
+  W.push('<DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>项目订单汇总管理台</Author><Created>' + todayStr() + '</Created></DocumentProperties>');
+  W.push('<Styles>'
+    + '<Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7C5CFF" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/></Style>'
+    + '<Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#F0ECFF" ss:Pattern="Solid"/></Style>'
+    + '<Style ss:ID="d"><NumberFormat ss:Format="#,##0.00"/></Style>'
+    + '</Styles>');
+  W.push('<Worksheet ss:Name="期间收付款明细"><Table>');
+  W.push('<Column ss:Width="100"/><Column ss:Width="130"/><Column ss:Width="200"/><Column ss:Width="90"/><Column ss:Width="110"/><Column ss:Width="160"/>');
+  W.push('<Row>' + xCell("日期", "String", "h") + xCell("工厂合同号", "String", "h") + xCell("项目名称", "String", "h") + xCell("类型", "String", "h") + xCell("金额", "String", "h") + xCell("备注", "String", "h") + '</Row>');
+  rows.forEach(function(r){
+    W.push('<Row>' + xCell(xesc(r.date || ""), "String") + xCell(xesc(r.contractNo || ""), "String") + xCell(xesc(r.proj || ""), "String")
+      + xCell(xesc(r.type || ""), "String") + xCell(num(r.amount), "Number", "d") + xCell(xesc(r.note || ""), "String") + '</Row>');
+  });
+  var tp = 0, tr = 0, ti = 0, to2 = 0;
+  rangeTotals(from, to).rows.forEach(function(r){
+    if (r.type === "付款") tp += num(r.amount);
+    else if (r.type === "收款") tr += num(r.amount);
+    else if (r.type === "进项发票") ti += num(r.amount);
+    else if (r.type === "销项发票") to2 += num(r.amount);
+  });
+  W.push('<Row ss:StyleID="t">' + xCell("合计（" + rows.length + " 条）", "String") + xCell("", "String") + xCell("", "String") + xCell("", "String") + xCell("", "String") + xCell("", "String") + '</Row>');
+  W.push('<Row>' + xCell("付款合计", "String") + xCell(tp, "Number", "d") + xCell("收款合计", "String") + xCell(tr, "Number", "d") + xCell("净流入", "String") + xCell(tr - tp, "Number", "d") + '</Row>');
+  W.push('<Row>' + xCell("进项发票合计", "String") + xCell(ti, "Number", "d") + xCell("销项发票合计", "String") + xCell(to2, "Number", "d") + xCell("", "String") + xCell("", "String") + '</Row>');
+  W.push('<Row>' + xCell("导出范围", "String") + xCell(xesc(rangeLabel(from, to)), "String") + xCell("导出时间", "String") + xCell(todayStr(), "String") + xCell("", "String") + xCell("", "String") + '</Row>');
+  W.push('</Table></Worksheet></Workbook>');
+  var blob = new Blob(["\ufeff" + W.join("")], { type: "application/vnd.ms-excel;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "期间收付款明细_" + label + "_" + todayStr() + ".xls";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  toast("已导出该期间明细（" + rows.length + " 条，含工厂合同号）");
+}
+function setSumRange(mode){
+  var from = document.getElementById("sumFrom"), to = document.getElementById("sumTo");
+  if (mode === "all"){ from.value = ""; to.value = ""; }
+  else if (mode === "today"){ var t = todayStr(); from.value = t; to.value = t; }
+  else { to.value = todayStr(); from.value = shiftDate(to.value, -29); }
+  renderSummary();
+}
+
+/* ---------------- 渲染层：Tab 切换 ---------------- */
+function switchTab(name){
+  var tabs = ["new", "board", "summary", "payplan", "mine"];
+  tabs.forEach(function(t){
+    var sec = document.getElementById("tab-" + t);
+    if (sec) sec.classList.toggle("active", t === name);
+  });
+  var btns = document.querySelectorAll("[data-tab]");
+  for (var i = 0; i < btns.length; i++){ btns[i].classList.toggle("active", btns[i].getAttribute("data-tab") === name); }
+  window.scrollTo(0, 0);
+  refreshAll();
+}
+
+/* ---------------- 渲染层：新建 Tab ---------------- */
+function renderNew(){
+  var d = new Date();
+  var weekNames = ["日","一","二","三","四","五","六"];
+  var rest = (d.getDay() === 0 || d.getDay() === 6);
+  document.getElementById("heroDate").textContent = "项目订单汇总";
+  document.getElementById("heroSub").textContent = (d.getMonth() + 1) + "月" + d.getDate() + "日 · 星期" + weekNames[d.getDay()] + (rest ? " · 休息日" : "") + " · 下单、收付款、发票一键登记";
+
+  /* 备份提示 */
+  var tip = document.getElementById("backupTip");
+  if (totalRecordCount() >= 30){
+    tip.innerHTML = '<div class="backup-tip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>数据已积累 ' + totalRecordCount() + ' 条，建议导出备份&nbsp;&nbsp;<button onclick="exportJSON()">立即导出</button></div>';
+  } else { tip.innerHTML = ""; }
+
+  /* 项目列表（工厂合同号最新在前，支持搜索与采购项/销售项筛选；搜索框可匹配合同号/项目名/客户/产品类型；仅显示当前部门） */
+  var sInput = document.getElementById("projSearch");
+  var sSelBuy = document.getElementById("projBuyFilter");
+  var sSelSell = document.getElementById("projSellFilter");
+  var kw = (sInput.value || "").trim().toLowerCase();
+  var fBuy = sSelBuy.value || "all";
+  var fSell = sSelSell.value || "all";
+  sInput.classList.toggle("active", !!kw);
+  sSelBuy.classList.toggle("active", fBuy !== "all");
+  sSelSell.classList.toggle("active", fSell !== "all");
+  sSelBuy.parentNode.classList.toggle("active", fBuy !== "all");
+  sSelSell.parentNode.classList.toggle("active", fSell !== "all");
+  var cps = companyProjects();
+  var list = cps.slice().sort(sortProjsDesc).filter(function(p){
+    if (kw){
+      var hay = ((p.contractNo || "") + " " + (p.name || "") + " " + (p.client || "") + " " + (p.productType || "")).toLowerCase();
+      if (hay.indexOf(kw) === -1) return false;
+    }
+    if (!buyFilterPass(p, fBuy)) return false;
+    if (!sellFilterPass(p, fSell)) return false;
+    return true;
+  });
+  var fActive = (kw || fBuy !== "all" || fSell !== "all");
+  document.getElementById("projCount").textContent = fActive ? list.length + " / " + cps.length + " 个" : cps.length + " 个";
+  _lastProjIds = list.map(function(p){ return p.id; });
+  var ph = "";
+  list.forEach(function(p){
+    var checked = selIds[p.id] ? ' checked' : '';
+    ph += '<div class="proj-item" data-pid="' + p.id + '">'
+      + '<label class="proj-sel" title="选择此项目"><input type="checkbox" onchange="toggleOne(\'' + p.id + '\')"' + checked + '></label>'
+      + '<div class="proj-main">'
+      + '<div class="proj-name" title="点击查看合同详情" onclick="openDetail(\'' + p.id + '\')">' + esc(p.name || "未命名项目") + (p.sample ? ' <span class="chip chip-gray">示例</span>' : '') + '</div>'
+      + '<div class="proj-meta">' + esc(p.client || "未填客户") + ' · 工厂合同号 ' + esc(p.contractNo || "—") + '</div>'
+      + '<div class="proj-amounts">'
+      + '<span>采购 <b>' + money(p.purchaseAmount) + '</b></span>'
+      + '<span>已付 <b class="m-purple">' + money(paySum(p)) + '</b> / 未付 <b class="' + recvDiffCls(unPaid(p)) + '">' + money(unPaid(p)) + '</b></span>'
+      + '<span>销售 <b>' + money(p.saleAmount) + '</b></span>'
+      + '<span>已收 <b class="m-green">' + money(recvSum(p)) + '</b> / 未收 <b class="' + recvDiffCls(unRecv(p)) + '">' + money(unRecv(p)) + '</b></span>'
+      + '</div></div>'
+      + '<div class="proj-acts">'
+      + '<button class="iconbtn purple" title="记一笔" onclick="openPayModal(\'' + p.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>'
+      + '<button class="iconbtn" title="编辑" onclick="openProjectModal(\'' + p.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg></button>'
+      + '<button class="iconbtn danger" title="删除" onclick="delProject(\'' + p.id + '\')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+      + '</div></div></div>';
+  });
+  document.getElementById("projList").innerHTML = ph || '<div class="empty">还没有项目订单，用上方表单新建第一笔</div>';
+  updateSelUI();
+}
+
+/* ---------------- 渲染层：看板 ---------------- */
+function ringSVG(ratio, color){
+  var C = 2 * Math.PI * 26;
+  var off = C * (1 - ratio);
+  return '<svg width="64" height="64" viewBox="0 0 64 64">'
+    + '<circle cx="32" cy="32" r="26" fill="none" stroke="#eef0f6" stroke-width="7"/>'
+    + '<circle cx="32" cy="32" r="26" fill="none" stroke="' + color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + C.toFixed(2) + '" stroke-dashoffset="' + off.toFixed(2) + '"/>'
+    + '</svg><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:' + color + '">' + Math.round(ratio * 100) + '%</div>';
+}
+
+/* 看板卡片「最近记录」展开状态：默认收起只显示 2 条，点击「展开全部」显示全部 */
+var boardExpandSet = {};
+function boardToggleAll(pid){
+  if (boardExpandSet[pid]) delete boardExpandSet[pid];
+  else boardExpandSet[pid] = true;
+  renderBoard();
+}
+/* 看板总览四格：已付款给工厂 / 未付款给工厂（欠款正数，多付按 0 计）/ 客户已付款 / 客户未付款（多收按 0 计） */
+function setBoardSums(pay, payDue, recv, recvDue){
+  var set = function(id, v){ var el = document.getElementById(id); if (el) el.textContent = money(v); };
+  set("bPaySum", pay); set("bPayDue", payDue); set("bRecvSum", recv); set("bRecvDue", recvDue);
+}
+function renderBoard(){
+  var grid = document.getElementById("boardGrid");
+  /* 看板搜索：匹配合同号 / 项目名 / 客户 / 产品类型（与新建板块口径一致） */
+  var sInput = document.getElementById("boardSearch");
+  var kw = ((sInput && sInput.value) || "").trim().toLowerCase();
+  if (sInput) sInput.classList.toggle("active", !!kw);
+  var all = companyProjects().slice().sort(sortProjsDesc);
+  var cps = kw ? all.filter(function(p){
+    var hay = ((p.contractNo || "") + " " + (p.name || "") + " " + (p.client || "") + " " + (p.productType || "")).toLowerCase();
+    return hay.indexOf(kw) !== -1;
+  }) : all;
+  var cnt = document.getElementById("boardCount");
+  if (cnt) cnt.textContent = kw ? cps.length + " / " + all.length : String(all.length);
+  if (!all.length){
+    grid.innerHTML = '<div class="card"><div class="empty">暂无项目，先到「新建」创建一笔订单</div></div>';
+    setBoardSums(0, 0, 0, 0);
+    return;
+  }
+  var totPay = 0, totDue = 0, totRecv = 0, totUnrecv = 0;
+  cps.forEach(function(p){
+    totPay += paySum(p);
+    totDue += Math.max(0, num(p.purchaseAmount) - paySum(p));
+    totRecv += recvSum(p);
+    totUnrecv += Math.max(0, num(p.saleAmount) - recvSum(p));
+  });
+  setBoardSums(totPay, totDue, totRecv, totUnrecv);
+  if (!cps.length){
+    grid.innerHTML = '<div class="card"><div class="empty">没有匹配的项目，换个关键词试试</div></div>';
+    return;
+  }
+
+  var html = "";
+  cps.forEach(function(p){
+    var payRatio = pct(paySum(p), num(p.purchaseAmount));
+    var recvRatio = pct(recvSum(p), num(p.saleAmount));
+    var recs = [];
+    (p.payments || []).forEach(function(r){ recs.push({ id: r.id, kind: "payments", date: r.date, amount: r.amount, note: r.note }); });
+    (p.receipts || []).forEach(function(r){ recs.push({ id: r.id, kind: "receipts", date: r.date, amount: r.amount, note: r.note }); });
+    recs.sort(function(a, b){ return (b.date || "").localeCompare(a.date || ""); });
+    var expanded = !!boardExpandSet[p.id];
+    var recent = expanded ? recs : recs.slice(0, 2);
+    var rh = "";
+    recent.forEach(function(r){
+      var isPay = r.kind === "payments";
+      var dstr = fmtDate(r.date);
+      rh += '<div class="rec-item">'
+        + '<span class="rec-date" style="' + (dstr && isRestDay(dstr) ? "color:var(--amber)" : "") + '">' + esc(dstr || "—") + '</span>'
+        + '<span class="chip ' + (isPay ? "chip-purple" : "chip-green") + '">' + (isPay ? "付款" : "收款") + '</span>'
+        + '<span class="rec-note">' + esc(r.note || "") + '</span>'
+        + '<span class="rec-amount ' + (isPay ? "m-purple" : "m-green") + '">' + (isPay ? "-" : "+") + money(r.amount) + '</span>'
+        + '<button class="rec-del" onclick="delRecord(\'' + p.id + '\',\'' + r.kind + '\',\'' + r.id + '\')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>'
+        + '</div>';
+    });
+    html += '<div class="card">'
+      + '<div class="card-title"><span class="ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg></span>'
+      + '<span style="word-break:break-all;cursor:pointer" title="点击查看合同详情" onclick="openDetail(\'' + p.id + '\')">' + esc(p.name || "未命名项目") + '</span><span class="spacer"></span>'
+      + '<button class="btn btn-sm btn-ghost" onclick="openPayModal(\'' + p.id + '\')">记一笔</button></div>'
+      + '<div class="proj-meta small muted">' + esc(p.client || "未填客户") + ' · ' + esc(p.contractNo || "无合同号") + (p.productType ? ' · 产品类型 ' + esc(p.productType) : '') + '</div>'
+      + '<div class="ring-row">'
+      + '<div class="ring-wrap"><div class="ring-box">' + ringSVG(payRatio, "var(--purple)") + '</div><div class="ring-label">付款进度<b>' + money(paySum(p)) + ' / ' + money(p.purchaseAmount) + '</b>未付 <span class="' + recvDiffCls(unPaid(p)) + '">' + money(unPaid(p)) + '</span></div></div>'
+      + '<div class="ring-wrap"><div class="ring-box">' + ringSVG(recvRatio, "var(--green)") + '</div><div class="ring-label">收款进度<b>' + money(recvSum(p)) + ' / ' + money(p.saleAmount) + '</b>未收 ' + money(unRecv(p)) + '</div></div>'
+      + '</div>'
+      + '<div style="border-top:1px dashed var(--border);margin-top:8px;padding-top:6px">'
+      + '<div class="small muted" style="padding:4px 0;display:flex;align-items:center;gap:6px">最近记录（' + recent.length + '/' + recs.length + '）'
+      + (recs.length > 2 ? '<span class="spacer"></span><button class="btn btn-sm btn-ghost" style="padding:2px 10px;font-size:12px" onclick="boardToggleAll(\'' + p.id + '\')">' + (expanded ? "收起" : "展开全部") + '</button>' : '')
+      + '</div>'
+      + (rh || '<div class="empty">暂无收付款记录</div>')
+      + '</div></div>';
+  });
+  grid.innerHTML = html;
+}
+
+/* ---------------- 渲染层：汇总 ---------------- */
+/* 本地时间戳 YYYY-MM-DD HH:mm:ss（字典序即时间序，用于「最近修改」排序） */
+function nowStamp(){
+  var d = new Date();
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+    + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+}
+/* 标记项目内容有变更：刷新 updatedAt（仅作数据时间戳记录，不参与列表排序） */
+function touchProject(p){
+  if (p) p.updatedAt = nowStamp();
+}
+/* 工厂合同号排序键：取合同号中的数字部分，无数字按 0 处理 */
+function contractNoNum(p){
+  var s = String(p.contractNo || "").replace(/[^\d.]/g, "");
+  var n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+/* 项目排序：主键工厂合同号数值倒序（数字最大=最新合同在前，如 11197 排在 5988 前）；无合同号沉底；最后按创建时间倒序（不再按最新修改时间排序） */
+function sortProjsDesc(a, b){
+  var sa = String(a.contractNo || "").trim(), sb = String(b.contractNo || "").trim();
+  var na = contractNoNum(a), nb = contractNoNum(b);
+  if (na !== nb) return nb - na;
+  if (!!sa !== !!sb) return sa ? -1 : 1;
+  var c2 = sb.localeCompare(sa, "en", { numeric: true });
+  if (c2) return c2;
+  return (b.createdAt || "").localeCompare(a.createdAt || "");
+}
+/* 当前部门的全部项目（按工厂合同号倒序） */
+function allProjects(){ return companyProjects().slice().sort(sortProjsDesc); }
+/* 进项发票「开齐」判定容差：已开发票登记金额 ≥ 采购金额 × 99.8% 即视为该项进项发票已开发票完毕
+   （实际开票金额常因税额/小数舍入略低于采购金额，故留 0.2% 容差） */
+var INV_IN_FULL_RATIO = 0.998;
+function invInFull(p){ return invInSum(p) >= num(p.purchaseAmount) * INV_IN_FULL_RATIO; }
+/* 采购项状态筛选：f 为下拉值（settle已结清/paid已付款/unpaid未付款/noInv未开发票/invOk已开发票），返回该项目是否通过 */
+function buyFilterPass(p, f){
+  if (f === "settle" && unPaid(p) < 0) return false;
+  if (f === "paid" && paySum(p) <= 0) return false;
+  if (f === "unpaid" && unPaid(p) >= 0) return false;
+  if (f === "noInv" && invInFull(p)) return false;
+  if (f === "invOk" && !invInFull(p)) return false;
+  return true;
+}
+/* 销售项状态筛选：f 为下拉值（settle已结清/paid已付款[已收款]/unpaid未付款[未收款]/noInv未开发票/invOk已开发票），返回该项目是否通过 */
+function sellFilterPass(p, f){
+  if (f === "settle" && unRecv(p) < 0) return false;
+  if (f === "paid" && recvSum(p) <= 0) return false;
+  if (f === "unpaid" && unRecv(p) >= 0) return false;
+  if (f === "noInv" && invOutSum(p) >= num(p.saleAmount)) return false;
+  if (f === "invOk" && invOutSum(p) < num(p.saleAmount)) return false;
+  return true;
+}
+/* 筛选条件中文名（导出弹窗提示用） */
+var FILTER_LABEL = { settle: "已结清", paid: "已付款", unpaid: "未付款", noInv: "未开发票", invOk: "已开发票" };
+/* 汇总报表的项目列表：跟随搜索关键字（可匹配合同号/项目名/客户/产品类型）+ 采购项/销售项筛选 */
+function filteredProjects(){
+  var kw = (document.getElementById("rptSearch").value || "").trim().toLowerCase();
+  var fBuy = document.getElementById("rptBuyFilter").value || "all";
+  var fSell = document.getElementById("rptSellFilter").value || "all";
+  return allProjects().filter(function(p){
+    if (kw){
+      var hay = ((p.contractNo || "") + " " + (p.name || "") + " " + (p.client || "") + " " + (p.productType || "")).toLowerCase();
+      if (hay.indexOf(kw) === -1) return false;
+    }
+    if (!buyFilterPass(p, fBuy)) return false;
+    if (!sellFilterPass(p, fSell)) return false;
+    return true;
+  });
+}
+function renderSummary(){
+  var tc = 0, tp = 0, ts = 0, tr = 0, ivIn = 0, ivOut = 0;
+  var cps = companyProjects();
+  cps.forEach(function(p){
+    tc += num(p.purchaseAmount); tp += paySum(p);
+    ts += num(p.saleAmount); tr += recvSum(p);
+  });
+  /* 清理已失效的汇总选中项（已删除 / 其他部门） */
+  var cidSet = {};
+  cps.forEach(function(p){ cidSet[p.id] = 1; });
+  for (var sk in rptSelIds){ if (!cidSet[sk]) delete rptSelIds[sk]; }
+  /* 「仅看选中」开启但已无选中项（如项目被导入合并删除）时自动关闭 */
+  if (rptOnlySel){
+    var _sn = 0; for (var _k in rptSelIds) _sn++;
+    if (!_sn) rptOnlySel = false;
+  }
+  state.invoices.filter(invBelongs).forEach(function(v){ if (v.type === "in") ivIn += num(v.amount); else ivOut += num(v.amount); });
+
+  var groups = [
+    { key: "order", title: "下单合计", sub: "工厂下单 · 采购付款", color: "var(--purple)", soft: "var(--purple-soft)", txt: "m-purple",
+      icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+      cards: [
+        { lab: "下单采购金额", val: tc, cls: "" },
+        { lab: "合计付款金额", val: tp, cls: "m-purple" },
+        { lab: "未付款金额", val: tp - tc, cls: recvDiffCls(tp - tc) }
+      ] },
+    { key: "sale", title: "销售合计", sub: "客户订单 · 收款", color: "var(--green)", soft: "var(--green-soft)", txt: "m-green",
+      icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>',
+      cards: [
+        { lab: "客户销售金额", val: ts, cls: "" },
+        { lab: "已收款金额", val: tr, cls: "m-green" },
+        { lab: "未收款金额", val: tr - ts, cls: recvDiffCls(tr - ts) }
+      ] },
+    { key: "inv", title: "发票合计", sub: "进项 / 销项", color: "var(--blue)", soft: "var(--blue-soft)", txt: "m-blue",
+      icon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>',
+      cards: [
+        { lab: "发票合计进项", val: ivIn, cls: "m-purple" },
+        { lab: "发票合计销项", val: ivOut, cls: "m-green" }
+      ] }
+  ];
+  function groupHtml(g){
+    return '<div class="sum-group">'
+      + '<div class="g-title"><span class="g-ic" style="background:' + g.soft + ';color:' + g.color + '">' + g.icon + '</span>'
+      + '<span class="' + g.txt + '">' + g.title + '</span><span class="g-sub">' + g.sub + '</span><span class="g-line"></span></div>'
+      + '<div class="sum-cards">' + g.cards.map(function(c){
+          return '<div class="sum-card"><div class="lab">' + c.lab + '</div><div class="val ' + c.cls + '">' + money(c.val) + '</div></div>';
+        }).join("") + '</div>'
+      + '</div>';
+  }
+  /* 下单 + 销售 并排一行，发票合计单独一行置底 */
+  document.getElementById("sumCards").innerHTML =
+    '<div class="sum-row">' + groupHtml(groups[0]) + groupHtml(groups[1]) + '</div>'
+    + '<div class="sum-row sum-row-wide">' + groupHtml(groups[2]) + '</div>';
+
+  /* 按项目报表：跟随搜索与状态筛选（及「仅看选中」），合计行基于筛选结果 */
+  var projs = filteredProjects();
+  if (rptOnlySel) projs = projs.filter(function(p){ return rptSelIds[p.id]; });
+  var stc = 0, stp = 0, sts = 0, str2 = 0, stIn = 0, stOut = 0;
+  projs.forEach(function(p){
+    stc += num(p.purchaseAmount); stp += paySum(p);
+    sts += num(p.saleAmount); str2 += recvSum(p);
+    stIn += invInSum(p); stOut += invOutSum(p);
+  });
+  var kw = (document.getElementById("rptSearch").value || "").trim();
+  var fBuy = document.getElementById("rptBuyFilter").value || "all";
+  var fSell = document.getElementById("rptSellFilter").value || "all";
+  document.getElementById("rptSearch").classList.toggle("active", !!kw);
+  document.getElementById("rptBuyFilter").classList.toggle("active", fBuy !== "all");
+  document.getElementById("rptSellFilter").classList.toggle("active", fSell !== "all");
+  document.getElementById("rptBuyFilter").parentNode.classList.toggle("active", fBuy !== "all");
+  document.getElementById("rptSellFilter").parentNode.classList.toggle("active", fSell !== "all");
+  var fActive = (kw || fBuy !== "all" || fSell !== "all" || rptOnlySel);
+  document.getElementById("rptCount").textContent = fActive ? "筛选显示 " + projs.length + " / " + cps.length + " 个项目" : "共 " + cps.length + " 个项目";
+  _rptLastIds = projs.map(function(p){ return p.id; });
+  document.getElementById("rptTable").innerHTML =
+    '<thead><tr><th>项目名称</th><th>工厂合同号</th><th class="r m-purple">采购金额</th><th class="r m-purple">已付款</th><th class="r m-red">未付款</th><th class="r m-blue">进项发票</th><th class="r m-green">销售金额</th><th class="r m-green">已收款</th><th class="r m-red">未收款</th><th class="r m-blue">销项发票</th><th class="r">操作</th></tr></thead><tbody>'
+    + projs.map(function(p){
+        return '<tr class="rpt-click' + (rptSelIds[p.id] ? ' sel' : '') + '" onclick="toggleRptOne(\'' + p.id + '\')" title="点击选中 / 取消选中"><td style="word-break:break-all"><b>' + esc(p.name || "未命名") + '</b><div class="small muted">' + esc(p.client || "") + '</div></td><td style="word-break:break-all;white-space:normal" class="muted">' + esc(p.contractNo || "—") + '</td>'
+          + '<td class="r">' + money(p.purchaseAmount) + '</td><td class="r m-purple">' + money(paySum(p)) + '</td><td class="r ' + recvDiffCls(unPaid(p)) + '">' + money(unPaid(p)) + '</td>'
+          + '<td class="r m-blue">' + money(invInSum(p)) + '</td>'
+          + '<td class="r">' + money(p.saleAmount) + '</td><td class="r m-green">' + money(recvSum(p)) + '</td><td class="r ' + recvDiffCls(unRecv(p)) + '">' + money(unRecv(p)) + '</td>'
+          + '<td class="r m-blue">' + money(invOutSum(p)) + '</td><td class="r rpt-act"><button type="button" class="rpt-detail" onclick="event.stopPropagation();openDetail(\'' + p.id + '\')" title="查看合同详情">详情</button></td></tr>';
+      }).join("")
+    + (projs.length ? '<tr style="border-top:2px solid var(--border)"><td><b>合计</b></td><td></td>'
+        + '<td class="r"><b>' + money(stc) + '</b></td><td class="r"><b class="m-purple">' + money(stp) + '</b></td><td class="r"><b class="' + recvDiffCls(stp - stc) + '">' + money(stp - stc) + '</b></td>'
+        + '<td class="r"><b class="m-blue">' + money(stIn) + '</b></td>'
+        + '<td class="r"><b>' + money(sts) + '</b></td><td class="r"><b class="m-green">' + money(str2) + '</b></td><td class="r"><b class="' + recvDiffCls(str2 - sts) + '">' + money(str2 - sts) + '</b></td>'
+        + '<td class="r"><b class="m-blue">' + money(stOut) + '</b></td><td></td></tr>'
+        : '')
+    + '</tbody>';
+
+  updateRptSelUI();
+  renderRangeBox("dayTotal", document.getElementById("sumFrom").value, document.getElementById("sumTo").value);
+}
+
+/* ---------------- 统一刷新入口（渲染层唯一调度点） ---------------- */
+/* ---------------- 付款计划板块 ---------------- */
+/* 只列出仍未结清的项目（未付款<0 或 未收款<0）；填入比例即时计算本次金额。
+   比例持久化在独立 key（wb_pom_v2_payplan），不影响项目数据与 JSON 备份 */
+var ppPct = {};
+var _ppShown = []; /* 付款计划当前显示（经搜索/仅看选中过滤后）的项目列表；总览合计跟随 */
+function loadPpPct(){ try{ ppPct = JSON.parse(localStorage.getItem("wb_pom_v2_payplan") || "{}") || {}; }catch(e){ ppPct = {}; } }
+function savePpPct(){ try{ localStorage.setItem("wb_pom_v2_payplan", JSON.stringify(ppPct)); }catch(e){} }
+function ppNum(v){ var n = parseFloat(v); return (isNaN(n) || n < 0) ? 0 : n; }
+function payPlanProjects(){
+  return companyProjects().filter(function(p){ return unPaid(p) < 0 || unRecv(p) < 0; }).sort(sortProjsDesc);
+}
+function ppTotals(){
+  var sPay = 0, sRecv = 0;
+  (_ppShown && _ppShown.length ? _ppShown : payPlanProjects()).forEach(function(p){
+    var o = ppPct[p.id] || {};
+    sPay += num(p.purchaseAmount) * ppNum(o.pct) / 100;
+    sRecv += num(p.saleAmount) * ppNum(o.rpct) / 100;
+  });
+  return { pay: sPay, recv: sRecv };
+}
+function ppWriteTotal(){
+  var t = ppTotals(), tot = document.getElementById("ppTotal");
+  if (tot) tot.textContent = "本次付款 " + money(t.pay) + " · 本次收款 " + money(t.recv);
+}
+function renderPayPlan(){
+  var body = document.getElementById("ppBody");
+  var cnt = document.getElementById("ppCount");
+  var all = payPlanProjects();
+  /* 清理已删除/已转部门/已结清项目的比例与勾选记录 */
+  var live = {};
+  all.forEach(function(p){ live[p.id] = 1; });
+  for (var k in ppPct){ if (!live[k]) delete ppPct[k]; }
+  for (var k2 in ppSelIds){ if (!live[k2]) delete ppSelIds[k2]; }
+  savePpPct();
+  /* 仅看选中模式下取消全部勾选 → 自动退出，避免空列表 */
+  if (ppOnlySel){
+    var _sn = 0; for (var _k in ppSelIds) _sn++;
+    if (!_sn){ ppOnlySel = false; toast("已取消全部勾选，恢复显示全部项目"); }
+  }
+  /* 搜索（口径与汇总板块一致：合同号/项目名/客户/产品类型） */
+  var kw = (document.getElementById("ppSearch").value || "").trim().toLowerCase();
+  document.getElementById("ppSearch").classList.toggle("active", !!kw);
+  var projs = all.filter(function(p){
+    if (kw){
+      var hay = ((p.contractNo || "") + " " + (p.name || "") + " " + (p.client || "") + " " + (p.productType || "")).toLowerCase();
+      if (hay.indexOf(kw) === -1) return false;
+    }
+    if (ppOnlySel && !ppSelIds[p.id]) return false;
+    return true;
+  });
+  _ppShown = projs;
+  _ppLastIds = projs.map(function(p){ return p.id; });
+  var fActive = (kw || ppOnlySel);
+  var fi = document.getElementById("ppFilterInfo");
+  if (fi) fi.textContent = fActive ? "筛选显示 " + projs.length + " / " + all.length + " 个项目" : "";
+  cnt.textContent = all.length + " 个待计划项目";
+  if (!all.length){
+    body.innerHTML = '<tr><td colspan="14"><div class="empty">所有项目收付款均已结清，暂无待计划项目</div></td></tr>';
+    document.getElementById("ppTotal").textContent = "本次付款 ¥0.00 · 本次收款 ¥0.00";
+    updatePpSelUI();
+    return;
+  }
+  if (!projs.length){
+    body.innerHTML = '<tr><td colspan="14"><div class="empty">' + (ppOnlySel && !kw ? "勾选的项目与当前筛选不匹配" : "没有匹配的项目，换个关键词试试") + '</div></td></tr>';
+    document.getElementById("ppTotal").textContent = "本次付款 ¥0.00 · 本次收款 ¥0.00";
+    updatePpSelUI();
+    return;
+  }
+  var rows = "", sPur = 0, sPaid = 0, sDue = 0, sPamt = 0, sSal = 0, sRcv = 0, sRdue = 0, sRamt = 0;
+  projs.forEach(function(p){
+    var o = ppPct[p.id] || {};
+    var pct = ppNum(o.pct), rpct = ppNum(o.rpct);
+    var payAmt = num(p.purchaseAmount) * pct / 100;
+    var recvAmt = num(p.saleAmount) * rpct / 100;
+    sPur += num(p.purchaseAmount); sPaid += paySum(p); sDue += unPaid(p); sPamt += payAmt;
+    sSal += num(p.saleAmount); sRcv += recvSum(p); sRdue += unRecv(p); sRamt += recvAmt;
+    rows += '<tr class="rpt-click' + (ppSelIds[p.id] ? ' sel' : '') + '" onclick="togglePpOne(\'' + p.id + '\')" title="点击行选中 / 取消选中（在比例框输入不触发）">'
+      + '<td><b>' + esc(p.name || "未命名项目") + '</b></td>'
+      + '<td class="muted">' + esc(p.contractNo || "无合同号") + '</td>'
+      + '<td class="r">' + money(num(p.purchaseAmount)) + '</td>'
+      + '<td class="r">' + money(paySum(p)) + '</td>'
+      + '<td class="r m-purple" title="已付款 ÷ 采购金额">' + pctStr(paySum(p), num(p.purchaseAmount)) + '</td>'
+      + '<td class="r ' + recvDiffCls(unPaid(p)) + '">' + money(unPaid(p)) + '</td>'
+      + '<td style="text-align:center"><input type="number" min="0" step="0.1" inputmode="decimal" class="pp-input" value="' + (pct || "") + '" placeholder="0" onclick="event.stopPropagation()" oninput="ppSetPct(\'' + p.id + '\', \'pct\', this.value)"></td>'
+      + '<td class="r"><b id="ppAmt_' + p.id + '">' + money(payAmt) + '</b></td>'
+      + '<td class="r">' + money(num(p.saleAmount)) + '</td>'
+      + '<td class="r">' + money(recvSum(p)) + '</td>'
+      + '<td class="r m-green" title="已收款 ÷ 销售金额">' + pctStr(recvSum(p), num(p.saleAmount)) + '</td>'
+      + '<td class="r ' + recvDiffCls(unRecv(p)) + '">' + money(unRecv(p)) + '</td>'
+      + '<td style="text-align:center"><input type="number" min="0" step="0.1" inputmode="decimal" class="pp-input pp-in-g" value="' + (rpct || "") + '" placeholder="0" onclick="event.stopPropagation()" oninput="ppSetPct(\'' + p.id + '\', \'rpct\', this.value)"></td>'
+      + '<td class="r"><b id="ppRAmt_' + p.id + '">' + money(recvAmt) + '</b></td>'
+      + '</tr>';
+  });
+  rows += '<tr style="font-weight:700;background:var(--purple-soft)">'
+    + '<td>合计（' + projs.length + ' 个项目）</td><td></td>'
+    + '<td class="r">' + money(sPur) + '</td><td class="r">' + money(sPaid) + '</td><td class="r">' + pctStr(sPaid, sPur) + '</td><td class="r">' + money(sDue) + '</td>'
+    + '<td></td><td class="r">' + money(sPamt) + '</td>'
+    + '<td class="r">' + money(sSal) + '</td><td class="r">' + money(sRcv) + '</td><td class="r">' + pctStr(sRcv, sSal) + '</td><td class="r">' + money(sRdue) + '</td>'
+    + '<td></td><td class="r">' + money(sRamt) + '</td>'
+    + '</tr>';
+  body.innerHTML = rows;
+  ppWriteTotal();
+  updatePpSelUI();
+}
+/* 填比例时只更新该行金额与合计，不重渲染表格（保持输入焦点不丢失） */
+function ppSetPct(pid, kind, val){
+  if (!ppPct[pid]) ppPct[pid] = {};
+  ppPct[pid][kind] = ppNum(val);
+  savePpPct();
+  var p = findProj(pid);
+  if (p){
+    var o = ppPct[pid];
+    var a1 = document.getElementById("ppAmt_" + pid);
+    var a2 = document.getElementById("ppRAmt_" + pid);
+    if (a1) a1.textContent = money(num(p.purchaseAmount) * ppNum(o.pct) / 100);
+    if (a2) a2.textContent = money(num(p.saleAmount) * ppNum(o.rpct) / 100);
+  }
+  ppWriteTotal();
+}
+
+/* ---------------- 交互：付款计划勾选与「仅看选中」（与汇总板块同模式） ---------------- */
+var ppSelIds = {};
+var _ppLastIds = [];
+var ppOnlySel = false; /* 「仅看选中」开关：开启时列表只显示已勾选的项目 */
+function togglePpOne(id){
+  if (ppSelIds[id]) delete ppSelIds[id]; else ppSelIds[id] = 1;
+  /* 仅看选中模式下取消最后一项勾选 → 自动退出该模式，避免空列表 */
+  if (ppOnlySel){
+    var n = 0; for (var k in ppSelIds) n++;
+    if (!n){ ppOnlySel = false; toast("已取消全部勾选，恢复显示全部项目"); }
+  }
+  renderPayPlan(); /* 刷新行选中高亮与合计（内部已调 updatePpSelUI） */
+}
+function togglePpOnlySel(){
+  if (!ppOnlySel){
+    var n = 0; for (var k in ppSelIds) n++;
+    if (!n){ toast("请先勾选要查看的项目"); return; }
+    ppOnlySel = true;
+    toast("列表仅显示选中的 " + n + " 个项目");
+  } else {
+    ppOnlySel = false;
+    toast("已恢复显示全部项目");
+  }
+  renderPayPlan();
+}
+function togglePpSelAll(){
+  var c = document.getElementById("ppSelAll");
+  if (c.checked){
+    _ppLastIds.forEach(function(id){ ppSelIds[id] = 1; });
+  } else {
+    _ppLastIds.forEach(function(id){ delete ppSelIds[id]; });
+  }
+  renderPayPlan();
+}
+function updatePpSelUI(){
+  var n = 0; for (var k in ppSelIds) n++;
+  var info = document.getElementById("ppSelInfo");
+  var only = document.getElementById("ppSelOnly");
+  if (info) info.textContent = "已选 " + n + " 项";
+  /* 「仅看选中」按钮：开启时紫色高亮；开启状态下即使清空勾选也可点击（用于关闭恢复） */
+  if (only){
+    only.classList.toggle("active", ppOnlySel);
+    only.textContent = ppOnlySel ? "显示全部" : "仅看选中";
+    only.disabled = (!ppOnlySel && n === 0);
+  }
+  var all = document.getElementById("ppSelAll");
+  if (all && _ppLastIds.length){
+    var has = false, allChecked = true;
+    _ppLastIds.forEach(function(id){ if (ppSelIds[id]) has = true; else allChecked = false; });
+    all.checked = allChecked;
+    all.indeterminate = has && !allChecked;
+  } else if (all){
+    all.checked = false; all.indeterminate = false;
+  }
+}
+
+function refreshAll(){
+  renderNew();
+  renderBoard();
+  renderSummary();
+  renderPayPlan();
+}
+
+/* ---------------- 交互：历史输入联想 ---------------- */
+/* 读历史、匹配、渲染候选；选中后只回填文本字段（下游逻辑仍走各入口原样保存），
+   避免与 quickAddProject / saveProjectModal 形成调用环 */
+var AC_FIELDS = {
+  quickNo:       { source: "no",     label: "合同号" },
+  pmNo:          { source: "no",     label: "合同号" },
+  quickClient:   { source: "client", label: "客户" },
+  pmClient:      { source: "client", label: "客户" },
+  quickName:     { source: "name",   label: "项目" },
+  pmName:        { source: "name",   label: "项目" },
+  quickProdType: { source: "type",   label: "产品类型" },
+  pmProdType:    { source: "type",   label: "产品类型" }
+};
+var AC_MAX = 8;
+var _acTarget = null, _acItems = [], _acIdx = -1;
+
+/* 输入前缀优先 → 其次包含匹配；同优先级内按项目合同号倒序（最新合同在前） */
+function acMatchTier(s, kw){ return s.indexOf(kw) === 0 ? 0 : (s.indexOf(kw) > -1 ? 1 : 2); }
+/* 收集全部门的历史字段值（去重），供联想使用；每条带 项目名 / 合同号 作为说明 */
+function acCandidates(source){
+  var map = {}, list = [];
+  state.projects.forEach(function(p){
+    var v = "";
+    if (source === "no") v = p.contractNo || "";
+    else if (source === "client") v = p.client || "";
+    else if (source === "type") v = p.productType || "";
+    else v = p.name || "";
+    v = String(v).trim();
+    if (!v) return;
+    if (!map[v]){ map[v] = { text: v, sub: p.name && p.name !== v ? p.name : (p.contractNo || ""), p: p, tier: 2 }; list.push(map[v]); }
+  });
+  list.sort(function(a, b){ return sortProjsDesc(a.p, b.p); });
+  return list.slice(0, 300);
+}
+/* 高亮命中的关键字（先 esc 再插 <mark>，避免注入与错位） */
+function acHi(text, kw){
+  if (!kw) return esc(text);
+  var low = text.toLowerCase(), k = kw.toLowerCase(), i = low.indexOf(k);
+  if (i === -1) return esc(text);
+  return esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + kw.length)) + '</mark>' + esc(text.slice(i + kw.length));
+}
+function acPanelOf(id){
+  var wrap = document.getElementById(id + "Wrap");
+  return wrap ? wrap.querySelector(".ac-panel") : null;
+}
+function acClose(){
+  if (_acTarget){
+    var p = acPanelOf(_acTarget);
+    if (p){ p.classList.remove("show"); p.innerHTML = ""; }
+  }
+  _acTarget = null; _acItems = []; _acIdx = -1;
+}
+function acRender(id){
+  var p = acPanelOf(id);
+  if (!p || !_acItems.length){ acClose(); return; }
+  var html = '<div class="ac-hint"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
+    + '历史记录 · 点击或用 ↑↓ + 回车选用</div>';
+  html += _acItems.map(function(c, i){
+    return '<div class="ac-item' + (i === _acIdx ? " on" : "") + '" data-i="' + i + '" onmousedown="acPick(' + i + ',event)" onmouseover="acHover(' + i + ')">'
+      + '<span class="ac-txt">' + acHi(c.text, c.kw) + '</span>'
+      + (c.sub ? '<span class="ac-sub" title="' + esc(c.sub) + '">' + esc(c.sub) + '</span>' : '')
+      + '</div>';
+  }).join("");
+  p.innerHTML = html;
+  p.classList.add("show");
+}
+function acInput(id){
+  var cfg = AC_FIELDS[id];
+  if (!cfg) return;
+  var el = document.getElementById(id);
+  var kw = (el.value || "").trim().toLowerCase();
+  if (!kw){ acClose(); return; } /* 空输入时收起，不遮挡表单 */
+  var self = (el.value || "").trim();
+  var hits = [];
+  acCandidates(cfg.source).forEach(function(c){
+    if (c.text === self) return;              /* 已完全一致的不再提示 */
+    var t = acMatchTier(c.text.toLowerCase(), kw);
+    if (t > 1) return;
+    hits.push({ text: c.text, sub: c.sub, kw: kw, tier: t });
+  });
+  hits.sort(function(a, b){ return a.tier - b.tier; });
+  var items = hits.slice(0, AC_MAX);
+  if (!items.length){ acClose(); return; }
+  /* 切换字段时先收起上一个面板；acClose() 会清空 _acItems，故必须在本字段结果算好之后再调用 */
+  if (_acTarget && _acTarget !== id) acClose();
+  _acItems = items;
+  _acIdx = -1;
+  _acTarget = id;
+  acRender(id);
+}
+function acHover(i){ _acIdx = i; if (_acTarget) acRender(_acTarget); }
+function acPick(i, ev){
+  if (ev){ ev.preventDefault(); }
+  var c = _acItems[i];
+  if (!c || !_acTarget) return;
+  var el = document.getElementById(_acTarget);
+  el.value = c.text;
+  /* 选了合同号但客户还空着 → 顺手把该项目的客户带过来（仅当为空时，不覆盖已填内容） */
+  if (AC_FIELDS[_acTarget].source === "no" && c.sub){
+    var cid = _acTarget === "quickNo" ? "quickClient" : "pmClient";
+    var cel = document.getElementById(cid);
+    var cp = null;
+    state.projects.forEach(function(pp){ if (pp.contractNo === c.text) cp = pp; });
+    if (cel && !cel.value.trim() && cp && cp.client) cel.value = cp.client;
+  }
+  acClose();
+  el.focus();
+}
+function acKey(id, ev){
+  if (_acTarget !== id || !_acItems.length) return; /* 未展开时不拦截按键 */
+  if (ev.key === "ArrowDown"){ ev.preventDefault(); _acIdx = (_acIdx + 1) % _acItems.length; acRender(id); }
+  else if (ev.key === "ArrowUp"){ ev.preventDefault(); _acIdx = (_acIdx - 1 + _acItems.length) % _acItems.length; acRender(id); }
+  else if (ev.key === "Enter"){ if (_acIdx > -1){ ev.preventDefault(); acPick(_acIdx); } }
+  else if (ev.key === "Escape"){ acClose(); }
+}
+/* 失焦延迟收起：否则点击候选项时面板先消失、点击落空 */
+function acBlur(){ setTimeout(acClose, 180); }
+
+/* ---------------- 交互：快捷下单（含多笔付款/收款/发票进出项） ---------------- */
+var quickPays = [];
+var quickRecvs = [];
+var quickInvs = [];
+var quickOutvs = [];
+function focusQuickForm(){
+  var card = document.getElementById("quickFormCard");
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(function(){ document.getElementById("quickNo").focus(); }, 350);
+}
+function quickArr(kind){
+  if (kind === "pay") return quickPays;
+  if (kind === "recv") return quickRecvs;
+  if (kind === "inv") return quickInvs;
+  return quickOutvs;
+}
+function addQuickRow(kind){
+  quickArr(kind).push({ date: todayStr(), amount: "" });
+  renderQuickRows();
+}
+function rmQuickRow(kind, i){
+  quickArr(kind).splice(i, 1);
+  renderQuickRows();
+}
+function updQuickRow(kind, i, field, value){
+  var arr = quickArr(kind);
+  if (!arr[i]) return;
+  arr[i][field] = value;
+  updateQuickTotals();
+}
+function renderQuickRows(){
+  function rowsHtml(kind){
+    var html = quickArr(kind).map(function(r, i){
+      return '<div class="qrow">'
+        + '<input type="date" value="' + esc(r.date) + '" onchange="updQuickRow(\'' + kind + '\',' + i + ',\'date\',this.value)">'
+        + '<input type="number" inputmode="decimal" min="0" step="0.01" placeholder="金额" value="' + esc(r.amount) + '" oninput="updQuickRow(\'' + kind + '\',' + i + ',\'amount\',this.value)">'
+        + '<button class="qdel" onclick="rmQuickRow(\'' + kind + '\',' + i + ')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>'
+        + '</div>';
+    }).join("");
+    return html || '<div class="empty" style="padding:8px">暂未登记，可点下方按钮添加</div>';
+  }
+  document.getElementById("quickPayRows").innerHTML = rowsHtml("pay");
+  document.getElementById("quickRecvRows").innerHTML = rowsHtml("recv");
+  document.getElementById("quickInvRows").innerHTML = rowsHtml("inv");
+  document.getElementById("quickOutvRows").innerHTML = rowsHtml("outv");
+  updateQuickTotals();
+}
+function updateQuickTotals(){
+  var purchase = num(document.getElementById("quickPurchase").value);
+  var sale = num(document.getElementById("quickSale").value);
+  var tp = 0, tr = 0, tin = 0, tout = 0;
+  quickPays.forEach(function(r){ tp += num(r.amount); });
+  quickRecvs.forEach(function(r){ tr += num(r.amount); });
+  quickInvs.forEach(function(r){ tin += num(r.amount); });
+  quickOutvs.forEach(function(r){ tout += num(r.amount); });
+  var cards = [
+    { lab: "合计付款金额", val: tp, cls: "m-purple" },
+    { lab: "未付款金额", val: tp - purchase, cls: recvDiffCls(tp - purchase) },
+    { lab: "已收款金额", val: tr, cls: "m-green" },
+    { lab: "未收款金额", val: tr - sale, cls: recvDiffCls(tr - sale) },
+    { lab: "发票进项合计", val: tin, cls: "m-purple" },
+    { lab: "发票销项合计", val: tout, cls: "m-green" }
+  ];
+  var el = document.getElementById("quickTotals");
+  if (el) el.innerHTML = cards.map(function(c){
+    return '<div class="sum-card"><div class="lab">' + c.lab + '</div><div class="val small ' + c.cls + '">' + money(c.val) + '</div></div>';
+  }).join("");
+}
+function quickAddProject(){
+  var no = document.getElementById("quickNo").value.trim();
+  var client = document.getElementById("quickClient").value.trim();
+  if (!no && !client){ toast("请至少填写工厂下单合同号或客户名称"); return; }
+  var pays = [], recvs = [];
+  quickPays.forEach(function(r){ if (num(r.amount) > 0){ pays.push({ id: uid(), date: r.date || todayStr(), amount: num(r.amount), note: "" }); } });
+  quickRecvs.forEach(function(r){ if (num(r.amount) > 0){ recvs.push({ id: uid(), date: r.date || todayStr(), amount: num(r.amount), note: "" }); } });
+  var sale = num(document.getElementById("quickSale").value);
+  var newId = uid();
+  state.projects.push({
+    id: newId,
+    name: document.getElementById("quickName").value.trim() || (client ? client + " 订单" : "未命名项目"),
+    client: client, contractNo: no,
+    purchaseAmount: num(document.getElementById("quickPurchase").value),
+    saleAmount: sale,
+    createdAt: todayStr(), updatedAt: todayStr(), payments: pays, receipts: recvs,
+    productType: document.getElementById("quickProdType").value.trim(),
+    companyId: state.currentCompanyId
+  });
+  /* 本单登记的发票进出项一并保存 */
+  quickInvs.forEach(function(r){ if (num(r.amount) > 0){ state.invoices.push({ id: uid(), type: "in", date: r.date || todayStr(), amount: num(r.amount), note: (no ? no + " · " : "") + "进项发票", pid: newId }); } });
+  quickOutvs.forEach(function(r){ if (num(r.amount) > 0){ state.invoices.push({ id: uid(), type: "out", date: r.date || todayStr(), amount: num(r.amount), note: (no ? no + " · " : "") + "销项发票", pid: newId }); } });
+  ["quickNo","quickClient","quickName","quickPurchase","quickSale","quickProdType"].forEach(function(id){ document.getElementById(id).value = ""; });
+  quickPays = []; quickRecvs = []; quickInvs = []; quickOutvs = [];
+  renderQuickRows();
+  saveState(); refreshAll();
+  var recvTotal = sum(recvs);
+  if (sale > 0 && recvTotal >= sale){ confetti(); toast("下单成功 · 已全额收款，目标达成"); }
+  else { toast("下单已保存"); }
+}
+
+/* ---------------- 交互：项目 ---------------- */
+var editingProjectId = null;
+function openProjectModal(id){
+  editingProjectId = id || null;
+  var p = id ? findProj(id) : null;
+  document.getElementById("projModalTitle").textContent = p ? "编辑项目订单" : "新建项目订单";
+  document.getElementById("pmName").value = p ? (p.name || "") : "";
+  document.getElementById("pmClient").value = p ? (p.client || "") : "";
+  document.getElementById("pmNo").value = p ? (p.contractNo || "") : "";
+  document.getElementById("pmPurchase").value = p ? (p.purchaseAmount || "") : "";
+  document.getElementById("pmSale").value = p ? (p.saleAmount || "") : "";
+  document.getElementById("pmProdType").value = p ? (p.productType || "") : "";
+  showModal("projModal");
+}
+function saveProjectModal(){
+  var name = document.getElementById("pmName").value.trim();
+  var client = document.getElementById("pmClient").value.trim();
+  if (!name && !client){ toast("请填写项目名称或客户名称"); return; }
+  if (editingProjectId){
+    var p = findProj(editingProjectId);
+    if (p){
+      p.name = name || "未命名项目"; p.client = client;
+      p.contractNo = document.getElementById("pmNo").value.trim();
+      p.purchaseAmount = num(document.getElementById("pmPurchase").value);
+      p.saleAmount = num(document.getElementById("pmSale").value);
+      p.productType = document.getElementById("pmProdType").value.trim();
+      touchProject(p);
+    }
+  } else {
+    state.projects.push({
+      id: uid(), name: name || "未命名项目", client: client,
+      contractNo: document.getElementById("pmNo").value.trim(),
+      purchaseAmount: num(document.getElementById("pmPurchase").value),
+      saleAmount: num(document.getElementById("pmSale").value),
+      createdAt: todayStr(), updatedAt: todayStr(), payments: [], receipts: [],
+      productType: document.getElementById("pmProdType").value.trim(),
+      companyId: state.currentCompanyId
+    });
+  }
+  closeModal("projModal");
+  saveState(); refreshAll(); refreshDetail(); toast("已保存");
+}
+/* ---------------- 交互：项目多选与批量删除 ---------------- */
+/* 汇总板块多选（独立于新建板块的 selIds；列表点行切换选中，行尾「详情」按钮查看合同） */
+var rptSelIds = {};
+var _rptLastIds = [];
+var rptOnlySel = false; /* 「仅看选中」开关：开启时项目列表只显示已勾选的项目 */
+function toggleRptOne(id){
+  if (rptSelIds[id]) delete rptSelIds[id]; else rptSelIds[id] = 1;
+  /* 仅看选中模式下取消最后一项勾选 → 自动退出该模式，避免空列表 */
+  if (rptOnlySel){
+    var n = 0; for (var k in rptSelIds) n++;
+    if (!n){ rptOnlySel = false; toast("已取消全部勾选，恢复显示全部项目"); }
+  }
+  renderSummary(); /* 刷新行选中高亮（内部已调 updateRptSelUI） */
+}
+function toggleRptOnlySel(){
+  if (!rptOnlySel){
+    var n = 0; for (var k in rptSelIds) n++;
+    if (!n){ toast("请先勾选要查看的项目"); return; }
+    rptOnlySel = true;
+    toast("列表仅显示选中的 " + n + " 个项目");
+  } else {
+    rptOnlySel = false;
+    toast("已恢复显示全部项目");
+  }
+  renderSummary();
+}
+function toggleRptSelAll(){
+  var c = document.getElementById("rptSelAll");
+  if (c.checked){
+    _rptLastIds.forEach(function(id){ rptSelIds[id] = 1; });
+  } else {
+    _rptLastIds.forEach(function(id){ delete rptSelIds[id]; });
+  }
+  renderSummary();
+}
+function updateRptSelUI(){
+  var n = 0; for (var k in rptSelIds) n++;
+  var info = document.getElementById("rptSelInfo");
+  var del = document.getElementById("rptSelDel");
+  var exp = document.getElementById("rptSelExport");
+  var only = document.getElementById("rptSelOnly");
+  if (info) info.textContent = "已选 " + n + " 项";
+  if (del) del.disabled = n === 0;
+  if (exp) exp.disabled = n === 0;
+  /* 「仅看选中」按钮：开启时紫色高亮；开启状态下即使清空勾选也可点击（用于关闭恢复） */
+  if (only){
+    only.classList.toggle("active", rptOnlySel);
+    only.textContent = rptOnlySel ? "显示全部" : "仅看选中";
+    only.disabled = (!rptOnlySel && n === 0);
+  }
+  var all = document.getElementById("rptSelAll");
+  if (all && _rptLastIds.length){
+    var has = false, allChecked = true;
+    _rptLastIds.forEach(function(id){ if (rptSelIds[id]) has = true; else allChecked = false; });
+    all.checked = allChecked;
+    all.indeterminate = has && !allChecked;
+  } else if (all){
+    all.checked = false; all.indeterminate = false;
+  }
+}
+/* 当前筛选结果中被勾选的项目（导出选中用，保持表格顺序） */
+function rptSelectedProjects(){
+  return filteredProjects().filter(function(p){ return rptSelIds[p.id]; });
+}
+/* 汇总板块批量删除：删除本部门内被勾选的项目 */
+function rptDelSelected(){
+  var ids = [];
+  for (var k in rptSelIds) ids.push(k);
+  if (!ids.length){ toast("请先勾选要删除的项目"); return; }
+  var cid = state.currentCompanyId;
+  ids = ids.filter(function(id){ var p = findProj(id); return p && (p.companyId || "") === cid; });
+  if (!ids.length){ toast("请先勾选要删除的项目"); return; }
+  var names = [];
+  ids.forEach(function(id){ var p = findProj(id); if (p) names.push(p.name || "未命名"); });
+  askConfirm("确定删除汇总表中选中的 " + ids.length + " 个项目？\n" + (names.slice(0, 5).join("、") + (names.length > 5 ? " 等" : "")) + "\n其全部付款 / 收款记录将一并删除，此操作不可恢复。", function(){
+    askConfirm("二次确认：真的要批量删除 " + ids.length + " 个项目吗？删除后只能靠导入备份恢复。", function(){
+      var set = {};
+      ids.forEach(function(id){ set[id] = 1; });
+      state.projects = state.projects.filter(function(x){ return !set[x.id]; });
+      rptSelIds = {};
+      rptOnlySel = false;
+      saveState(); refreshAll(); toast("已删除 " + ids.length + " 个项目");
+    }, "确认删除");
+  });
+}
+/* 汇总板块导出选中：打开导出弹窗（有勾选时置顶「导出选中项目」，内容可勾选），由工具条「导出选中」按钮触发 */
+var selIds = {};
+var _lastProjIds = [];
+function toggleOne(id){
+  if (selIds[id]) delete selIds[id]; else selIds[id] = 1;
+  updateSelUI();
+}
+function toggleSelAll(){
+  var c = document.getElementById("projSelAll");
+  if (c.checked){
+    _lastProjIds.forEach(function(id){ selIds[id] = 1; });
+  } else {
+    _lastProjIds.forEach(function(id){ delete selIds[id]; });
+  }
+  renderNew();
+}
+function updateSelUI(){
+  var n = 0; for (var k in selIds) n++;
+  var info = document.getElementById("projSelInfo");
+  var del = document.getElementById("projSelDel");
+  if (info) info.textContent = "已选 " + n + " 项";
+  if (del) del.disabled = n === 0;
+  var all = document.getElementById("projSelAll");
+  if (all && _lastProjIds.length){
+    var has = false, allChecked = true;
+    _lastProjIds.forEach(function(id){ if (selIds[id]) has = true; else allChecked = false; });
+    all.checked = allChecked;
+    all.indeterminate = has && !allChecked;
+  } else if (all){
+    all.checked = false; all.indeterminate = false;
+  }
+}
+function delSelectedProjs(){
+  var ids = [];
+  for (var k in selIds) ids.push(k);
+  if (!ids.length){ toast("请先勾选要删除的项目"); return; }
+  var names = [];
+  ids.forEach(function(id){ var p = findProj(id); if (p) names.push(p.name || "未命名"); });
+  askConfirm("确定删除选中的 " + ids.length + " 个项目？\n" + (names.slice(0, 5).join("、") + (names.length > 5 ? " 等" : "")) + "\n其全部付款 / 收款记录将一并删除，此操作不可恢复。", function(){
+    askConfirm("二次确认：真的要批量删除 " + ids.length + " 个项目吗？删除后只能靠导入备份恢复。", function(){
+      var set = {};
+      ids.forEach(function(id){ set[id] = 1; });
+      state.projects = state.projects.filter(function(x){ return !set[x.id]; });
+      selIds = {};
+      rptSelIds = {};
+      saveState(); refreshAll(); toast("已删除 " + ids.length + " 个项目");
+    }, "确认删除");
+  });
+}
+function delProject(id){
+  var p = findProj(id);
+  if (!p) return;
+  askConfirm("确定删除项目「" + (p.name || "未命名") + "」？\n其全部付款 / 收款记录将一并删除，此操作不可恢复。", function(){
+    askConfirm("二次确认：真的要删除吗？删除后只能靠导入备份恢复。", function(){
+      delete selIds[id];
+      delete rptSelIds[id];
+      state.projects = state.projects.filter(function(x){ return x.id !== id; });
+      saveState(); refreshAll(); toast("项目已删除");
+    }, "确认删除");
+  });
+}
+
+/* ---------------- 交互：收付款 ---------------- */
+var payModalProjId = null;
+/* 编辑模式：非空 { kind, rid } 表示在记一笔弹窗中修改已有记录（kind 与 payType 值一致） */
+var payEdit = null;
+function openPayModal(pid, kind){
+  payModalProjId = pid;
+  payEdit = null;
+  var p = findProj(pid);
+  if (!p) return;
+  kind = kind || "payments";
+  document.getElementById("payModalTitle").textContent = "记一笔 · " + (kind === "payments" ? "付款" : kind === "receipts" ? "收款" : kind === "invoice_in" ? "进项发票" : "销项发票");
+  document.getElementById("payModalSaveBtn").textContent = "保存";
+  document.getElementById("payType").disabled = false;
+  document.getElementById("payModalSub").textContent = (p.name || "未命名项目") + " · 未付 " + money(unPaid(p)) + " · 未收 " + money(unRecv(p));
+  document.getElementById("payType").value = kind;
+  document.getElementById("payDate").value = todayStr();
+  document.getElementById("payAmount").value = "";
+  document.getElementById("payNote").value = "";
+  showModal("payModal");
+}
+/* 打开记一笔弹窗并进入编辑模式：预填记录内容、锁定类型，保存时更新原记录 */
+function openPayEdit(pid, kind, rid){
+  var p = findProj(pid);
+  if (!p) return;
+  var rec = null;
+  if (kind === "invoice_in" || kind === "invoice_out"){
+    state.invoices.forEach(function(v){ if (v.id === rid) rec = v; });
+  } else {
+    (p[kind] || []).forEach(function(r){ if (r.id === rid) rec = r; });
+  }
+  if (!rec){ toast("记录不存在"); return; }
+  payModalProjId = pid;
+  payEdit = { kind: kind, rid: rid };
+  document.getElementById("payModalTitle").textContent = "修改" + (kind === "payments" ? "付款" : kind === "receipts" ? "收款" : kind === "invoice_in" ? "进项发票" : "销项发票");
+  document.getElementById("payModalSaveBtn").textContent = "保存修改";
+  document.getElementById("payType").disabled = true;
+  document.getElementById("payModalSub").textContent = (p.name || "未命名项目") + " · 未付 " + money(unPaid(p)) + " · 未收 " + money(unRecv(p));
+  document.getElementById("payType").value = kind;
+  document.getElementById("payDate").value = normDate(rec.date) || todayStr();
+  document.getElementById("payAmount").value = rec.amount;
+  document.getElementById("payNote").value = rec.note || "";
+  showModal("payModal");
+}
+function savePayModal(){
+  var p = findProj(payModalProjId);
+  if (!p){ closeModal("payModal"); return; }
+  var amount = num(document.getElementById("payAmount").value);
+  if (amount <= 0){ toast("请填写大于 0 的金额"); return; }
+  var kind = document.getElementById("payType").value;
+  var date = document.getElementById("payDate").value || todayStr();
+  var note = document.getElementById("payNote").value.trim();
+  /* 编辑模式：更新已有记录（payments/receipts 或发票） */
+  if (payEdit){
+    if (payEdit.kind === "invoice_in" || payEdit.kind === "invoice_out"){
+      state.invoices.forEach(function(v){
+        if (v.id === payEdit.rid){ v.date = date; v.amount = amount; if (note) v.note = note; }
+      });
+    } else {
+      (p[payEdit.kind] || []).forEach(function(r){
+        if (r.id === payEdit.rid){ r.date = date; r.amount = amount; r.note = note; }
+      });
+    }
+    payEdit = null;
+    touchProject(p);
+    closeModal("payModal");
+    saveState(); refreshAll(); refreshDetail();
+    toast("记录已修改");
+    return;
+  }
+  if (kind === "invoice_in" || kind === "invoice_out"){
+    state.invoices.push({
+      id: uid(), type: kind === "invoice_in" ? "in" : "out", date: date, amount: amount,
+      note: note || ((p.contractNo ? p.contractNo + " · " : "") + (kind === "invoice_in" ? "进项发票" : "销项发票")),
+      pid: p.id
+    });
+    touchProject(p);
+    closeModal("payModal");
+    saveState(); refreshAll(); refreshDetail();
+    toast(kind === "invoice_in" ? "进项发票已登记" : "销项发票已登记");
+    return;
+  }
+  var rec = { id: uid(), date: date, amount: amount, note: note };
+  p[kind] = p[kind] || [];
+  p[kind].push(rec);
+  touchProject(p);
+  closeModal("payModal");
+  saveState(); refreshAll(); refreshDetail();
+  if (kind === "receipts" && num(p.saleAmount) > 0 && recvSum(p) >= num(p.saleAmount)){ confetti(); toast("收款目标达成，彩带庆祝"); }
+  else { toast(kind === "payments" ? "付款已登记" : "收款已登记"); }
+}
+function delRecord(pid, kind, rid){
+  askConfirm("确定删除这条" + (kind === "payments" ? "付款" : "收款") + "记录吗？", function(){
+    var p = findProj(pid);
+    if (!p) return;
+    p[kind] = (p[kind] || []).filter(function(r){ return r.id !== rid; });
+    touchProject(p);
+    saveState(); refreshAll(); toast("记录已删除");
+  });
+}
+/* 统一弹窗打开：详情弹窗打开时，其它弹窗叠加在其上（z-index 抬升），无需先关详情 */
+function showModal(mid){
+  var el = document.getElementById(mid);
+  var d = document.getElementById("detailModal");
+  if (d && d.classList.contains("show") && mid !== "detailModal"){
+    el.style.zIndex = 120;
+  } else {
+    el.style.zIndex = "";
+  }
+  el.classList.add("show");
+}
+function closeModal(mid){ document.getElementById(mid).classList.remove("show"); }
+
+/* 应用内确认弹窗：预览环境系统 confirm() 可能被静默拦截（直接返回 false），改用自定义弹窗 */
+var _confirmCb = null;
+function askConfirm(msg, onOk, okText){
+  document.getElementById("confirmMsg").textContent = msg;
+  document.getElementById("confirmOkBtn").textContent = okText || "确定";
+  _confirmCb = onOk || null;
+  document.getElementById("confirmModal").classList.add("show");
+}
+function confirmOk(){
+  var cb = _confirmCb;
+  _confirmCb = null;
+  closeModal("confirmModal");
+  if (cb) cb();
+}
+function closeConfirm(){
+  _confirmCb = null;
+  closeModal("confirmModal");
+}
+
+/* ---------------- 交互：合同详情 ---------------- */
+var detailProjId = null;
+function openDetail(pid){
+  var p = findProj(pid);
+  if (!p) return;
+  detailProjId = pid;
+  renderDetailHead();
+  renderDetailBody();
+  showModal("detailModal");
+}
+function renderDetailHead(){
+  var p = findProj(detailProjId);
+  if (!p) return;
+  document.getElementById("detailTitle").textContent = "合同详情 · " + (p.name || "未命名项目");
+  document.getElementById("detailSub").textContent = (p.client || "未填客户") + " · 合同号 " + (p.contractNo || "—") + " · 未付 " + money(unPaid(p)) + " · 未收 " + money(unRecv(p));
+}
+/* 详情弹窗仍打开时，刷新标题/副标题与明细（记一笔、编辑合同、删除记录后调用） */
+function refreshDetail(){
+  var d = document.getElementById("detailModal");
+  if (!d.classList.contains("show") || !detailProjId) return;
+  renderDetailHead();
+  renderDetailBody();
+}
+function renderDetailBody(){
+  var p = findProj(detailProjId);
+  var box = document.getElementById("detailBody");
+  if (!p){ box.innerHTML = ""; return; }
+  var invs = state.invoices.filter(function(v){ return v.pid === p.id; });
+  var invIn = invs.filter(function(v){ return v.type === "in"; });
+  var invOut = invs.filter(function(v){ return v.type === "out"; });
+  var DEL_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+  var EDIT_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>';
+  function recRows(list, chipCls, chipText, amountCls, kind){
+    if (!list.length) return '<div class="empty">暂无记录</div>';
+    return list.map(function(r){
+      return '<div class="rec-item">'
+        + '<span class="rec-date">' + esc(fmtDate(r.date) || "—") + '</span>'
+        + '<span class="chip ' + chipCls + '">' + chipText + '</span>'
+        + '<span class="rec-note">' + esc(r.note || "") + '</span>'
+        + '<span class="rec-amount ' + amountCls + '">' + money(r.amount) + '</span>'
+        + '<button class="rec-edit" title="修改" onclick="openPayEdit(\'' + p.id + '\',\'' + kind + '\',\'' + r.id + '\')">' + EDIT_ICON + '</button>'
+        + '<button class="rec-del" title="删除" onclick="detailDelRecord(\'' + p.id + '\',\'' + kind + '\',\'' + r.id + '\')">' + DEL_ICON + '</button>'
+        + '</div>';
+    }).join("");
+  }
+  function invRows(list, chipCls, chipText, amountCls, invKind){
+    if (!list.length) return '<div class="empty">暂无记录</div>';
+    return list.map(function(r){
+      return '<div class="rec-item">'
+        + '<span class="rec-date">' + esc(fmtDate(r.date) || "—") + '</span>'
+        + '<span class="chip ' + chipCls + '">' + chipText + '</span>'
+        + '<span class="rec-note">' + esc(r.note || "") + '</span>'
+        + '<span class="rec-amount ' + amountCls + '">' + money(r.amount) + '</span>'
+        + '<button class="rec-edit" title="修改" onclick="openPayEdit(\'' + p.id + '\',\'' + invKind + '\',\'' + r.id + '\')">' + EDIT_ICON + '</button>'
+        + '<button class="rec-del" title="删除" onclick="detailDelInvoice(\'' + r.id + '\')">' + DEL_ICON + '</button>'
+        + '</div>';
+    }).join("");
+  }
+  function addBtn(kind){
+    return '<div class="rec-add"><button class="btn btn-sm btn-ghost rec-add-btn" onclick="openPayModal(\'' + detailProjId + '\',\'' + kind + '\')">＋ 添加记录</button></div>';
+  }
+  function sec(title, icon, iconSoft, iconColor, count, body, addHtml){
+    return '<div class="detail-sec"><div class="ds-head"><span class="ds-ic" style="background:' + iconSoft + ';color:' + iconColor + '">' + icon + '</span>' + title + '<span class="ds-count">' + count + ' 条</span></div><div class="detail-list">' + body + (addHtml || "") + '</div></div>';
+  }
+  var icPay  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+  var icRecv = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>';
+  var icInv  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>';
+  var icBuy  = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>';
+  var icSell = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.3 9.3a1 1 0 0 0 1.4 0l8.6-8.6a1 1 0 0 0 0-1.4Z"/><circle cx="7" cy="7" r="1.2"/></svg>';
+  var icNote = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  box.innerHTML =
+    /* 板块一：采购项（工厂合同号 / 采购金额 / 产品类型 / 已付款 / 未付款 + 付款记录 + 进项发票） */
+    '<div class="detail-block">'
+    + '<div class="db-head"><span class="ds-ic" style="background:var(--purple-soft);color:var(--purple)">' + icBuy + '</span>采购项</div>'
+    + '<div class="detail-grid">'
+    + '<div class="d-item"><div class="d-lab">工厂合同号</div><div class="d-val">' + esc(p.contractNo || "—") + '</div></div>'
+    + '<div class="d-item"><div class="d-lab">采购金额</div><div class="d-val">' + money(p.purchaseAmount) + '</div></div>'
+    + '<div class="d-item"><div class="d-lab">产品类型</div><div class="d-val">' + esc(p.productType || "未填") + '</div></div>'
+    + '<div class="d-item"><div class="d-lab">已付款</div><div class="d-val"><span class="m-purple">' + money(paySum(p)) + '</span></div></div>'
+    + '<div class="d-item"><div class="d-lab">未付款</div><div class="d-val"><span class="' + recvDiffCls(unPaid(p)) + '">' + money(unPaid(p)) + '</span></div></div>'
+    + '<div class="d-item"><div class="d-lab">进项发票合计</div><div class="d-val"><span class="m-blue">' + money(invInSum(p)) + '</span></div></div>'
+    + '</div>'
+    + sec("付款记录", icPay, "var(--purple-soft)", "var(--purple)", (p.payments || []).length, recRows(p.payments || [], "chip-purple", "付款", "m-purple", "payments"), addBtn("payments"))
+    + sec("进项发票", icInv, "var(--blue-soft)", "var(--blue)", invIn.length, invRows(invIn, "chip-purple", "进项", "m-purple", "invoice_in"), addBtn("invoice_in"))
+    + '</div>'
+    /* 板块二：销售项（客户公司 / 销售金额 / 已收款 / 未收款 + 收款记录 + 销项发票） */
+    + '<div class="detail-block">'
+    + '<div class="db-head"><span class="ds-ic" style="background:var(--green-soft);color:var(--green)">' + icSell + '</span>销售项</div>'
+    + '<div class="detail-grid">'
+    + '<div class="d-item"><div class="d-lab">客户公司</div><div class="d-val">' + esc(p.client || "未填") + '</div></div>'
+    + '<div class="d-item"><div class="d-lab">销售金额</div><div class="d-val">' + money(p.saleAmount) + '</div></div>'
+    + '<div class="d-item"><div class="d-lab">已收款</div><div class="d-val"><span class="m-green">' + money(recvSum(p)) + '</span></div></div>'
+    + '<div class="d-item"><div class="d-lab">未收款</div><div class="d-val"><span class="' + recvDiffCls(unRecv(p)) + '">' + money(unRecv(p)) + '</span></div></div>'
+    + '<div class="d-item"><div class="d-lab">销项发票合计</div><div class="d-val"><span class="m-blue">' + money(invOutSum(p)) + '</span></div></div>'
+    + '</div>'
+    + sec("收款记录", icRecv, "var(--green-soft)", "var(--green)", (p.receipts || []).length, recRows(p.receipts || [], "chip-green", "收款", "m-green", "receipts"), addBtn("receipts"))
+    + sec("销项发票", icInv, "var(--blue-soft)", "var(--blue)", invOut.length, invRows(invOut, "chip-green", "销项", "m-green", "invoice_out"), addBtn("invoice_out"))
+    + '</div>'
+    /* 板块三：备注（可编辑保存） */
+    + '<div class="detail-block">'
+    + '<div class="db-head"><span class="ds-ic" style="background:var(--amber-soft);color:var(--amber)">' + icNote + '</span>备注</div>'
+    + '<textarea id="projNoteBox" class="note-input" placeholder="填写项目备注（交货计划、履行情况、待办事项等）">' + esc(p.note || "") + '</textarea>'
+    + '<div style="margin-top:8px;text-align:right"><button class="btn btn-sm" onclick="saveProjectNote()">保存备注</button></div>'
+    + '</div>';
+}
+function detailDelRecord(pid, kind, rid){
+  askConfirm("确定删除这条" + (kind === "payments" ? "付款" : "收款") + "记录吗？", function(){
+    var p = findProj(pid);
+    if (!p) return;
+    p[kind] = (p[kind] || []).filter(function(r){ return r.id !== rid; });
+    saveState(); refreshAll(); refreshDetail(); toast("记录已删除");
+  });
+}
+function detailDelInvoice(vid){
+  askConfirm("确定删除这条发票记录吗？", function(){
+    var pid = null;
+    state.invoices.forEach(function(v){ if (v.id === vid) pid = v.pid; });
+    state.invoices = state.invoices.filter(function(v){ return v.id !== vid; });
+    if (pid) touchProject(findProj(pid));
+    saveState(); refreshAll(); refreshDetail(); toast("发票已删除");
+  });
+}
+function saveProjectNote(){
+  var p = findProj(detailProjId);
+  if (!p) return;
+  p.note = String(document.getElementById("projNoteBox").value || "").trim();
+  touchProject(p);
+  saveState(); refreshAll(); refreshDetail(); toast("备注已保存");
+}
+
+/* ---------------- 备份 / 恢复 / 清空 ---------------- */
+function exportJSON(){
+  var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "项目订单汇总管理台备份_" + todayStr() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  toast("备份文件已导出");
+}
+
+/* ---------------- 导出 Excel 报表（XML Spreadsheet 2003，无外部依赖） ---------------- */
+function xesc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function xCell(v, type, style){
+  return '<Cell' + (style ? ' ss:StyleID="' + style + '"' : '') + '><Data ss:Type="' + type + '">' + v + '</Data></Cell>';
+}
+function buildExcelXml(scope, opts){
+  opts = opts || {};
+  var showReport = opts.report !== false;
+  var showPay = opts.pay !== false;
+  var showInv = opts.inv !== false;
+  var W = [];
+  var projs = (scope === "selected") ? rptSelectedProjects() : allProjects();
+  var pset = null;
+  if (scope === "selected"){ pset = {}; projs.forEach(function(p){ pset[p.id] = 1; }); }
+  var dateDesc = function(a, b){ return (b.date || "").localeCompare(a.date || ""); };
+  W.push('<?xml version="1.0" encoding="UTF-8"?>');
+  W.push('<?mso-application progid="Excel.Sheet"?>');
+  W.push('<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">');
+  W.push('<DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>项目订单汇总管理台</Author><Created>' + todayStr() + '</Created></DocumentProperties>');
+  W.push('<Styles>'
+    + '<Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#7C5CFF" ss:Pattern="Solid"/><Alignment ss:Horizontal="Center" ss:Vertical="Center"/></Style>'
+    + '<Style ss:ID="t"><Font ss:Bold="1"/><Interior ss:Color="#F0ECFF" ss:Pattern="Solid"/></Style>'
+    + '<Style ss:ID="d"><NumberFormat ss:Format="#,##0.00"/></Style>'
+    + '</Styles>');
+
+  if (showReport){
+    /* Sheet 1 项目报表（按导出范围的项目） */
+    W.push('<Worksheet ss:Name="项目报表"><Table>');
+    W.push('<Column ss:Width="200"/><Column ss:Width="160"/><Column ss:Width="130"/><Column ss:Width="130"/><Column ss:Width="100"/><Column ss:Width="100"/><Column ss:Width="90"/><Column ss:Width="100"/><Column ss:Width="100"/><Column ss:Width="100"/><Column ss:Width="100"/><Column ss:Width="90"/><Column ss:Width="100"/><Column ss:Width="100"/>');
+    W.push('<Row>' + xCell("项目名称", "String", "h") + xCell("客户公司", "String", "h") + xCell("工厂合同号", "String", "h") + xCell("产品类型", "String", "h") + xCell("采购金额", "String", "h") + xCell("已付款", "String", "h") + xCell("付款比例", "String", "h") + xCell("未付款", "String", "h") + xCell("进项发票", "String", "h") + xCell("销售金额", "String", "h") + xCell("已收款", "String", "h") + xCell("收款比例", "String", "h") + xCell("未收款", "String", "h") + xCell("销项发票", "String", "h") + '</Row>');
+    projs.forEach(function(p){
+      W.push('<Row>' + xCell(xesc(p.name || "未命名项目"), "String") + xCell(xesc(p.client || ""), "String") + xCell(xesc(p.contractNo || ""), "String") + xCell(xesc(p.productType || ""), "String")
+        + xCell(num(p.purchaseAmount), "Number", "d") + xCell(paySum(p), "Number", "d") + xCell(pctStr(paySum(p), p.purchaseAmount), "String") + xCell(unPaid(p), "Number", "d")
+        + xCell(invInSum(p), "Number", "d")
+        + xCell(num(p.saleAmount), "Number", "d") + xCell(recvSum(p), "Number", "d") + xCell(pctStr(recvSum(p), p.saleAmount), "String") + xCell(unRecv(p), "Number", "d")
+        + xCell(invOutSum(p), "Number", "d") + '</Row>');
+    });
+    var stc = 0, stp = 0, sts = 0, str2 = 0, stIn = 0, stOut = 0;
+    projs.forEach(function(p){ stc += num(p.purchaseAmount); stp += paySum(p); sts += num(p.saleAmount); str2 += recvSum(p); stIn += invInSum(p); stOut += invOutSum(p); });
+    if (projs.length){
+      W.push('<Row ss:StyleID="t">' + xCell("合计（" + projs.length + " 个项目）", "String") + xCell("", "String") + xCell("", "String") + xCell("", "String")
+        + xCell(stc, "Number", "d") + xCell(stp, "Number", "d") + xCell(pctStr(stp, stc), "String") + xCell(stp - stc, "Number", "d")
+        + xCell(stIn, "Number", "d")
+        + xCell(sts, "Number", "d") + xCell(str2, "Number", "d") + xCell(pctStr(str2, sts), "String") + xCell(str2 - sts, "Number", "d")
+        + xCell(stOut, "Number", "d") + '</Row>');
+    }
+    W.push('</Table></Worksheet>');
+  }
+
+  if (showPay){
+    /* Sheet 2 收付款明细（含工厂合同号） */
+    W.push('<Worksheet ss:Name="收付款明细"><Table>');
+    W.push('<Column ss:Width="100"/><Column ss:Width="200"/><Column ss:Width="130"/><Column ss:Width="90"/><Column ss:Width="100"/><Column ss:Width="160"/>');
+    W.push('<Row>' + xCell("日期", "String", "h") + xCell("项目", "String", "h") + xCell("合同号", "String", "h") + xCell("类型", "String", "h") + xCell("金额", "String", "h") + xCell("备注", "String", "h") + '</Row>');
+    var prs = [];
+    companyProjects().filter(function(p){ return !pset || pset[p.id]; }).forEach(function(p){
+      (p.payments || []).forEach(function(r){ prs.push({ date: r.date, proj: p.name, contractNo: p.contractNo, type: "付款", amount: r.amount, note: r.note }); });
+      (p.receipts || []).forEach(function(r){ prs.push({ date: r.date, proj: p.name, contractNo: p.contractNo, type: "收款", amount: r.amount, note: r.note }); });
+    });
+    prs.sort(dateDesc);
+    prs.forEach(function(r){
+      W.push('<Row>' + xCell(xesc(r.date || ""), "String") + xCell(xesc(r.proj || ""), "String") + xCell(xesc(r.contractNo || ""), "String") + xCell(xesc(r.type), "String") + xCell(num(r.amount), "Number", "d") + xCell(xesc(r.note || ""), "String") + '</Row>');
+    });
+    W.push('</Table></Worksheet>');
+  }
+
+  if (showInv){
+    /* Sheet 3 发票明细（含工厂合同号） */
+    W.push('<Worksheet ss:Name="发票明细"><Table>');
+    W.push('<Column ss:Width="100"/><Column ss:Width="90"/><Column ss:Width="100"/><Column ss:Width="200"/><Column ss:Width="130"/><Column ss:Width="160"/>');
+    W.push('<Row>' + xCell("日期", "String", "h") + xCell("类型", "String", "h") + xCell("金额", "String", "h") + xCell("关联项目", "String", "h") + xCell("合同号", "String", "h") + xCell("备注", "String", "h") + '</Row>');
+    state.invoices.filter(invBelongs).filter(function(v){ return !pset || (v.pid && pset[v.pid]); }).slice().sort(dateDesc).forEach(function(v){
+      var p = v.pid ? findProj(v.pid) : null;
+      W.push('<Row>' + xCell(xesc(v.date || ""), "String") + xCell(xesc(v.type === "in" ? "进项发票" : "销项发票"), "String") + xCell(num(v.amount), "Number", "d") + xCell(xesc(p ? p.name : "—"), "String") + xCell(xesc(p ? p.contractNo : ""), "String") + xCell(xesc(v.note || ""), "String") + '</Row>');
+    });
+    W.push('</Table></Worksheet>');
+  }
+
+  W.push('</Workbook>');
+  return W.join("");
+}
+function openExcelModal(){
+  var all = allProjects();
+  var sel = rptSelectedProjects();
+  var cname = currentCompany().name;
+  var sub = "当前部门：「" + cname + "」，共 " + all.length + " 个项目";
+  var selBtn = document.getElementById("excelBtnSelected");
+  var range = document.getElementById("excelRangeBtns");
+  if (sel.length){
+    selBtn.style.display = "flex";
+    range.classList.remove("single");
+    document.getElementById("excelBtnSelectedSub").textContent = "已选 " + sel.length + " 项";
+    sub += "；已勾选 " + sel.length + " 项（可导出选中项目）";
+  } else {
+    selBtn.style.display = "none";
+    range.classList.add("single");
+  }
+  document.getElementById("excelModalSub").textContent = sub;
+  document.getElementById("excelBtnAllSub").textContent = all.length + " 个项目";
+  showModal("excelModal");
+}
+function exportExcelNow(scope){
+  var opts = {
+    report: document.getElementById("expOptReport").checked,
+    pay: document.getElementById("expOptPay").checked,
+    inv: document.getElementById("expOptInv").checked
+  };
+  if (!opts.report && !opts.pay && !opts.inv){ toast("请至少勾选一项导出内容"); return; }
+  closeModal("excelModal");
+  var blob = new Blob(["\ufeff" + buildExcelXml(scope, opts)], { type: "application/vnd.ms-excel;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "项目订单汇总报表_" + (scope === "all" ? "全部" : "已选") + "_" + todayStr() + ".xls";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 3000);
+  var parts = [];
+  if (opts.report) parts.push("项目报表");
+  if (opts.pay) parts.push("收付款明细");
+  if (opts.inv) parts.push("发票明细");
+  toast((scope === "all" ? "已导出全部项目 Excel" : "已导出选中项目 Excel") + "（" + parts.join("、") + "）");
+}
+
+/* ---------------- 导入 Excel 报表（与导出格式一致：XML Spreadsheet 2003，无外部依赖） ---------------- */
+function unescapeXml(s){ return String(s == null ? "" : s).replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&"); }
+/* 按项目名称匹配当前部门项目（导入合并用）：精确名称优先；精确未命中时，
+   若存在「唯一」一个包含关系的项目（如「合肥沛顿」↔「合肥沛顿项目」）则回退匹配，
+   存在多个包含命中（如一期/二期）不匹配，避免误合并 */
+function findProjByName(name){
+  name = String(name == null ? "" : name).trim();
+  if (!name) return null;
+  var cid = state.currentCompanyId;
+  var fuzzy = null, n = 0;
+  for (var i = 0; i < state.projects.length; i++){
+    var p = state.projects[i];
+    if ((p.companyId || "") !== cid) continue;
+    var pn = String(p.name || "").trim();
+    if (!pn) continue;
+    if (pn === name) return p;
+    if (pn.indexOf(name) >= 0 || name.indexOf(pn) >= 0){ fuzzy = p; n++; }
+  }
+  return n === 1 ? fuzzy : null;
+}
+/* 按工厂合同号匹配当前部门项目（导入明细用） */
+function findProjByContractNo(no){
+  no = String(no == null ? "" : no).trim();
+  if (!no) return null;
+  var cid = state.currentCompanyId;
+  for (var i = 0; i < state.projects.length; i++){
+    var p = state.projects[i];
+    if ((p.companyId || "") === cid && String(p.contractNo || "").trim() === no) return p;
+  }
+  return null;
+}
+/* 导入合并判定「同一项目」：工厂合同号 + 项目名称 + 客户名称 完全一致才合并（用户确认口径）。
+   表格客户名称为空时按 合同号+名称（无合同号则仅名称）判定；均限当前部门，避免跨项目误合并 */
+function findProjByImportKey(no, name, client){
+  var cid = state.currentCompanyId;
+  name = String(name == null ? "" : name).trim();
+  client = String(client == null ? "" : client).trim();
+  no = String(no == null ? "" : no).trim();
+  for (var i = 0; i < state.projects.length; i++){
+    var p = state.projects[i];
+    if ((p.companyId || "") !== cid) continue;
+    var pn = String(p.name || "").trim();
+    var pc = String(p.client || "").trim();
+    var pno = String(p.contractNo || "").trim();
+    if (no){
+      if (pno === no && pn === name && (!client || pc === client)) return p;
+    } else {
+      if (pn === name && (!client || pc === client)) return p;
+    }
+  }
+  return null;
+}
+function rowArr(cells){
+  var out = [];
+  cells.forEach(function(c){
+    var pos = c.idx ? c.idx - 1 : out.length;
+    while (out.length < pos) out.push("");
+    out[pos] = c.val;
+  });
+  return out;
+}
+function g(vals, idx){ return (idx == null || idx < 0 || idx >= vals.length) ? "" : vals[idx]; }
+/* 解析导出的 EXCEL 报表文本（无需 DOMParser，兼容浏览器与测试环境） */
+function parseExcelXml(text){
+  text = String(text == null ? "" : text);
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var res = { projects: [], records: [], invoices: [] };
+  var wsRe = /<Worksheet\b([^>]*)>([\s\S]*?)<\/Worksheet>/g;
+  var m, found = false;
+  while ((m = wsRe.exec(text))){
+    found = true;
+    var wsName = /(?:ss:)?Name\s*=\s*"([^"]*)"/.exec(m[1] || "");
+    wsName = wsName ? wsName[1] : "";
+    var rows = [];
+    var rowRe = /<Row\b[^>]*>([\s\S]*?)<\/Row>/g;
+    var rm;
+    while ((rm = rowRe.exec(m[2]))){
+      var cells = [];
+      /* 兼容两种单元格写法：有值 <Cell ...><Data>...</Data></Cell> 与 空单元格自闭合 <Cell .../>；
+         空单元格必须保留占位，否则整行列索引错位（曾导致销售金额误读到已收款列） */
+      var cellRe = /<Cell\b([^>]*?)(?:\/>|>([\s\S]*?)<\/Cell>)/g;
+      var cm;
+      while ((cm = cellRe.exec(rm[1]))){
+        var attrs = cm[1] || "";
+        var inner = cm[2] != null ? cm[2] : "";
+        var idxM = /(?:ss:)?Index\s*=\s*"(\d+)"/.exec(attrs);
+        var dataM = /<Data\b([^>]*)>([\s\S]*?)<\/Data>/.exec(inner);
+        var typeM = dataM ? /(?:ss:)?Type\s*=\s*"([^"]*)"/.exec(dataM[1] || "") : null;
+        var raw = dataM ? dataM[2] : "";
+        var val = (typeM && typeM[1] === "Number") ? num(unescapeXml(raw)) : unescapeXml(raw);
+        cells.push({ idx: idxM ? parseInt(idxM[1], 10) : null, val: val });
+      }
+      rows.push(cells);
+    }
+    var head = rowArr(rows[0] || []);
+    var col = {};
+    head.forEach(function(h, i){ if (h != null && String(h).trim()) col[String(h).trim()] = i; });
+    if (col["项目名称"] != null){
+      /* Sheet 1 项目报表：忽略已付款/未付款等计算列与合计行，只取基础信息 */
+      for (var i = 1; i < rows.length; i++){
+        var v = rowArr(rows[i]);
+        var nm = String(g(v, col["项目名称"]) || "").trim();
+        if (!nm || nm.indexOf("合计") === 0) continue;
+        res.projects.push({ name: nm, client: String(g(v, col["客户公司"]) || "").trim(), contractNo: String(g(v, col["工厂合同号"]) || "").trim(), productType: String(g(v, col["产品类型"]) || "").trim(), purchaseAmount: num(g(v, col["采购金额"])), saleAmount: num(g(v, col["销售金额"])) });
+      }
+    } else if (col["项目"] != null && col["日期"] != null){
+      /* Sheet 2 收付款明细：每一笔的日期与金额完整入账 */
+      for (var j = 1; j < rows.length; j++){
+        var v2 = rowArr(rows[j]);
+        var t2 = String(g(v2, col["类型"]) || "").trim();
+        var kind = t2.indexOf("收款") >= 0 ? "recv" : (t2.indexOf("付款") >= 0 ? "pay" : "");
+        var proj2 = String(g(v2, col["项目"]) || "").trim();
+        if (!kind || !proj2) continue;
+        res.records.push({ proj: proj2, contractNo: String(g(v2, col["合同号"]) || "").trim(), date: normDate(String(g(v2, col["日期"]) || "").trim()), amount: num(g(v2, col["金额"])), note: String(g(v2, col["备注"]) || "").trim(), kind: kind });
+      }
+    } else if (col["关联项目"] != null && col["日期"] != null){
+      /* Sheet 3 发票明细 */
+      for (var k = 1; k < rows.length; k++){
+        var v3 = rowArr(rows[k]);
+        var t3 = String(g(v3, col["类型"]) || "").trim();
+        var it = t3.indexOf("进项") >= 0 ? "in" : (t3.indexOf("销项") >= 0 ? "out" : "");
+        if (!it) continue;
+        res.invoices.push({ proj: String(g(v3, col["关联项目"]) || "").trim(), contractNo: String(g(v3, col["合同号"]) || "").trim(), date: normDate(String(g(v3, col["日期"]) || "").trim()), amount: num(g(v3, col["金额"])), note: String(g(v3, col["备注"]) || "").trim(), type: it });
+      }
+    }
+  }
+  return found ? res : null;
+}
+function dupKey(list, d, amt, note){
+  for (var i = 0; i < list.length; i++){
+    if (list[i].date === d && num(list[i].amount) === amt && String(list[i].note || "") === note) return true;
+  }
+  return false;
+}
+/* 以「工厂合同号+项目名称+客户名称完全一致」为同一项目自动匹配合并：完全一致更新、否则新建、明细去重，不覆盖现有数据 */
+function mergeImportedData(res){
+  var created = 0, updated = 0, recAdded = 0, invAdded = 0, skipped = 0;
+  res.projects.forEach(function(x){
+    var p = findProjByImportKey(x.contractNo, x.name, x.client);
+    if (p){
+      if (x.client) p.client = x.client;
+      if (x.contractNo) p.contractNo = x.contractNo;
+      if (x.productType) p.productType = x.productType;
+      if (num(x.purchaseAmount) > 0) p.purchaseAmount = num(x.purchaseAmount);
+      if (num(x.saleAmount) > 0) p.saleAmount = num(x.saleAmount);
+      touchProject(p);
+      updated++;
+    } else {
+      state.projects.push({ id: uid(), name: x.name, client: x.client || "", contractNo: x.contractNo || "", productType: x.productType || "", createdAt: todayStr(), updatedAt: todayStr(), purchaseAmount: num(x.purchaseAmount), saleAmount: num(x.saleAmount), payments: [], receipts: [], companyId: state.currentCompanyId });
+      created++;
+    }
+  });
+  res.records.forEach(function(r){
+    var p = r.contractNo ? (findProjByContractNo(r.contractNo) || findProjByName(r.proj)) : findProjByName(r.proj);
+    if (!p){
+      p = { id: uid(), name: r.proj, client: "", contractNo: r.contractNo || "", createdAt: todayStr(), updatedAt: todayStr(), purchaseAmount: 0, saleAmount: 0, payments: [], receipts: [], companyId: state.currentCompanyId };
+      state.projects.push(p); created++;
+    }
+    var list = r.kind === "recv" ? p.receipts : p.payments;
+    if (dupKey(list, r.date, num(r.amount), String(r.note || ""))){ skipped++; return; }
+    list.push({ id: uid(), date: r.date, amount: num(r.amount), note: r.note || "" });
+    touchProject(p);
+    recAdded++;
+  });
+  res.invoices.forEach(function(v){
+    var p = (v.contractNo ? findProjByContractNo(v.contractNo) : null) || (v.proj ? findProjByName(v.proj) : null);
+    var dup = state.invoices.some(function(x){
+      return x.type === v.type && x.date === v.date && num(x.amount) === num(v.amount) && String(x.note || "") === String(v.note || "") && (x.pid || null) === (p ? p.id : null);
+    });
+    if (dup){ skipped++; return; }
+    state.invoices.push({ id: uid(), type: v.type, date: v.date, amount: num(v.amount), pid: p ? p.id : null, note: v.note || "" });
+    if (p) touchProject(p);
+    invAdded++;
+  });
+  return { created: created, updated: updated, recAdded: recAdded, invAdded: invAdded, skipped: skipped };
+}
+function importExcel(input){
+  var file = input.files && input.files[0];
+  input.value = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    var res = parseExcelXml(reader.result);
+    if (!res){ toast("导入失败：无法识别表格内容，请使用本页导出的 EXCEL 报表文件"); return; }
+    if (!res.projects.length && !res.records.length && !res.invoices.length){ toast("表格里没有可导入的数据行"); return; }
+    askConfirm("识别到表格数据：\n· 项目 " + res.projects.length + " 行\n· 收付款明细 " + res.records.length + " 行\n· 发票明细 " + res.invoices.length + " 行\n\n将按「工厂合同号 + 项目名称 + 客户名称」完全一致为准自动匹配合并（当前部门「" + currentCompany().name + "」范围内）：\n三项完全一致的项目更新客户/产品类型/金额，否则视为新项目自动创建；\n表格未填客户名称时按 合同号+项目名称 判定；\n明细按 日期+金额 去重并入账，不覆盖现有数据。\n确定导入吗？", function(){
+      var st = mergeImportedData(res);
+      saveState(); refreshAll();
+      toast("导入完成：新增项目 " + st.created + " 个、更新 " + st.updated + " 个，收付款 +" + st.recAdded + " 条、发票 +" + st.invAdded + " 条" + (st.skipped ? "，重复跳过 " + st.skipped + " 条" : "") + (st.created > 0 ? "；新建的项目如与已有项目合同号/名称/客户不一致，请检查原记录是否重复" : ""));
+    }, "开始导入");
+  };
+  reader.readAsText(file, "utf-8");
+}
+function importJSON(input){
+  var file = input.files && input.files[0];
+  input.value = "";
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      var data = normalize(JSON.parse(reader.result));
+      if (!data.projects.length && !data.invoices.length){ toast("文件里没有可导入的数据"); return; }
+      askConfirm("导入将覆盖当前全部数据（当前 " + totalRecordCount() + " 条记录）。\n确定继续吗？", function(){
+        state = data;
+        saveState(); refreshAll(); toast("导入成功，数据已覆盖");
+      });
+    }catch(e){ toast("导入失败：文件不是有效的备份 JSON"); }
+  };
+  reader.readAsText(file, "utf-8");
+}
+function migrateOld(){
+  var found = null;
+  for (var i = 0; i < LEGACY_KEYS.length; i++){
+    var raw = localStorage.getItem(LEGACY_KEYS[i]);
+    if (raw){ try{ found = normalize(JSON.parse(raw)); found._key = LEGACY_KEYS[i]; break; }catch(e){} }
+  }
+  if (!found){ toast("未发现旧版本数据，无需迁移"); return; }
+  var existIds = {};
+  state.projects.forEach(function(p){ existIds[p.id] = 1; });
+  found.projects.forEach(function(p){ p.companyId = state.currentCompanyId; if (!existIds[p.id]) state.projects.push(p); });
+  var invIds = {};
+  state.invoices.forEach(function(v){ invIds[v.id] = 1; });
+  found.invoices.forEach(function(v){ if (!invIds[v.id]) state.invoices.push(v); });
+  saveState(); refreshAll();
+  toast("已从 " + found._key + " 迁移旧数据（增量合并，共 " + found.projects.length + " 个项目）");
+}
+function clearSamples(){
+  var has = state.projects.some(function(p){ return p.sample; }) || state.invoices.some(function(v){ return v.sample; });
+  if (!has){ toast("当前没有示例数据"); return; }
+  state.projects = state.projects.filter(function(p){ return !p.sample; });
+  state.invoices = state.invoices.filter(function(v){ return !v.sample; });
+  saveState(); refreshAll(); toast("示例数据已清空");
+}
+function clearAllFlow(){
+  var word = document.getElementById("clearWord").value;
+  if (word !== "清空"){ toast('请先在输入框中输入「清空」二字'); return; }
+  askConfirm("即将删除全部项目、收付款和发票数据！\n此操作不可恢复，确定继续吗？", function(){
+    state = defaultState();
+    ensureDefaultCompany();
+    selIds = {};
+    rptSelIds = {};
+    saveState();
+    document.getElementById("clearWord").value = "";
+    refreshAll(); toast("全部数据已清空");
+  });
+}
+
+/* ---------------- 彩带动效 ---------------- */
+function confetti(){
+  var colors = ["#7c5cff", "#a78bfa", "#16a34a", "#e5484d", "#d97706", "#f7b955"];
+  for (var i = 0; i < 36; i++){
+    (function(i){
+      var el = document.createElement("div");
+      el.className = "confetti";
+      el.style.left = (Math.random() * 100) + "vw";
+      el.style.background = colors[i % colors.length];
+      el.style.animationDuration = (1.6 + Math.random() * 1.4) + "s";
+      el.style.animationDelay = (Math.random() * .3) + "s";
+      el.style.borderRadius = Math.random() > .5 ? "50%" : "2px";
+      document.body.appendChild(el);
+      setTimeout(function(){ el.remove(); }, 3400);
+    })(i);
+  }
+}
+
+/* ---------------- 初始化 ---------------- */
+document.addEventListener("DOMContentLoaded", function(){
+  loadState();
+  loadPpPct();
+  renderCompanySel();
+  document.getElementById("sumFrom").value = "";
+  document.getElementById("sumTo").value = "";
+  renderQuickRows();
+  /* 点遮罩关闭弹窗 */
+  ["projModal", "payModal"].forEach(function(mid){
+    document.getElementById(mid).addEventListener("click", function(ev){
+      if (ev.target === this) closeModal(mid);
+    });
+  });
+  refreshAll();
+});
+</script>
+</body>
+</html>
