@@ -14,6 +14,8 @@ import AdminHandovers from './pages/admin/AdminHandovers'
 import AdminCommunity from './pages/admin/AdminCommunity'
 import AdminAgentConfig from './pages/admin/AdminAgentConfigPage'
 import AdminAbStats from './pages/admin/AdminAbStatsPage'
+import AdminPMPage from './pages/admin/AdminPMPage'
+import AdminTeamPage from './pages/admin/AdminTeamPage'
 import './index.css'
 
 /**
@@ -41,6 +43,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="community" element={<AdminCommunity />} />
             <Route path="agent-config" element={<AdminAgentConfig />} />
             <Route path="ab-stats" element={<AdminAbStats />} />
+            <Route path="pm" element={<AdminPMPage />} />
+            <Route path="team" element={<AdminTeamPage />} />
           </Route>
           <Route path="/login" element={<LoginPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />

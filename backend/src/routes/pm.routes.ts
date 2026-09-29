@@ -47,10 +47,10 @@ const recordSchema = z.object({
 // ============ 工具 ============
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100
 
-async function checkProjectOwnership(projectId: string, userId: string) {
+async function checkProjectOwnership(projectId: string, userId: string, isAdmin?: boolean) {
   const p = await prisma.project.findUnique({ where: { id: projectId } })
   if (!p) throw new HttpError('项目不存在', 404)
-  if (p.userId !== userId) throw new HttpError('无权访问', 403)
+  if (!isAdmin && p.userId !== userId) throw new HttpError('无权访问', 403)
   return p
 }
 
@@ -75,7 +75,8 @@ router.get('/departments', async (req, res, next) => {
 router.get('/projects', async (req, res, next) => {
   try {
     const { departmentId, status, search } = req.query as any
-    const where: any = { userId: req.user!.userId }
+    const isAdmin = req.user!.role === 'admin'
+    const where: any = isAdmin ? {} : { userId: req.user!.userId }
     if (departmentId) where.departmentId = departmentId
     if (status) where.status = status
     if (search) {
@@ -93,6 +94,7 @@ router.get('/projects', async (req, res, next) => {
         receipts:  { orderBy: { date: 'asc' } },
         invoices:  { orderBy: { date: 'asc' } },
         department: { select: { id: true, name: true } },
+        user:       isAdmin ? { select: { id: true, username: true, nickname: true } } : undefined,
       },
     })
     res.json({ data: projects })
@@ -103,7 +105,8 @@ router.get('/projects', async (req, res, next) => {
 router.get('/projects/stats', async (req, res, next) => {
   try {
     const { departmentId, from, to } = req.query as any
-    const where: any = { userId: req.user!.userId }
+    const isAdminS = req.user!.role === 'admin'
+    const where: any = isAdminS ? {} : { userId: req.user!.userId }
     if (departmentId) where.departmentId = departmentId
     const projects = await prisma.project.findMany({ where, include: { payments: true, receipts: true, invoices: true } })
 
@@ -185,7 +188,7 @@ router.post('/projects', async (req, res, next) => {
 // GET  /api/v1/pm/projects/:id
 router.get('/projects/:id', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     const p = await prisma.project.findUnique({
       where: { id: req.params.id },
       include: {
@@ -202,9 +205,9 @@ router.get('/projects/:id', async (req, res, next) => {
 // PATCH /api/v1/pm/projects/:id
 router.patch('/projects/:id', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     const { payments, receipts, invoices, ...rest } = updateProjectSchema.parse({ ...req.body, id: req.params.id })
-    const p = await prisma.project.update({ where: { id: req.params.id }, data: rest })
+    const p = await prisma.project.update({ where: req.user!.role === 'admin' ? { id: req.params.id } : { id: req.params.id, userId: req.user!.userId }, data: rest })
     res.json({ data: p, message: '项目已更新' })
   } catch (e) { next(e) }
 })
@@ -212,7 +215,7 @@ router.patch('/projects/:id', async (req, res, next) => {
 // DELETE /api/v1/pm/projects/:id    级联删 payments/receipts/invoices
 router.delete('/projects/:id', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     await prisma.project.delete({ where: { id: req.params.id } })
     res.json({ data: null, message: '项目已删除' })
   } catch (e) { next(e) }
@@ -222,7 +225,7 @@ router.delete('/projects/:id', async (req, res, next) => {
 router.post('/projects/bulk-delete', async (req, res, next) => {
   try {
     const { ids } = z.object({ ids: z.array(z.string()) }).parse(req.body)
-    await prisma.project.deleteMany({ where: { id: { in: ids }, userId: req.user!.userId } })
+    await prisma.project.deleteMany({ where: req.user!.role === 'admin' ? { id: { in: ids } } : { id: { in: ids }, userId: req.user!.userId } })
     res.json({ data: null, message: `已删除 ${ids.length} 个项目` })
   } catch (e) { next(e) }
 })
@@ -231,7 +234,7 @@ router.post('/projects/bulk-delete', async (req, res, next) => {
 // POST /api/v1/pm/projects/:id/payments
 router.post('/projects/:id/payments', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     const body = recordSchema.parse(req.body)
     const rec = await prisma.payment.create({
       data: { projectId: req.params.id, date: new Date(body.date), amount: body.amount, note: body.note },
@@ -243,7 +246,7 @@ router.delete('/payments/:rid', async (req, res, next) => {
   try {
     const p = await prisma.payment.findUnique({ where: { id: req.params.rid }, include: { project: true } })
     if (!p) throw new HttpError('记录不存在', 404)
-    if (p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
+    if (req.user!.role !== 'admin' && p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
     await prisma.payment.delete({ where: { id: req.params.rid } })
     res.json({ data: null })
   } catch (e) { next(e) }
@@ -251,7 +254,7 @@ router.delete('/payments/:rid', async (req, res, next) => {
 
 router.post('/projects/:id/receipts', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     const body = recordSchema.parse(req.body)
     const rec = await prisma.receipt.create({
       data: { projectId: req.params.id, date: new Date(body.date), amount: body.amount, note: body.note },
@@ -263,7 +266,7 @@ router.delete('/receipts/:rid', async (req, res, next) => {
   try {
     const p = await prisma.receipt.findUnique({ where: { id: req.params.rid }, include: { project: true } })
     if (!p) throw new HttpError('记录不存在', 404)
-    if (p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
+    if (req.user!.role !== 'admin' && p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
     await prisma.receipt.delete({ where: { id: req.params.rid } })
     res.json({ data: null })
   } catch (e) { next(e) }
@@ -272,7 +275,7 @@ router.delete('/receipts/:rid', async (req, res, next) => {
 const invoiceSchema = recordSchema.extend({ type: z.enum(['in', 'out']) })
 router.post('/projects/:id/invoices', async (req, res, next) => {
   try {
-    await checkProjectOwnership(req.params.id, req.user!.userId)
+    await checkProjectOwnership(req.params.id, req.user!.userId, req.user!.role === 'admin')
     const body = invoiceSchema.parse(req.body)
     const rec = await prisma.invoice.create({
       data: { projectId: req.params.id, type: body.type, date: new Date(body.date), amount: body.amount, note: body.note },
@@ -284,11 +287,13 @@ router.delete('/invoices/:rid', async (req, res, next) => {
   try {
     const p = await prisma.invoice.findUnique({ where: { id: req.params.rid }, include: { project: true } })
     if (!p) throw new HttpError('记录不存在', 404)
-    if (p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
+    if (req.user!.role !== 'admin' && p.project.userId !== req.user!.userId) throw new HttpError('无权访问', 403)
     await prisma.invoice.delete({ where: { id: req.params.rid } })
     res.json({ data: null })
   } catch (e) { next(e) }
 })
 
 export default router
+
+
 

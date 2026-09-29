@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom'
-import { LayoutDashboard, Users, LogOut, ScrollText, ClipboardList, MessageSquare, Loader2, Sparkles, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Users, LogOut, ScrollText, ClipboardList, MessageSquare, Loader2, Sparkles, BarChart3, Group, Wallet } from 'lucide-react'
 import { useAuthStore } from '../../stores/auth'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 
@@ -137,6 +137,30 @@ export default function AdminLayout() {
           >
             <BarChart3 size={18} />
             A/B 统计
+          </NavLink>
+          <NavLink
+            to="/admin/team"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-5 py-3 text-sm transition-all ${
+                isActive ? 'text-white font-medium' : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`
+            }
+            style={({ isActive }) => isActive ? { background: 'linear-gradient(90deg, rgba(5,150,105,0.3) 0%, rgba(13,148,136,0.2) 100%)', borderLeft: '3px solid #059669' } : undefined}
+          >
+            <Group size={18} />
+            团队管理
+          </NavLink>
+          <NavLink
+            to="/admin/pm"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-5 py-3 text-sm transition-all ${
+                isActive ? 'text-white font-medium' : 'text-white/70 hover:text-white hover:bg-white/5'
+              }`
+            }
+            style={({ isActive }) => isActive ? { background: 'linear-gradient(90deg, rgba(5,150,105,0.3) 0%, rgba(13,148,136,0.2) 100%)', borderLeft: '3px solid #059669' } : undefined}
+          >
+            <Wallet size={18} />
+            项目账款
           </NavLink>
         </nav>
         <div className="p-4 border-t border-white/10">
