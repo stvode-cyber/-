@@ -125,6 +125,16 @@ export default function SettingsPage() {
         },
       ],
     },
+    ...(user?.role === 'admin'
+      ? [
+          {
+            title: '管理员',
+            items: [
+              { to: '/admin', icon: Server, label: '管理后台', desc: '全公司用户 · 数据 · 财务看板' },
+            ] as MenuItem[],
+          },
+        ]
+      : []),
     // ============ 功能备份（与「我的」页功能清单同步） ============
     {
       title: '功能 · 生活助理',
