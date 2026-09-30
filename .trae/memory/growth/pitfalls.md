@@ -90,3 +90,16 @@
 
 **影响**：task-team.routes.ts GET 路由 search 参数之前就因为这个没加进去（加了 AND.push 但没加 assigneeId/status 等）
 
+
+### P-XX PowerShell here-string 里包含 $(...) 会被 PowerShell 解释（2026-09-30）
+
+**现象**：SSH 脚本里写 $(date +%H%M%S) 或 bash 变量 $TS 被 PowerShell 当成 Get-Date 或 $TS 变量执行
+
+**根因**：PowerShell here-string 即使写在 .sh 文件里，文件在 PowerShell 里创建时 @"..."@ 会展开 $() 和 $变量
+
+**解法**：
+1. 写 .sh 文件时用 [System.IO.File]::WriteAllText + 无 BOM UTF8，且在 bash 变量前加反引号 ` $ ` 转义
+2. 或者直接一行一行 ssh root@host "cmd1 && cmd2 && cmd3" —— 避免复杂 here-string
+3. 或者在 .sh 文件里完全不用 bash 特殊变量（用固定数字或命令替换前加反引号）
+
+**影响**：今天部署后端 dist 时，dist 目录被 m -rf dist 删了但新目录没移过去——因为 $(date +%H%M%S) 被 PowerShell 吃掉导致 bash cp -r dist dist.bak- 没正确备份
