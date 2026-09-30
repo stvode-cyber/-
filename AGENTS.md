@@ -14,20 +14,54 @@
 
 ## 台账铁律（每次新对话第一动作，强制执行）
 
+### 入场动作（必做）
+
 **入场后必须先 Invoke work-growth-logger Skill**（位于 `.trae/skills/work-growth-logger/SKILL.md`），并行 Read 以下台账文件：
 
 1. `.trae/memory/growth/handover.md`      ← 当前状态 + 远程资源 + 铁律（30 秒接手）
-2. `.trae/memory/growth/pitfalls.md`      ← 踩过的坑（8 条：5 P0 / 3 P1，持续积累）
-3. `.trae/memory/growth/decisions.md`     ← 关键决策（7 条 active）
+2. `.trae/memory/growth/pitfalls.md`      ← 踩过的坑（持续积累）
+3. `.trae/memory/growth/decisions.md`     ← 关键决策
 4. `.trae/memory/growth/daily/YYYY-MM-DD.md` ← 当日流水（改了啥 + 踩了啥坑）
-5. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑（10 条 GS-001~010）
-6. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策（9 条 G-Dc-001~009）
+5. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑
+6. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策
 
 读完后**主动用 3-6 条 bullet 贴出提醒**：当前版本 + 进行中任务 + P0/P1 历史坑 + 硬性规则摘要。等用户反馈后再开始处理新需求。
 
-**改文件前强制扫坑**：准备编辑/运行任何具体文件前，必须 Grep pitfalls.md 里的路径匹配，命中历史坑就用 🚨 格式提醒后再动手。
+### 每个动作前的台账前置（强制执行）
 
-**防失忆双铁律**（work-growth-logger 核心规则）：
+**任何实际操作前必须先 Grep/Read 对应台账**，命中历史坑就用 🚨 格式提醒后再动手：
+
+| 动作类型 | 前置检查 | 台账 |
+|---|---|---|
+| **读/改源码** | Grep pitfalls.md 里的文件路径匹配 | pitfalls.md + decisions.md |
+| **跑后端命令** (`npm run build` / `pm2`) | Grep pitfalls.md + handover.md 的运维章节 | pitfalls.md (GS-001~010) |
+| **Prisma 操作** (`db push` / `generate`) | Grep pitfalls.md 里的 "prisma" / "schema" 条目 | pitfalls.md |
+| **SSH 远程操作** | Read handover.md 完整远程章节（端口/路径/命令） | handover.md |
+| **API 调远端** | Grep decisions.md 里的 "baseURL" / "代理" / "auth" 条目 | decisions.md |
+| **部署/发版** | 读 STATUS.md 当前版本 + 查 github 上最新 commit SHA | STATUS.md + pitfalls.md |
+| **新增路由/API** | Grep decisions.md 里的 "路由前缀" / "admin 独立" 条目 | decisions.md |
+| **修改 schema** | 查当日 daily.md 是否已记录过 schema 变更（避免重复 ALTER） | daily/YYYY-MM-DD.md |
+
+**台账没写、找不到、不知道在哪 → 先查 git log / 文件搜索 → 查完再动手，不能跳过。**
+
+### 每个动作后的台账同步
+
+**任何涉及文件改动、远程操作、数据库变更的动作，完成后立刻**（不等对话结束）：
+
+1. 追加 `.trae/memory/growth/daily/YYYY-MM-DD.md` 一行：`[HH:MM] 动作简述 · 结果 · 文件/commit SHA`
+2. 远程操作（SSH / pm2 / SCP / GitHub push）额外更新 handover.md 里的"远程资源"章节
+3. 新踩坑 → 追加 pitfalls.md 新条目（含路径 + 现象 + 根因 + 解决方案）
+
+### 台账格式（daily.md 每条）
+
+```
+[14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
+[14:35] 服务器 scp dist + pm2 restart aie-backend · online · https 401 ✅
+[15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
+```
+
+### 防失忆双铁律（work-growth-logger 核心规则）
+
 1. **关键操作前先查记录**：`git ls-remote` / API 查 / `pm2 list`，查到才算做过
 2. **关键操作后立刻同步**：别等对话结束，改完远程资源（服务器/仓库/数据库）立刻追加 handover.md + daily
 
