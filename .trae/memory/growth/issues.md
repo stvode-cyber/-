@@ -1,109 +1,134 @@
-# 问题工单（Issues）
+# 问题工单 · 成长型
 
-> 每条必含：问题描述 · 影响范围 · 根因 · 解决方案 · 验证方式 · 状态 · 关联 commit / 台账
-> 状态：open → fixing → fixed → closed
-> 优先级：P0（阻塞/数据丢失）· P1（功能异常）· P2（体验/性能）
+## 索引表
 
----
-
-## [P0][IS-001] ZodError 全局 handler 漏接 → 参数校验失败返回 500
-
-- **发现**：2026-09-30 16:30 · pm.routes.ts 全链路冒烟测试
-- **状态**：✅ fixed
-- **问题**：pm.routes.ts 6 处 schema.parse(req.body) 触发 ZodError，但 backend/src/middleware/error.ts 全局 errorHandler 没有 ZodError instanceof 判断，走到最后 else 分支返回 500 "服务器内部错误"，前端无法区分"参数错"还是"服务器炸"
-- **影响范围**：所有用 Zod schema.parse 的后端路由（auth/pm/task-team 等 30+ 路由）
-- **根因**：errorHandler 只接了 HttpError / GatewayUpstreamError / Prisma Unique Constraint Error / body-parser，漏掉了 ZodError
-- **解决方案**：errorHandler 加 ZodError instanceof 分支 → fail(res, issues[0].message, 422)
-- **验证**：POST /api/v1/pm/projects body 传 {status:'archived'}（非法枚举）→ 返回 HTTP 422 + "Invalid enum value. Expected 'active' | 'done' | 'cancelled'" ✅
-- **commit**：de8b142 · fix(backend): ZodError -> 422 global handler
-- **关联台账**：daily/2026-09-30.md · pitfalls.md（ZodError 条目）
-
-## [P1][IS-002] admin 密码重置：表名/用户名/PS SSH 引号 3 坑连发
-
-- **发现**：2026-09-30 17:20 · 用户忘记 admin 密码，本地 + 服务器双端重置
-- **状态**：✅ fixed（本地 dev + 公网 prod 都已重置成功）
-- **问题**：连续踩 3 个坑才搞定
-  ① sqlite3 prod.db "UPDATE User ..." 报 no such table: User
-  ② WHERE 子句里 role='admin' 匹配不到（PS SSH 引号嵌套炸，SQL 实际没进服务器）
-  ③ 服务器 admin 用户名是 tone_test2（不是本地的 16100214673，双 admin 账号）
-- **影响范围**：服务器 prod.db admin 账号登录；PS5 SSH 远程操作可靠性
-- **根因**：
-  ① 本地 dev.db 是 Prisma 默认表名 User，服务器 prod.db 迁移后表名 users（小写 s）
-  ② PS5 ssh "sqlite3 db 'SELECT role='"'"'admin'"'"'"'" → bash 报 incomplete input
-  ③ 本地和服务器各自独立注册了 admin（本地首位注册者 16100214673，服务器首位 tone_test2）
-- **解决方案**：
-  ① 先 sqlite3 .tables 确认表名，别假设和本地一致
-  ② 统一写 .sql 文件 → scp 上去 → sqlite3 db < file.sql（PS SSH 引号嵌套无解）
-  ③ 先 SELECT username, role FROM users WHERE role='admin' 查清楚再 UPDATE
-- **验证**：
-  - 本地 dev：/api/v1/auth/login username=16100214673 password=admin123ABC → HTTP 200 + role=admin ✅
-  - 公网 prod：https://47.116.59.141/api/v1/auth/login username=tone_test2 password=admin123ABC → HTTP 200 + role=admin ✅
-- **prod.db 备份**：prod.db.bak-before-reset
-- **关联台账**：daily/2026-09-30.md · pitfalls.md（表名漂移 + 双 admin + PS SSH 引号 3 条）
-
-## [P1][IS-003] Vite BUILD_MODE dev 模式 define 不替换
-
-- **发现**：2026-09-30 16:00 · 4 端口全链路验证时发现 5173/5174 都报 __BUILD_MODE__ is not defined
-- **状态**：✅ fixed
-- **问题**：vite.config.ts define: { __BUILD_MODE__: JSON.stringify('desktop') } 只在 Rollup build 时替换常量，Vite dev server 用 esbuild transform 不碰它，dev 模式下 __BUILD_MODE__ 原样保留，浏览器 ReferenceError
-- **影响范围**：4 端口分离方案（desktop/mobile/admin）dev 模式全部不可用
-- **根因**：Vite define = Rollup define plugin（只 build 生效），esbuild 自己的 define 和 Rollup 的 define 走两条链路
-- **解决方案**：废弃 define 方案 → 改用 cross-env VITE_BUILD_MODE=desktop + import.meta.env.VITE_BUILD_MODE（Vite 对 import.meta.env 在 dev 和 build 都做替换）
-- **npm script**：
-  - "dev": "cross-env VITE_BUILD_MODE=desktop vite" (5173)
-  - "dev:mobile": "cross-env VITE_BUILD_MODE=mobile vite --config mobile-vite.config.ts" (5174)
-  - "dev:admin": "cross-env VITE_BUILD_MODE=mobile vite --config admin-vite.config.ts" (5175)
-- **关联 commit**：255dd65 · fix(build): cross-env VITE_BUILD_MODE dev-mode pruning
-- **关联台账**：daily/2026-09-30.md · pitfalls.md（Vite define/dev 不生效 + envFile 加载空 + PS BOM 3 条）
+| Master ID | 主题 | 最高优先级 | 子条目数 | 状态 | 最近 |
+|---|---|---|---|---|---|
+| M-001 | Vite Dev Server 多 HTML 入口 + BUILD_MODE + Proxy | **P0** | 5 | ✅ fixed | 2026-09-30 |
+| M-002 | 后端全局错误处理漏接 ZodError | P0 | 1 | ✅ fixed | 2026-09-30 |
+| M-003 | 运维操作 / SSH / 数据库直接改 | P1 | 1 | ✅ fixed | 2026-09-30 |
+| M-004 | PowerShell 5 环境特定坑 | P1 | 4 | ⚠️ recurring | 2026-09-30 |
+| M-005 | Git push / 编码 / 换行符 | P1 | 2 | ⚠️ recurring | 2026-09-30 |
 
 ---
 
+## [M-001] Vite Dev Server 多 HTML 入口 + BUILD_MODE + Proxy · P0
 
-## [P1][IS-004] admin-vite.config.ts 缺 proxy → 管理后台所有 API 404
+**Master 级别 P0**：影响 admin 独立后台 dev 模式完全不可用，踩坑 5 次才通。
 
-- **发现**：2026-09-30 18:00 · 用户打开 http://localhost:5175/admin 看到 {"code":404,"message":"接口不存在"}
-- **状态**：✅ fixed
-- **问题**：admin 前端 dev server (5175) 调 /api/v1/pm/projects 等请求直接返回 Vite 404，没转发到后端 3001
-- **影响范围**：管理后台所有 API（/admin/users, /pm/projects, /task-team 等）
-- **根因**：admin-vite.config.ts 的 server 配置只有 port + strictPort，**缺 /api → http://localhost:3001 proxy**。主 vite.config.ts 和 mobile-vite.config.ts 都有这个配置，唯独 admin 忘了加
-- **为什么之前没发现**：admin 前端是后来加的，当初只关心 build 能产出 admin-dist，忘了 dev 模式也要跑起来测 API
-- **解决方案**：admin-vite.config.ts server 里加 proxy: { '/api': { target: 'http://localhost:3001', changeOrigin: true } }
-- **验证**：
-  - GET /api/v1/pm/projects/stats (no token) → HTTP 401 ✅（不是 404，说明 proxy 通了）
-  - 登录 → token → 带 token 调 /pm/projects/stats /admin/users /pm/projects /task-team → 全 HTTP 200 ✅
-- **commit**：下一个
-- **关联台账**：daily/2026-09-30.md
-## [P0][IS-005] admin 5175 返回客户端页面而不是管理后台
+### 背景
 
-- **发现**：2026-09-30 18:30 · 用户说"这不是运营后端啊，这是客户端"
-- **状态**：✅ fixed
-- **问题**：http://localhost:5175/admin/ 打开后看到的是 DesktopLayout（深色侧边栏）或 Layout（底部 TabBar），不是 AdminLayout（绿色侧边栏）管理后台
-- **影响范围**：管理后台 dev 模式完全不可用
-- **根因**：**3 层叠加**
-  ① admin 前端是独立入口（admin.html → admin-main.tsx → AdminLayout），不是 App.tsx 的分支（BUILD_MODE='admin'）
-  ② 但 admin-vite.config.ts 没设 VITE_BUILD_MODE=admin（dev:admin 脚本没加 cross-env），虽然这其实不影响 admin-main.tsx（它独立）
-  ③ **真正根因**：Vite dev server 默认用 root/index.html 当入口（引用 main.tsx → DesktopLayout/Layout），admin-vite.config.ts rollupOptions.input=admin.html 只在 build 时生效，dev 时完全不看！访问 /admin/ 时 Vite 返回 index.html（客户端），不是 admin.html
-- **为什么之前没发现**：admin dev 之前是临时用 
-px vite --config admin-vite.config.ts --port 5175 起的，没有验证过 HTML 入口到底引用哪个 tsx
-- **之前尝试过的错误方案**：
-  - configureServer middleware eq.url = '/admin/admin.html' → Vite middleware 执行顺序在 HTML middleware 之后，rewrite 不生效
-  - configureServer middleware 手动读文件 + res.end → Vite base 处理后 req.url 不是 '/admin/'，匹配不到
-  - appType: 'custom' 阻止 Vite 处理 HTML → Vite 完全不 serve HTML，全 404
-  - middleware 里加 ppType: 'custom' + 手动返回 → 还是不生效
-- **最终方案**：写 Vite 插件 dminHtmlPlugin()，在 	ransformIndexHtml hook 里按 URL 匹配 /admin/，返回 admin.html 原始内容。transformIndexHtml 是 Vite 官方 HTML 处理 hook，dev/build 都生效，且在 base 处理之前执行
-- **验证**：
-  - curl /admin/ → title="绿角犀 · 管理后台" ✅（客户端是"绿角犀 - 你的全能个人助理"）
-  - script src = /src/admin-main.tsx ✅（客户端是 /src/main.tsx）
-  - admin-main.tsx HTTP 200 ✅
-  - proxy /api → 3001 转发 ✅
-  - login + admin/users + pm/stats + task-team 全 HTTP 200 ✅
-- **commit**：下一个
-- **关联台账**：IS-004（缺 proxy）· daily/2026-09-30.md## 挂台账索引
+admin 前端是独立入口（`admin.html → admin-main.tsx → AdminLayout` 绿色侧边栏），不是 App.tsx 的分支。但 admin-vite.config.ts base='/admin/' 后，Vite dev server 默认用 root/index.html → 渲染客户端 main.tsx。
 
-| 编号 | 日期 | 优先级 | 一句话摘要 | 状态 |
-|---|---|---|---|---|
-| IS-001 | 2026-09-30 | P0 | ZodError 全局 handler 漏接 → 500 | ✅ fixed |
-| IS-002 | 2026-09-30 | P1 | admin 密码重置 3 坑连发（表名/用户名/SSH 引号） | ✅ fixed |
-| IS-003 | 2026-09-30 | P1 | Vite define dev 不替换
-| IS-004 | 2026-09-30 | P1 | admin-vite.config.ts 缺 proxy → 所有 API 404 | ✅ fixed |
-| IS-005 | 2026-09-30 | P0 | admin dev 返回客户端页面（Vite 默认 index.html vs admin.html） | ✅ fixed | → cross-env import.meta.env | ✅ fixed |
+### 子条目
+
+- **[IS-005] Vite dev 返回客户端页面不是管理后台** ✅ 根因 3 层叠加 + 5 次修复尝试
+  - 子条：configureServer middleware rewrite 失败（base 处理后 req.url 不匹配）
+  - 子条：configureServer 手动读 admin.html + res.end → Vite 不再处理，无 HMR 注入、script src 缺 base 前缀
+  - 子条：`appType: 'custom'` → Vite 完全不 serve HTML，全 404
+  - 子条：transformIndexHtml 插件返回 admin.html 原始内容 → Vite 不再 transform，结果同上
+  - **最终**：middleware `req.url = '/admin/admin.html'`，让 Vite 完整处理 admin.html（注入 HMR + script src 加 base 前缀）
+
+- **[IS-003] Vite `define` 在 dev server 不替换常量** ✅
+  - rollup `define` 只在 build 时生效，dev server 用 esbuild transform 不碰
+  - **解决**：cross-env 设进程环境变量 + `import.meta.env.VITE_BUILD_MODE`
+
+- **[IS-004] admin-vite.config.ts 缺 proxy → 所有 API 404** ✅
+  - 主 vite.config.ts 和 mobile-vite.config.ts 都有 `/api → localhost:3001`，admin 独缺
+  - **解决**：补 proxy 块
+
+### 修复代码
+
+```typescript
+// admin-vite.config.ts — 正确的 middleware rewrite
+configureServer(server) {
+  server.middlewares.use((req, _res, next) => {
+    if (req.url === '/admin/' || req.url === '/admin') {
+      req.url = '/admin/admin.html'  // rewrite，让 Vite 完整处理
+    }
+    next()
+  })
+}
+```
+
+### 预防规则
+
+1. Vite rollupOptions.input 只在 build 生效，dev server 一律用 root/index.html → 多 HTML 入口项目必须在 configureServer 里 rewrite 或 transformIndexHtml
+2. 3 份 vite config（desktop/mobile/admin）proxy 必须一致
+3. dev 模式验证：curl `/admin/` 看 HTML 里 script src 是 main.tsx 还是 admin-main.tsx
+
+### commit
+
+`57fec47` admin UI 重做 + middleware rewrite
+
+---
+
+## [M-002] 后端全局错误处理漏接 ZodError · P0
+
+### 子条目
+
+- **[IS-001] pm.routes.ts 6 处 schema.parse 触发 ZodError 返回 500 而非 422** ✅
+  - middleware/error.ts 只接 HttpError / GatewayUpstreamError / Prisma Unique / body-parser
+  - **修复**：加 ZodError instanceof 判断 → 取第一条 issue.message 返回 422
+  - **一次修复覆盖 30+ 路由**（auth/pm/task-team/admin 全链路）
+
+### 修复代码
+
+```typescript
+if (err instanceof ZodError) {
+  const issue = err.issues[0]?.message || '参数校验失败'
+  fail(res, issue, 422)
+  return
+}
+```
+
+### 预防规则
+
+1. 所有 Zod schema.parse 路由必须经过全局 error handler
+2. 新增 schema 先想：error.ts 能不能接住？
+
+### commit
+
+`de8b142`
+
+---
+
+## [M-003] 运维操作 / SSH / 数据库直接改 · P1
+
+### 子条目
+
+- **[IS-002] admin 密码重置 3 坑连发** ✅
+  - **坑 1**：本地 dev.db 表名 `User`，服务器 prod.db 表名 `users`（小写 s）→ 先 `.tables` 确认
+  - **坑 2**：本地和服务器各自独立 admin（本地 16100214673 vs 服务器 tone_test2）→ 先 `SELECT ... WHERE role='admin'` 查清
+  - **坑 3**：PS5 SSH 引号嵌套必炸 → 统一写 `.sql` 文件 scp 上去再 `sqlite3 db < file.sql`
+
+### 预防规则
+
+1. 连库前先 `.tables` / `.schema` 确认表名，别假设和本地一样
+2. 改线上数据前先 `SELECT` 确认目标记录存在
+3. PS5 SSH 不写内联 SQL，一律 .sql 文件
+
+---
+
+## [M-004] PowerShell 5 环境特定坑 · P1
+
+** recurring**：每次用 PowerShell 5 必踩，记下来以后直接避。
+
+- `$PID` 是只读内置变量，别拿它当循环变量
+- `Out-File -Encoding UTF8` 带 BOM → Node JSON.parse 炸 `Unexpected token '﻿'` → `[IO.File]::WriteAllText($path, $content, [Text.UTF8Encoding]::new($false))`
+- ternary `? :` PS5 不支持 → 用 if/else
+- `npx.cmd` vs `npx.ps1` 调用差异 → 统一 `npx.cmd`
+
+## [M-005] Git push / 编码 / 换行符 · P1
+
+- Windows 下 LF/CRLF 自动转换会改 diff → `.gitattributes` 配 `* text=auto` + `*.{sh,py,ts,tsx} text eol=lf`
+- GitHub SSH key 失效 → `ssh -T git@github.com` 先验
+
+---
+
+## 合并规则（AGENTS.md 已挂载）
+
+1. 子条目 ≥ 3 条 → 自动升 Master 级别（P2→P1，P1→P0）
+2. 同类问题（根因相同）归到同一 Master，不单独开新 Master
+3. 每次踩坑先查 Master 索引表，有就 append 子条目，没有才开新 Master
+4. 每月归档：closed 的工单移到 issues-archive.md
