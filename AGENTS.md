@@ -8,57 +8,74 @@
 
 - 版本：1.0.6（2026-09-19）
 - 主入口：`electron/release-v16/win-unpacked/绿角犀.exe`
-### 端口全景（大白话版）
+### 产品面 × 端口（**总共 3 个前端端口 + 1 个后端端口**）
 
-#### 本地开发（自己电脑上跑）
+**核心设计**：后端永远是 1 个端口（不管本地还是云端），前端有 3 个独立产品面各占 1 个 Vite dev server。
 
-| 端口 | 谁 | 干嘛的 | 配置源 |
-|---|---|---|---|
-| **3001** | 后端 Express (tsx watch) | 所有 API（登录/记账/消息/PM/团队） | `backend/.env` 或默认 `3001` |
-| **5173** | 前端 Vite | 普通用户端 SPA（桌面+移动） | `vite.config.ts` → `port: 5173` |
-| **5175** | 前端 Vite (admin) | Admin 管理后台 SPA | `admin-vite.config.ts` → **应显式写 `port: 5175`**（没写就自动跳 5174/5176…） |
+#### 本地开发端口
 
-#### 云端生产（服务器 47.116.59.141）
+| 端口 | 产品面 | 谁用 | 双格式 | 配置 |
+|---|---|---|---|---|
+| **5173** | **电脑端** | 普通用户（桌面壳） | ✅ 网页 + Electron EXE | `vite.config.ts`（DesktopLayout 深色侧边栏） |
+| **5174** | **手机端** | 普通用户（手机 App） | ✅ 网页 + Capacitor APK | 应独立 `mobile-vite.config.ts`（Layout 底部 TabBar） |
+| **5175** | **运营管理** | 运营/开发团队 | ✅ 网页 + 内部链接 | `admin-vite.config.ts`（AdminLayout 绿色侧边栏） |
+| **3001** | **后端 API** | 上面三个都调 | — | `backend` Express + Prisma |
 
-| 端口 | 谁 | 干嘛的 | 备注 |
-|---|---|---|---|
-| **80** | Nginx | HTTP → 443 301 跳转 | 全站 |
-| **443** | Nginx (ssl) | HTTPS 公网入口 | `/api/v1/*` → `proxy_pass http://127.0.0.1:3100`；`/admin` → express.static 托管；`/apk/*` → EXE 静态文件 |
-| **3100** | pm2 `aie-backend` | Node 只监听 `127.0.0.1`，**不对外暴露** | pm2 启动时 `PORT=3100` |
-| **8444 / 8091 / 18443** | Nginx | 杂项 HTTPS/HTTP（ERP 或其他项目） | — |
-| **3000** | pm2 `erp-backend` | ERP 后端（跟绿角犀无关） | — |
-| **3002** | pm2 `lvjiaoxi-web` | 另一个服务（跟绿角犀无关） | — |
+#### 云端端口（47.116.59.141）
 
-#### 关键链路（绿角犀）
+| 端口 | 谁 | 说明 |
+|---|---|---|
+| **443** | Nginx HTTPS（用户唯一入口） | `/api/v1/*` → 3100；`/admin` → express.static；`/apk/*` → EXE 静态文件 |
+| **3100** | pm2 `aie-backend`（后端 Node） | 只监听 `127.0.0.1`，Nginx 反代它 |
+| **80** | Nginx HTTP → 443 301 | — |
+
+#### 三个产品面的关系
 
 ```
-用户设备 (EXE 或浏览器)
-    ↓ https://47.116.59.141
-Nginx (443)
-    ├─ /api/v1/*     → proxy_pass http://127.0.0.1:3100  ← aie-backend
-    ├─ /admin/*      → express.static /root/backend/public/admin/  ← 同一后端进程托管的 Admin SPA
-    └─ /apk/*        → root /usr/share/nginx/html/apk/  ← EXE 静态文件
+        ┌──── 5173 电脑端 ────┐
+        │  普通用户 · 桌面壳    │
+        │  DesktopLayout        │
+        └────────┬──────────────┘
+                 │ HTTPS /api/v1/*
+        ┌────────▼──────────────┐
+        │   3001 后端 Express    │
+        │   Prisma + SQLite     │
+        └────────┬──────────────┘
+                 │ HTTPS /api/v1/*
+        ┌────────▼──────────────┐
+        │ 5174 手机端  │ 5175 运营管理 │
+        │ 普通用户     │ 运营/开发团队 │
+        │ Layout 底部   │ AdminLayout   │
+        │ Capacitor    │ 独立网页      │
+        └──────────────┘└────────────┘
 ```
 
-#### 本地 vs 云端（最容易搞错）
+#### 关键区别（电脑 vs 手机 vs 运营）
 
-| 环境 | 后端 Node 监听 |
-|---|---|
-| 本地 | **3001** |
-| 云端 | **3100**（Nginx 443 反代它） |
+| 维度 | 5173 电脑端 | 5174 手机端 | 5175 运营管理 |
+|---|---|---|---|
+| 外壳组件 | DesktopLayout（深色侧边栏 w-56） | Layout（底部 TabBar 4 项） | AdminLayout（绿色侧边栏 w-56） |
+| 打包方式 | electron-builder → Setup.exe + Portable | Capacitor → APK | 不打包，静态 HTML/CSS/JS 托管 |
+| 访问 URL | http://localhost:5173 | http://localhost:5174 | http://localhost:5175 |
+| 云端挂载 | Electron 内置（`resources/frontend/dist`） | Capacitor 内置 | express.static `/root/backend/public/admin/` |
+| 路由前缀 | `/` | `/` | `/admin/`（admin-vite `base` 选项） |
 
-#### Dev Server 启动命令
+#### Dev Server 启动三件套
 
 ```bash
-# 后端（3001）
-cd backend && npm run dev
+# 后端（先跑这个，其他三个都调它）
+cd backend && npm run dev        # → http://127.0.0.1:3001
 
-# 前端普通端（5173）
-cd frontend && npm run dev
+# 电脑端（桌面壳开发调试）
+cd frontend && npm run dev       # → http://localhost:5173
 
-# 前端 admin（应该显式 5175）
+# 运营管理（独立 Vite）
 cd frontend && npx vite --config admin-vite.config.ts --port 5175
 ```
+
+#### 当前与设计的 Gap
+
+> ⚠️ **2026-09-30 现状**：5173 把电脑端和手机端**混在一起**（App.tsx 里 `<ConditionalDesktopLayout>` 和 `<Layout>` 按窗口宽度切换）。按 3 端口设计，应该拆成独立 Vite —— 5173 纯电脑端、5174 纯手机端（独立 `mobile-vite.config.ts`）。**暂未拆分**，等下一轮大改动时统一做。
 
 ## 台账铁律（每次新对话第一动作，强制执行）
 
