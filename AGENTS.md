@@ -73,9 +73,19 @@ cd frontend && npm run dev       # → http://localhost:5173
 cd frontend && npx vite --config admin-vite.config.ts --port 5175
 ```
 
-#### 当前与设计的 Gap
+#### 三个产品面的构建 & 打包
 
-> ⚠️ **2026-09-30 现状**：5173 把电脑端和手机端**混在一起**（App.tsx 里 `<ConditionalDesktopLayout>` 和 `<Layout>` 按窗口宽度切换）。按 3 端口设计，应该拆成独立 Vite —— 5173 纯电脑端、5174 纯手机端（独立 `mobile-vite.config.ts`）。**暂未拆分**，等下一轮大改动时统一做。
+| 产品面 | Vite config | Dev 端口 | build 产物 | 打包工具 | 目标格式 |
+|---|---|---|---|---|---|
+| **电脑端** | `vite.config.ts` | 5173 | `dist/` | electron-builder | Setup.exe + Portable |
+| **手机端** | `mobile-vite.config.ts` | 5174 | `mobile-dist/` | Capacitor | APK |
+| **运营管理** | `admin-vite.config.ts` | 5175 | `admin-dist/` | 不打包（静态托管） | 网页 |
+
+**编译常量 `__BUILD_MODE__`**：每个 Vite config 里用 `define` 设为 `'desktop'` / `'mobile'`。App.tsx 里用 `__BUILD_MODE__ === 'desktop'` 条件渲染路由块——**编译时剪枝**，桌面产物不包含 Layout 底部 TabBar 路由代码，手机产物不包含 DesktopLayout 侧边栏代码。
+
+Capacitor 打包前先跑：`npm run build:mobile && npx cap sync android && npx cap build android`
+
+Electron 打包前先跑：`npm run build && npm run build:backend && node electron/build-desktop.cjs`
 
 ## 台账铁律（每次新对话第一动作，强制执行）
 
