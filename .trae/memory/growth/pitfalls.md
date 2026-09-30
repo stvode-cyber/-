@@ -123,3 +123,40 @@ pm run build:admin 产物在 dmin-dist/，但 SCP 脚本写的是 dist-admin/ �
   · vite build --config admin-vite.config.ts → admin-dist/ (4.11s)
   · 公网 admin.html + admin-DiyEI4hR.js + admin-DKin909M.css 全部 Sep 30 16:19
   · AdminTeamPage + AdminPMPage 打包进主 bundle admin-DiyEI4hR.js（没懒加载独立 chunk）
+### P-XX Vite define 编译常量 dev 模式不生效（2026-09-30）
+
+**现象**：vite.config.ts 里 define: { __BUILD_MODE__: JSON.stringify('desktop') } 只在 build 时被 Rollup 替换成字面量 'desktop'；dev server 用 esbuild transform，不碰 define 配置，源码里的 __BUILD_MODE__ 原样保留 → dev 模式 ReferenceError: __BUILD_MODE__ is not defined
+
+**根因**：Vite dev server 和 build 走两套不同的 JS 转译管线，define 只在 Rollup 阶段生效
+
+**解法**：npm script 用 cross-env VITE_BUILD_MODE=desktop vite 设进程环境变量，App.tsx 里读 import.meta.env.VITE_BUILD_MODE——Vite dev server 和 build 都自动注入 import.meta.env 对象，dev 和 build 都生效
+
+**关联**：frontend/src/App.tsx L232、frontend/package.json scripts
+
+---
+
+### P-XX Vite envFile 配置在 Windows + PowerShell 下加载失败（2026-09-30）
+
+**现象**：vite.config.ts 里 envFile: '.env.desktop' + 建 .env.desktop 文件，Vite loadEnv('development', cwd, '.env.desktop') 返回空 {}
+
+**根因**：不明。文件字节完全正确（UTF8 无 BOM、VITE_BUILD_MODE=desktop），Node fs.readFileSync 能读到，Vite loadEnv 却空。推测和 Windows 中文路径 + PowerShell 5 CurrentDirectory 不一致有关
+
+**解法**：废弃 envFile 方案。改用 cross-env 直接设进程环境变量——最可靠
+
+---
+
+### P-XX PowerShell Out-File -Encoding UTF8 加 BOM 炸 Node JSON.parse（2026-09-30）
+
+**现象**：Get-Content package.json | Out-File -Encoding UTF8 package.json 后，Node 执行 JSON.parse(fs.readFileSync('package.json')) 报 SyntaxError: Unexpected token '﻿', "﻿{..." is not valid JSON
+
+**根因**：PowerShell 5 的 Out-File -Encoding UTF8 默认写 **带 BOM 的 UTF8**（EF BB BF 三个前缀字节），Node 的 JSON.parse 不认识 BOM
+
+**解法**：统一用 .NET API 写无 BOM UTF8：
+`powershell
+System.Text.UTF8Encoding = [System.Text.UTF8Encoding]::new(False)
+[System.IO.File]::WriteAllText(, , System.Text.UTF8Encoding)
+`
+预防：改任何 JSON/config 文件后立刻 
+ode -e "JSON.parse(require('fs').readFileSync('','utf8'))" 验证
+
+**关联**：GS-002（PS 5.1 编码坑）#编码 #BOM #PowerShell

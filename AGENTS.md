@@ -60,17 +60,20 @@
 | 云端挂载 | Electron 内置（`resources/frontend/dist`） | Capacitor 内置 | express.static `/root/backend/public/admin/` |
 | 路由前缀 | `/` | `/` | `/admin/`（admin-vite `base` 选项） |
 
-#### Dev Server 启动三件套
+#### Dev Server 启动四件套（后端 + 3 前端各占 1 端口）
 
 ```bash
-# 后端（先跑这个，其他三个都调它）
-cd backend && npm run dev        # → http://127.0.0.1:3001
+# 后端（先跑这个，三个前端都调它）
+cd backend && npm run dev              # → http://127.0.0.1:3001
 
-# 电脑端（桌面壳开发调试）
-cd frontend && npm run dev       # → http://localhost:5173
+# 电脑端（桌面壳开发调试 · 深色侧边栏 DesktopLayout）
+cd frontend && npm run dev             # → http://localhost:5173
 
-# 运营管理（独立 Vite）
-cd frontend && npx vite --config admin-vite.config.ts --port 5175
+# 手机端（Capacitor APK 开发 · 底部 TabBar Layout）
+cd frontend && npm run dev:mobile      # → http://localhost:5174
+
+# 运营管理（独立网页 · 绿色侧边栏 AdminLayout）
+cd frontend && npm run dev:admin       # → http://localhost:5175/admin/
 ```
 
 #### 三个产品面的构建 & 打包
@@ -81,7 +84,13 @@ cd frontend && npx vite --config admin-vite.config.ts --port 5175
 | **手机端** | `mobile-vite.config.ts` | 5174 | `mobile-dist/` | Capacitor | APK |
 | **运营管理** | `admin-vite.config.ts` | 5175 | `admin-dist/` | 不打包（静态托管） | 网页 |
 
-**编译常量 `__BUILD_MODE__`**：每个 Vite config 里用 `define` 设为 `'desktop'` / `'mobile'`。App.tsx 里用 `__BUILD_MODE__ === 'desktop'` 条件渲染路由块——**编译时剪枝**，桌面产物不包含 Layout 底部 TabBar 路由代码，手机产物不包含 DesktopLayout 侧边栏代码。
+**编译常量 `VITE_BUILD_MODE`**：npm script 里用 `cross-env VITE_BUILD_MODE=desktop/mobile` 设进程环境变量。App.tsx 里用 `import.meta.env.VITE_BUILD_MODE === 'desktop'` 条件渲染路由块——**编译时剪枝**（Vite build 替换为字面量）+ **dev 运行时也生效**（Vite dev server 自动注入 `import.meta.env` 对象）。桌面产物不包含 Layout 底部 TabBar 路由代码，手机产物不包含 DesktopLayout 侧边栏代码。
+
+> **为什么不用 `define`？** Vite 的 `define` 只在 Rollup build 时替换常量为字面量，dev server 用 esbuild transform 不碰它，dev 模式下 `__BUILD_MODE__` 原样留着会 ReferenceError。`cross-env` + `import.meta.env` 方案 dev 和 build 都生效。
+>
+> **废弃方案**：试过 `envFile: '.env.desktop'` + `.env.mobile` 配在 vite.config.ts——Windows + PowerShell 环境下 Vite `loadEnv` 返回空数组（原因不明）。废弃不用。
+>
+> **废弃方案 2**：PowerShell `Out-File -Encoding UTF8` 写 env/JSON 文件会加 BOM（EF BB BF），Node JSON.parse 报 `Unexpected token '﻿'`。统一用 `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` 写无 BOM UTF8。
 
 Capacitor 打包前先跑：`npm run build:mobile && npx cap sync android && npx cap build android`
 
