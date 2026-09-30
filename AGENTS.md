@@ -139,10 +139,11 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 
 1. `.trae/memory/growth/handover.md`      ← 当前状态 + 远程资源 + 铁律（30 秒接手）
 2. `.trae/memory/growth/pitfalls.md`      ← 踩过的坑（持续积累）
-3. `.trae/memory/growth/decisions.md`     ← 关键决策
-4. `.trae/memory/growth/daily/YYYY-MM-DD.md` ← 当日流水（改了啥 + 踩了啥坑）
-5. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑
-6. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策
+3. `.trae/memory/growth/issues.md`        ← 问题工单（bug/issue 生命周期追踪）
+4. `.trae/memory/growth/decisions.md`     ← 关键决策
+5. `.trae/memory/growth/daily/YYYY-MM-DD.md` ← 当日流水（改了啥 + 踩了啥坑）
+6. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑
+7. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策
 
 读完后**主动用 3-6 条 bullet 贴出提醒**：当前版本 + 进行中任务 + P0/P1 历史坑 + 硬性规则摘要。等用户反馈后再开始处理新需求。
 
@@ -170,6 +171,7 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 1. 追加 `.trae/memory/growth/daily/YYYY-MM-DD.md` 一行：`[HH:MM] 动作简述 · 结果 · 文件/commit SHA`
 2. 远程操作（SSH / pm2 / SCP / GitHub push）额外更新 handover.md 里的"远程资源"章节
 3. 新踩坑 → 追加 pitfalls.md 新条目（含路径 + 现象 + 根因 + 解决方案）
+4. **修了真 bug / 用户反馈线上问题 → 追加 issues.md 新工单**（含问题描述 · 影响范围 · 根因 · 解决方案 · 验证方式 · commit SHA）
 
 ### 台账格式（daily.md 每条）
 
@@ -178,6 +180,28 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 [14:35] 服务器 scp dist + pm2 restart aie-backend · online · https 401 ✅
 [15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
 ```
+
+### 问题工单格式（issues.md 每条）
+
+```markdown
+## [P0][IS-001] ZodError 全局 handler 漏接
+
+- **发现**：YYYY-MM-DD HH:mm · 场景描述
+- **状态**：✅ fixed / 🐛 open / 🔧 fixing
+- **问题**：一句话说清楚出了什么问题
+- **影响范围**：哪些路由/页面/用户会中招
+- **根因**：为什么会出这个问题
+- **解决方案**：具体改了什么
+- **验证**：怎么证明修好的（curl 命令 / HTTP 码 / 对比截图）
+- **commit**：sha · message
+- **关联台账**：daily 日期 + pitfalls 条目号
+```
+
+**什么时候记 issues.md**：
+- 修了真 bug（不是临时 workaround）→ daily 写结果 + pitfalls 写坑细节 + **issues 写工单**
+- 用户反馈的线上问题复现并修复 → issues 必记
+- 一次操作踩 2 个以上坑 → issues 合并记录（避免 daily 太碎）
+- 纯代码重构/优化（无 bug）→ 不用记 issues，daily 提一行就行
 
 ### 防失忆双铁律（work-growth-logger 核心规则）
 

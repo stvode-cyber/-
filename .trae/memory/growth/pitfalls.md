@@ -179,3 +179,7 @@ if (err instanceof ZodError) {
 **为什么不用 pm.routes.ts 里每个路由改 safeParse**：全局 error handler 一次修复所有路由受益，auth.routes.ts 等 30+ 路由也有同样问题
 
 **关联**：backend/src/middleware/error.ts #ZodError #422
+- SQLite 表名大小写漂移：dev.db（Prisma 默认 User）≠ prod.db（迁移后 users），查 schema 再写 SQL，别假设一致
+- 双 admin 账号：本地 dev.db 有 16100214673/admin，服务器 prod.db 有 tone_test2/admin，各自独立
+- PS5 ssh "cmd '"'"'x'"'"'" 嵌套必炸 → 统一写 .sql 文件 scp 上去 sqlite3 db < file.sql
+- Vite proxy 配置一致性：3 个 vite.config.ts（主/mobile/admin）proxy 必须完全一致（/api → 3001），admin 后来加的忘了配置，dev 模式所有 API 404
