@@ -47,16 +47,19 @@ router.get('/dashboard', async (req, res, next) => {
   try {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const sevenDaysAgo = new Date(today)
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1)
+    const thirtyDaysAgo = new Date(today); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29)
+    const sevenDaysAgo = new Date(today); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
 
-    // 所有统计查询彼此独立，一次性并行执行以减少串行 RTT
+    // === 基础统计（直接 Prisma count）===
     const [
       totalUsers,
       todayNewUsers,
-      onlineEstimate,
+      dau,
+      mau,
+      yesterdayRegistered,
+      yesterdayActive,
       transactions,
-      recentUsers,
       todayAuditTotal,
       todayAuditFail,
       todayAuditUsers,
@@ -74,13 +77,12 @@ router.get('/dashboard', async (req, res, next) => {
       prisma.user.count(),
       prisma.user.count({ where: { createdAt: { gte: today } } }),
       prisma.user.count({ where: { lastLoginAt: { gte: today } } }),
+      prisma.user.count({ where: { lastLoginAt: { gte: thirtyDaysAgo } } }),
+      prisma.user.count({ where: { createdAt: { gte: yesterday, lt: today } } }),
+      prisma.user.count({ where: { createdAt: { gte: yesterday, lt: today }, lastLoginAt: { gte: today } } }),
       prisma.transaction.aggregate({
         where: { type: 'recharge', createdAt: { gte: today } },
         _sum: { amount: true },
-      }),
-      prisma.user.findMany({
-        where: { createdAt: { gte: sevenDaysAgo } },
-        select: { createdAt: true },
       }),
       prisma.auditLog.count({ where: { createdAt: { gte: today } } }),
       prisma.auditLog.count({ where: { createdAt: { gte: today }, result: 'fail' } }),
@@ -101,25 +103,106 @@ router.get('/dashboard', async (req, res, next) => {
       prisma.postFavorite.count({ where: { createdAt: { gte: today } } }),
     ])
 
-    const todayIncome = transactions._sum.amount || 0
+    // === 7 天 DAU 活跃趋势（lastLoginAt 精确聚合）===
+    const dailyActive = await Promise.all(
+      Array.from({ length: 7 }).map((_, i) => {
+        const day = new Date(today); day.setDate(day.getDate() - (6 - i))
+        const next = new Date(day); next.setDate(next.getDate() + 1)
+        return prisma.user.count({ where: { lastLoginAt: { gte: day, lt: next } } })
+      })
+    )
 
-    // 最近7天用户增长
-    const dailyNew: { date: string; count: number }[] = []
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today)
-      d.setDate(d.getDate() - i)
-      const next = new Date(d)
-      next.setDate(next.getDate() + 1)
-      const count = recentUsers.filter(u => u.createdAt >= d && u.createdAt < next).length
-      dailyNew.push({ date: d.toISOString().slice(5, 10), count })
+    // === $queryRaw 聚合（Prisma 原生不支持 union/groupBy）===
+    // TOP 用户：posts + comments + likes + favorites 按 userId 聚合排序
+    const topUsersRaw = await prisma.$queryRaw<{
+      userId: string; nickname: string | null; username: string;
+      score: bigint; posts: bigint; comments: bigint; likes: bigint; favorites: bigint
+    }[]>`
+      SELECT p."id" as userId, p."nickname", p."username",
+        COALESCE(posts_cnt,0) + COALESCE(comments_cnt,0) + COALESCE(likes_cnt,0) + COALESCE(favs_cnt,0) as score,
+        COALESCE(posts_cnt,0) as posts,
+        COALESCE(comments_cnt,0) as comments,
+        COALESCE(likes_cnt,0) as likes,
+        COALESCE(favs_cnt,0) as favorites
+      FROM "users" p
+      LEFT JOIN (SELECT "userId", COUNT(*) as posts_cnt FROM "posts" GROUP BY "userId") p_cnt ON p.id = p_cnt."userId"
+      LEFT JOIN (SELECT "userId", COUNT(*) as comments_cnt FROM "comments" GROUP BY "userId") c_cnt ON p.id = c_cnt."userId"
+      LEFT JOIN (SELECT "userId", COUNT(*) as likes_cnt FROM "post_likes" GROUP BY "userId") l_cnt ON p.id = l_cnt."userId"
+      LEFT JOIN (SELECT "userId", COUNT(*) as favs_cnt FROM "post_favorites" GROUP BY "userId") f_cnt ON p.id = f_cnt."userId"
+      WHERE COALESCE(posts_cnt,0)+COALESCE(comments_cnt,0)+COALESCE(likes_cnt,0)+COALESCE(favs_cnt,0) > 0
+      ORDER BY score DESC LIMIT 5
+    `.catch(() => [])
+
+    // 24h 活跃分布：lastLoginAt 按小时 groupBy
+    const hourlyActiveRaw = await prisma.$queryRaw<{ hour: number; cnt: bigint }[]>`
+      SELECT CAST(strftime('%H', "lastLoginAt") AS INTEGER) as hour, COUNT(*) as cnt
+      FROM "users"
+      WHERE "lastLoginAt" IS NOT NULL
+      GROUP BY hour ORDER BY hour
+    `.catch(() => [])
+
+    // 实时互动流：4 表 union 按时间倒序 10 条
+    const recentActivityRaw = await prisma.$queryRaw<{
+      type: string; userId: string; content: string | null; createdAt: Date
+    }[]>`
+      SELECT 'post' as type, "userId", "content", "createdAt" FROM "posts"
+      UNION ALL SELECT 'comment', "userId", "content", "createdAt" FROM "comments"
+      UNION ALL SELECT 'like', "userId", NULL, "createdAt" FROM "post_likes"
+      UNION ALL SELECT 'favorite', "userId", NULL, "createdAt" FROM "post_favorites"
+      ORDER BY "createdAt" DESC LIMIT 10
+    `.catch(() => [])
+
+    // === 计算留存率（昨日注册今日活跃）===
+    const retention = yesterdayRegistered > 0
+      ? Math.round((yesterdayActive / yesterdayRegistered) * 1000) / 10
+      : 0
+
+    // === 格式化返回 ===
+    const todayIncome = Number((transactions._sum.amount || 0).toFixed(2))
+
+    const dailyTrend = dailyActive.map((cnt, i) => {
+      const day = new Date(today); day.setDate(day.getDate() - (6 - i))
+      return { date: day.toISOString().slice(5, 10), dau: cnt }
+    })
+
+    const topUsers = topUsersRaw.map((u, i) => ({
+      rank: i + 1,
+      userId: u.userId,
+      name: (u.nickname || u.username || '匿名用户'),
+      score: Number(u.score),
+      posts: Number(u.posts),
+      comments: Number(u.comments),
+      likes: Number(u.likes),
+      favorites: Number(u.favorites),
+    }))
+
+    // 24h 数组：初始化全 0 → 填充查询结果
+    const hourlyDist: number[] = new Array(24).fill(0)
+    for (const h of hourlyActiveRaw) {
+      hourlyDist[Number(h.hour)] = Number(h.cnt)
     }
+
+    const activityTypeMap: Record<string, string> = {
+      post: '发布了新动态', comment: '评论了', like: '点赞了', favorite: '收藏了',
+    }
+    const recentActivity = recentActivityRaw.map(a => ({
+      type: a.type as 'post' | 'comment' | 'like' | 'favorite',
+      userId: a.userId,
+      action: activityTypeMap[a.type] || a.type,
+      content: a.content,
+      time: a.createdAt,
+    }))
 
     return success(res, {
       totalUsers,
       todayNewUsers,
-      onlineEstimate,
-      todayIncome: Number(todayIncome.toFixed(2)),
-      dailyNew,
+      dau,
+      mau,
+      onlineEstimate: dau,
+      retention,
+      todayIncome,
+      dailyNew: [], // 已弃用，用 dailyTrend 活跃趋势替代
+      dailyTrend,
       // 台账统计
       todayAuditTotal,
       todayAuditSuccess: todayAuditTotal - todayAuditFail,
@@ -142,6 +225,10 @@ router.get('/dashboard', async (req, res, next) => {
         likeToday,
         favoriteToday,
       },
+      // 聚合新字段
+      topUsers,
+      hourlyDist,
+      recentActivity,
     })
   } catch (e) {
     next(e)

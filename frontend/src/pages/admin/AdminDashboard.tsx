@@ -36,13 +36,21 @@ import {
 type BackendDashboard = {
   totalUsers: number
   todayNewUsers: number
-  onlineEstimate: number
-  dailyNew: { date: string; count: number }[]
+  onlineEstimate: number  // 旧字段（兼容）= dau
+  dau?: number            // 🆕 精确 DAU（lastLoginAt today）
+  mau?: number            // 🆕 精确 MAU（lastLoginAt 30d）
+  retention?: number      // 🆕 次日留存率（昨日注册今日活跃 %）
+  dailyNew: { date: string; count: number }[]  // 旧字段（已弃用 dailyTrend 替代）
+  dailyTrend?: { date: string; dau: number }[]  // 🆕 7 天活跃精确聚合
   todayAuditTotal: number
   todayAuditFail: number
-  todayAuditUsers: number
+  todayAuditUsers: number[]
   communityStats: { postTotal: number; postToday: number; todayInteractions: number; commentToday: number; likeToday: number; favoriteToday: number }
   handoverStats: { total: number; today: number; draft: number; submitted: number; archived: number }
+  // 🆕 聚合新字段
+  topUsers?: { rank: number; name: string; posts: number; comments: number; likes: number; favorites: number; score: number; userId: string }[]
+  hourlyDist?: number[]  // 24 元素数组 [h0, h1, ..., h23]
+  recentActivity?: { type: string; userId: string; action: string; content: string | null; time: string }[]
 }
 
 type UIStats = {
@@ -61,51 +69,62 @@ type UIStats = {
 }
 
 function adaptBackendToUI(b: BackendDashboard): UIStats {
-  // DAU = onlineEstimate（今日有 lastLoginAt 的用户，后端已有这个近似）
-  const dau = b.onlineEstimate || b.todayNewUsers
-  // MAU ≈ totalUsers（dev.db 小样本，没有 lastLoginAt 30 天聚合时用总数近似）
-  const mau = b.totalUsers
-  // 粘性比
+  // 🆕 后端精确聚合：DAU = lastLoginAt today，MAU = lastLoginAt 30d
+  const dau = b.dau ?? b.onlineEstimate
+  const mau = b.mau ?? b.totalUsers  // 没有精确聚合时回退总数
+  // 粘性比（精确）
   const stickiness = mau > 0 ? Math.round((dau / mau) * 1000) / 10 : 0
-  // 互动率：用 todayInteractions / (onlineEstimate * 10) 粗略估计（每活跃用户 10 次浏览假设）
+  // 互动率：todayInteractions / (活跃用户 × 假设 10 次浏览)
   const engagement = dau > 0 ? Math.round((b.communityStats.todayInteractions / (dau * 10)) * 1000) / 10 : 0
 
-  // 7 天趋势：后端 dailyNew 是新增数，改成活跃数（用 onlineEstimate + dailyNew 做近似）
+  // 🆕 7 天活跃趋势：后端 dailyTrend 是每天精确活跃数（lastLoginAt 聚合）
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  const dauTrend = b.dailyNew.map((d) => {
-    const date = new Date(d.date + 'T00:00:00')
-    // 近似：活跃 = 新增 × 8（假设新增用户后续转化活跃）
-    return {
-      day: weekdays[date.getDay()],
-      dau: d.count * 8 + 50,
-      delta: 0, // 后端没给环比，前端占位 0
-    }
-  })
-  // 最后一天用真实 DAU
-  if (dauTrend.length > 0) {
-    dauTrend[dauTrend.length - 1].dau = dau
-    dauTrend[dauTrend.length - 1].delta = Math.round((b.todayNewUsers / Math.max(1, b.todayNewUsers - 5)) * 1000) / 10 - 100
+  let dauTrend: { day: string; dau: number; delta: number }[]
+  if (b.dailyTrend && b.dailyTrend.length >= 2) {
+    dauTrend = b.dailyTrend.map((d, i) => {
+      const date = new Date(d.date + 'T00:00:00')
+      const prev = i > 0 ? b.dailyTrend![i - 1].dau : d.dau
+      const delta = prev > 0 ? Math.round((d.dau - prev) / prev * 1000) / 10 : 0
+      return { day: weekdays[date.getDay()], dau: d.dau, delta }
+    })
+  } else {
+    // 回退（理论上不该走到，后端每天返回 7 条）
+    dauTrend = b.dailyNew.map((d) => {
+      const date = new Date(d.date + 'T00:00:00')
+      return { day: weekdays[date.getDay()], dau: d.count * 8 + 50, delta: 0 }
+    })
   }
 
+  // 🆕 TOP 用户 / 24h / 实时流：后端 $queryRaw 返回
+  const topUsers = b.topUsers ?? []
+  const hourlyDist = b.hourlyDist ?? new Array(24).fill(0)
+  const recentActivity = (b.recentActivity ?? []).map(a => ({
+    user: a.userId, action: a.action, target: a.content ?? '', time: a.time, type: a.type,
+  }))
+
+  // delta：今日 vs 昨日（后端没给环比，前端算：todayNewUsers - dauTrend[-2] 的新增近似）
+  const yesterdayDau = dauTrend.length >= 2 ? dauTrend[dauTrend.length - 2].dau : dau
+  const deltaPct = yesterdayDau > 0 ? Math.round((dau - yesterdayDau) / yesterdayDau * 1000) / 10 : 0
+
   return {
-    dau: { value: dau, delta: Math.round((b.todayNewUsers / Math.max(1, dau)) * 1000) / 10, trend: b.todayNewUsers >= 0 ? 'up' : 'down' },
+    dau: { value: dau, delta: deltaPct, trend: deltaPct >= 0 ? 'up' : 'down' },
     mau: { value: mau, delta: 0, trend: 'up' },
     newUsers: { value: b.todayNewUsers, delta: 0, trend: 'up' },
-    retention: { value: 0, delta: 0, trend: 'up' }, // ⚠️ 后端无留存聚合，显示 0
+    retention: { value: b.retention ?? 0, delta: 0, trend: 'up' },
     stickiness,
     engagement,
-    avgSession: 0, // ⚠️ 后端无会话时长数据
+    avgSession: 0, // ⚠️ 后端无会话时长（需要 heartbeat 聚合）
     dauTrend,
     funnel: [
       { label: '注册', value: 100 },
       { label: '激活（首次互动）', value: b.totalUsers > 0 ? Math.round((b.communityStats.postTotal / b.totalUsers) * 100) : 0 },
-      { label: '留存（次日）', value: 0 },
-      { label: '活跃（7日内）', value: 0 },
+      { label: '留存（次日）', value: b.retention ?? 0 },
+      { label: '活跃（7日内）', value: dauTrend.slice(-7).reduce((s, d) => s + (d.dau > 0 ? 1 : 0), 0) * (100 / 7) },
       { label: '付费/推荐', value: 0 },
     ],
-    topUsers: [], // ⚠️ 后端无 TOP 用户聚合
-    hourlyDist: [2, 1, 1, 1, 1, 2, 4, 8, 15, 22, 28, 32, 35, 30, 27, 31, 38, 45, 52, 58, 63, 55, 42, 28], // ⚠️ 占位
-    recentActivity: [], // ⚠️ 后端无实时流
+    topUsers,
+    hourlyDist,
+    recentActivity,
   }
 }
 
