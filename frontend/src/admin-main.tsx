@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useAuthStore } from './stores/auth'
 import { Toaster } from './components/Toast'
-import LoginPage from './pages/LoginPage'
+import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminUsers from './pages/admin/AdminUsers'
@@ -46,7 +46,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route path="pm" element={<AdminPMPage />} />
             <Route path="team" element={<AdminTeamPage />} />
           </Route>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<AdminLoginPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
         <Toaster />
