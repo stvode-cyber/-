@@ -1,5 +1,6 @@
 // TODO: [koacontext泄漏] 预防：Express → Koa 迁移时优先原生重写 middleware，不要用 koa-connect wrapper，复杂中间件链会导致 ctx 丢失
 import type { Request, Response, NextFunction } from 'express'
+import { ZodError } from 'zod'
 import { fail, HttpError, generateRequestId } from '../utils/response.js'
 import { auditReq } from '../utils/audit.js'
 
@@ -66,6 +67,11 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
 
   if (err instanceof HttpError) {
     return fail(res, err.message, err.code)
+  }
+  // Zod 校验失败 → 422，取第一条 issue 的 message
+  if (err instanceof ZodError) {
+    const msg = err.issues[0]?.message || '参数校验失败'
+    return fail(res, msg, 422)
   }
   // 云端 AI 网关拒绝（用户未开通/已到期）：业务语义 403，统一转成对用户的友善消息。
   // 由 llmService.GatewayUpstreamError 抛出，在此兜底可覆盖所有调用点，避免 500。

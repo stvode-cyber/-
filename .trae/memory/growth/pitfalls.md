@@ -160,3 +160,22 @@ System.Text.UTF8Encoding = [System.Text.UTF8Encoding]::new(False)
 ode -e "JSON.parse(require('fs').readFileSync('','utf8'))" 验证
 
 **关联**：GS-002（PS 5.1 编码坑）#编码 #BOM #PowerShell
+### P-XX 全局 error handler 必须处理 ZodError（2026-09-30）
+
+**现象**：pm.routes.ts 里 schema.parse(req.body) 触发 ZodError，但接口返回 500 "服务器内部错误" 而不是 422 "参数校验失败"
+
+**根因**：全局 errorHandler 只接了 HttpError / GatewayUpstreamError / Prisma Unique / body-parser，没接 ZodError。ZodError 直接走到最后的 else 返回 500
+
+**解法**：在 errorHandler 里 HttpError 分支之后加：
+`	ypescript
+import { ZodError } from 'zod'
+// ...
+if (err instanceof ZodError) {
+  const msg = err.issues[0]?.message || '参数校验失败'
+  return fail(res, msg, 422)
+}
+`
+
+**为什么不用 pm.routes.ts 里每个路由改 safeParse**：全局 error handler 一次修复所有路由受益，auth.routes.ts 等 30+ 路由也有同样问题
+
+**关联**：backend/src/middleware/error.ts #ZodError #422
