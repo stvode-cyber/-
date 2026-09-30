@@ -183,3 +183,4 @@ if (err instanceof ZodError) {
 - 双 admin 账号：本地 dev.db 有 16100214673/admin，服务器 prod.db 有 tone_test2/admin，各自独立
 - PS5 ssh "cmd '"'"'x'"'"'" 嵌套必炸 → 统一写 .sql 文件 scp 上去 sqlite3 db < file.sql
 - Vite proxy 配置一致性：3 个 vite.config.ts（主/mobile/admin）proxy 必须完全一致（/api → 3001），admin 后来加的忘了配置，dev 模式所有 API 404
+- Vite rollupOptions.input 只在 build 生效，dev server 一律用 root/index.html 当入口：多 HTML 入口项目（如 admin.html 独立后台）dev 模式必须用 transformIndexHtml 插件 hook 拦截

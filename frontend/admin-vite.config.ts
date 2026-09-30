@@ -1,23 +1,43 @@
-// TODO: [Vite publicDir位置错] 预防：publicDir 必须是 defineConfig 的顶层选项（和 root、build 同级），不能嵌套进 build 对象
-// TODO: [管理后台独立] 预防：admin-vite.config.ts 和主 vite.config.ts 必须完全独立，产物输出到 admin-dist/，Electron 只复制 frontend/dist 不混
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 
-// 独立管理后台网页构建配置
-// - 与 vite.config.ts（主 APP）分开，互不影响
-// - 不引入 VitePWA：管理网页不注册 SW/manifest
-// - 产物输出到 admin-dist/（dist 的兄弟目录），Electron 复制 frontend/dist 不受影响
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const ADMIN_HTML = path.resolve(__dirname, 'admin.html')
+const ADMIN_HTML_CONTENT = readFileSync(ADMIN_HTML, 'utf-8')
+
+/**
+ * Vite 插件：把 /admin/ 的 HTML 入口从 index.html 换成 admin.html
+ *
+ * 背景：admin 前端是独立入口（admin.html → admin-main.tsx + AdminLayout 绿色侧边栏），
+ * 但 admin-vite.config.ts base='/admin/' 后，Vite dev server 访问 /admin/ 仍返回
+ * root/index.html（客户端入口 main.tsx + DesktopLayout/Layout），导致用户看到"客户端"。
+ *
+ * 此插件在 transformIndexHtml 里按 URL 匹配 /admin/，返回 admin.html 原始内容。
+ * build 时 rollupOptions.input 已配 admin.html，生产构建不受影响。
+ */
+function adminHtmlPlugin() {
+  return {
+    name: 'admin-html-rewrite',
+    transformIndexHtml(html: string, ctx: { originalUrl?: string }) {
+      const url = ctx.originalUrl || ''
+      if (url === '/admin/' || url === '/admin') {
+        return ADMIN_HTML_CONTENT
+      }
+      return html
+    },
+  }
+}
+
 export default defineConfig({
   base: '/admin/',
-  plugins: [react()],
-  // publicDir 是 Vite 顶层选项（不是 build.*）：置 false 避免复制项目 public/
-  //（主 APP 的 PWA/贴纸/天气图/ui 样张等静态资源不便混入管理后台）
+  plugins: [react(), adminHtmlPlugin()],
   publicDir: false,
-  // 固定 dev server 端口为 5175，避免被主前端 5173 抢了之后自动跳 5174/5176...
   server: {
     port: 5175,
-    strictPort: true, // 5175 被占就报错，不自动跳
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

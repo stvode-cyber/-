@@ -72,11 +72,38 @@
   - GET /api/v1/pm/projects/stats (no token) → HTTP 401 ✅（不是 404，说明 proxy 通了）
   - 登录 → token → 带 token 调 /pm/projects/stats /admin/users /pm/projects /task-team → 全 HTTP 200 ✅
 - **commit**：下一个
-- **关联台账**：daily/2026-09-30.md## 挂台账索引
+- **关联台账**：daily/2026-09-30.md
+## [P0][IS-005] admin 5175 返回客户端页面而不是管理后台
+
+- **发现**：2026-09-30 18:30 · 用户说"这不是运营后端啊，这是客户端"
+- **状态**：✅ fixed
+- **问题**：http://localhost:5175/admin/ 打开后看到的是 DesktopLayout（深色侧边栏）或 Layout（底部 TabBar），不是 AdminLayout（绿色侧边栏）管理后台
+- **影响范围**：管理后台 dev 模式完全不可用
+- **根因**：**3 层叠加**
+  ① admin 前端是独立入口（admin.html → admin-main.tsx → AdminLayout），不是 App.tsx 的分支（BUILD_MODE='admin'）
+  ② 但 admin-vite.config.ts 没设 VITE_BUILD_MODE=admin（dev:admin 脚本没加 cross-env），虽然这其实不影响 admin-main.tsx（它独立）
+  ③ **真正根因**：Vite dev server 默认用 root/index.html 当入口（引用 main.tsx → DesktopLayout/Layout），admin-vite.config.ts rollupOptions.input=admin.html 只在 build 时生效，dev 时完全不看！访问 /admin/ 时 Vite 返回 index.html（客户端），不是 admin.html
+- **为什么之前没发现**：admin dev 之前是临时用 
+px vite --config admin-vite.config.ts --port 5175 起的，没有验证过 HTML 入口到底引用哪个 tsx
+- **之前尝试过的错误方案**：
+  - configureServer middleware eq.url = '/admin/admin.html' → Vite middleware 执行顺序在 HTML middleware 之后，rewrite 不生效
+  - configureServer middleware 手动读文件 + res.end → Vite base 处理后 req.url 不是 '/admin/'，匹配不到
+  - appType: 'custom' 阻止 Vite 处理 HTML → Vite 完全不 serve HTML，全 404
+  - middleware 里加 ppType: 'custom' + 手动返回 → 还是不生效
+- **最终方案**：写 Vite 插件 dminHtmlPlugin()，在 	ransformIndexHtml hook 里按 URL 匹配 /admin/，返回 admin.html 原始内容。transformIndexHtml 是 Vite 官方 HTML 处理 hook，dev/build 都生效，且在 base 处理之前执行
+- **验证**：
+  - curl /admin/ → title="绿角犀 · 管理后台" ✅（客户端是"绿角犀 - 你的全能个人助理"）
+  - script src = /src/admin-main.tsx ✅（客户端是 /src/main.tsx）
+  - admin-main.tsx HTTP 200 ✅
+  - proxy /api → 3001 转发 ✅
+  - login + admin/users + pm/stats + task-team 全 HTTP 200 ✅
+- **commit**：下一个
+- **关联台账**：IS-004（缺 proxy）· daily/2026-09-30.md## 挂台账索引
 
 | 编号 | 日期 | 优先级 | 一句话摘要 | 状态 |
 |---|---|---|---|---|
 | IS-001 | 2026-09-30 | P0 | ZodError 全局 handler 漏接 → 500 | ✅ fixed |
 | IS-002 | 2026-09-30 | P1 | admin 密码重置 3 坑连发（表名/用户名/SSH 引号） | ✅ fixed |
 | IS-003 | 2026-09-30 | P1 | Vite define dev 不替换
-| IS-004 | 2026-09-30 | P1 | admin-vite.config.ts 缺 proxy → 所有 API 404 | ✅ fixed | → cross-env import.meta.env | ✅ fixed |
+| IS-004 | 2026-09-30 | P1 | admin-vite.config.ts 缺 proxy → 所有 API 404 | ✅ fixed |
+| IS-005 | 2026-09-30 | P0 | admin dev 返回客户端页面（Vite 默认 index.html vs admin.html） | ✅ fixed | → cross-env import.meta.env | ✅ fixed |
