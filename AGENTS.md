@@ -96,6 +96,41 @@ Capacitor 打包前先跑：`npm run build:mobile && npx cap sync android && npx
 
 Electron 打包前先跑：`npm run build && npm run build:backend && node electron/build-desktop.cjs`
 
+## 对话收尾铁律（用户说"好的，执行吧"或显式结束对话前必做）
+
+### 收尾三动作（强制执行，缺一不可）
+
+**1. 回复贴本轮总汇**：在回复末尾追加一个简洁的完成清单，格式如下：
+```
+## 📋 本轮完成清单
+
+✅ 做了什么（1-5 条，大白话）
+❌ 发现什么（如果有 bug 发现，附根因）
+🔧 修了什么（附 commit SHA，如果有）
+📁 改了哪些文件（路径列表）
+```
+- 大白话，不用专业术语堆砌
+- 做了啥就说啥，别虚报
+
+**2. 台账同步（不等对话结束，改完立刻写）**：
+- daily 流水追加一行：`[HH:MM] 动作简述 · 结果 · 文件/commit SHA`
+- 新踩坑 → pitfalls.md 追加新条目（含路径 + 现象 + 根因 + 解法）
+- 修复 bug → daily + pitfalls 都记（daily 写结果，pitfalls 写坑细节）
+
+**3. Git 状态确认 + commit（如果有改动未提交）**：
+- `git status --short` 看脏文件
+- 分 1-2 个 commit（代码一个，文档/台账一个）
+- commit message 格式：`<type>(<scope>): <中文或英文简述>`
+
+### 台账格式（daily.md 每条）
+
+```
+[14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
+[14:35] 服务器 scp dist + pm2 restart aie-backend · online · https 401 ✅
+[15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
+[15:30] 🐛 真 Bug: ZodError 全局 handler 没接 → 加 instanceof 判断返回 422 · commit de8b142
+```
+
 ## 台账铁律（每次新对话第一动作，强制执行）
 
 ### 入场动作（必做）
