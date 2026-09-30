@@ -1,4 +1,4 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { success, HttpError } from '../utils/response.js'
@@ -101,26 +101,31 @@ router.get('/', async (req, res, next) => {
     const overdueOnly = req.query.overdueOnly === 'true'
     const grouped = req.query.grouped === 'assignee'
     const origin = typeof req.query.origin === 'string' ? req.query.origin : 'team'
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : undefined
 
-    const where: any = {}
-    if (user.employeeRole === 'user') {
-      where.OR = [{ userId }, { assigneeId: userId }]
+    const and: any[] = []
+    if (user.employeeRole === 'boss') {
+      // boss 看全公司所有任务
     } else if (user.employeeRole === 'supervisor' && user.departmentId) {
       const deptUsers = await prisma.user.findMany({ where: { departmentId: user.departmentId }, select: { id: true } })
       const deptUserIds = deptUsers.map((u) => u.id)
-      where.OR = [{ userId: { in: deptUserIds } }, { assigneeId: { in: deptUserIds } }]
+      and.push({ OR: [{ userId: { in: deptUserIds } }, { assigneeId: { in: deptUserIds } }] })
+    } else {
+      // user / supervisor 无部门：只看自己创建或归属自己的
+      and.push({ OR: [{ userId }, { assigneeId: userId }] })
     }
-    if (origin !== 'all') where.origin = origin
-    if (assigneeId) where.assigneeId = assigneeId
-    if (statusFilter && statusFilter.length) where.status = { in: statusFilter }
-    if (priorityFilter && priorityFilter.length) where.priority = { in: priorityFilter }
-    if (dueFrom || dueTo) where.dueDate = {}
-    if (dueFrom) where.dueDate.gte = new Date(dueFrom)
-    if (dueTo) where.dueDate.lte = new Date(dueTo)
-    if (overdueOnly) {
-      where.dueDate = { ...(where.dueDate || {}), lt: new Date() }
-      where.status = { ...(where.status || {}), not: 'completed' }
-    }
+    if (origin !== 'all') and.push({ origin })
+    if (search) and.push({ OR: [{ title: { contains: search } }, { description: { contains: search } }, { remark: { contains: search } }] })
+    if (assigneeId) and.push({ assigneeId })
+    if (statusFilter && statusFilter.length) and.push({ status: { in: statusFilter } })
+    if (priorityFilter && priorityFilter.length) and.push({ priority: { in: priorityFilter } })
+    const dueDateWhere: any = {}
+    if (dueFrom) dueDateWhere.gte = new Date(dueFrom)
+    if (dueTo) dueDateWhere.lte = new Date(dueTo)
+    if (overdueOnly) { dueDateWhere.lt = new Date(); and.push({ status: { not: 'completed' } }) }
+    if (Object.keys(dueDateWhere).length) and.push({ dueDate: dueDateWhere })
+
+    const where: any = and.length ? { AND: and } : {}
 
     const tasks = await prisma.task.findMany({
       where,
