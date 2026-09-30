@@ -4,11 +4,12 @@
     "version":  "1.0.6",
     "type":  "module",
     "scripts":  {
-                    "dev":  "vite",
-                    "build":  "tsc --noEmit \u0026\u0026 vite build",
-                    "build:admin": "vite build --config admin-vite.config.ts",
-    "build:mobile": "vite build --config mobile-vite.config.ts",
-    "dev:mobile": "vite --config mobile-vite.config.ts",
+                    "dev":  "cross-env VITE_BUILD_MODE=desktop vite",
+                    "build":  "cross-env VITE_BUILD_MODE=desktop vite build",
+                    "build:admin":  "vite build --config admin-vite.config.ts",
+                    "build:mobile":  "cross-env VITE_BUILD_MODE=mobile vite build --config mobile-vite.config.ts",
+                    "dev:mobile": "cross-env VITE_BUILD_MODE=mobile vite --config mobile-vite.config.ts",
+    "dev:admin": "vite --config admin-vite.config.ts --port 5175",
                     "preview":  "vite preview"
                 },
     "dependencies":  {
@@ -40,6 +41,7 @@
                             "@types/react-dom":  "^18.3.1",
                             "@vitejs/plugin-react":  "^4.3.3",
                             "autoprefixer":  "^10.4.20",
+                            "cross-env":  "^10.1.0",
                             "jimp":  "^1.6.1",
                             "postcss":  "^8.4.49",
                             "tailwindcss":  "^3.4.15",
