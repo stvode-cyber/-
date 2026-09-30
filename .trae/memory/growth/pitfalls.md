@@ -103,3 +103,23 @@
 3. 或者在 .sh 文件里完全不用 bash 特殊变量（用固定数字或命令替换前加反引号）
 
 **影响**：今天部署后端 dist 时，dist 目录被 m -rf dist 删了但新目录没移过去——因为 $(date +%H%M%S) 被 PowerShell 吃掉导致 bash cp -r dist dist.bak- 没正确备份
+### P-XX Admin 前端独立 build 目录叫 admin-dist 不是 dist-admin（2026-09-30）
+
+**现象**：
+pm run build:admin 产物在 dmin-dist/，但 SCP 脚本写的是 dist-admin/ → No such file or directory
+
+**根因**：admin-vite.config.ts 的 uild.outDir 配的是 dmin-dist，不是默认的 dist-admin
+
+**解法**：
+1. SCP admin 文件时硬编码 dmin-dist/ 目录
+2. 服务器 admin 静态文件托管在 /root/backend/public/admin/（不是 Nginx 独立 path）
+3. 访问 URL 是后端路由 /admin（express.static host）
+
+**验证要点**：公网 curl https://47.116.59.141/admin/ → 返回 admin.html（200 OK）
+
+---
+
+[16:20] Admin 前端首次 build:admin + SCP 服务器 public/admin/ · commit 44a8329
+  · vite build --config admin-vite.config.ts → admin-dist/ (4.11s)
+  · 公网 admin.html + admin-DiyEI4hR.js + admin-DKin909M.css 全部 Sep 30 16:19
+  · AdminTeamPage + AdminPMPage 打包进主 bundle admin-DiyEI4hR.js（没懒加载独立 chunk）

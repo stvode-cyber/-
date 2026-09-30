@@ -8,9 +8,57 @@
 
 - 版本：1.0.6（2026-09-19）
 - 主入口：`electron/release-v16/win-unpacked/绿角犀.exe`
-- 本地后端端口：3001
-云端后端端口：3100（Node 监听 127.0.0.1，公网 3001 由 socat 转发 + nginx 443 proxy 3100）
-- 前端 dev：`cd frontend && vite` → http://127.0.0.1:5173/
+### 端口全景（大白话版）
+
+#### 本地开发（自己电脑上跑）
+
+| 端口 | 谁 | 干嘛的 | 配置源 |
+|---|---|---|---|
+| **3001** | 后端 Express (tsx watch) | 所有 API（登录/记账/消息/PM/团队） | `backend/.env` 或默认 `3001` |
+| **5173** | 前端 Vite | 普通用户端 SPA（桌面+移动） | `vite.config.ts` → `port: 5173` |
+| **5175** | 前端 Vite (admin) | Admin 管理后台 SPA | `admin-vite.config.ts` → **应显式写 `port: 5175`**（没写就自动跳 5174/5176…） |
+
+#### 云端生产（服务器 47.116.59.141）
+
+| 端口 | 谁 | 干嘛的 | 备注 |
+|---|---|---|---|
+| **80** | Nginx | HTTP → 443 301 跳转 | 全站 |
+| **443** | Nginx (ssl) | HTTPS 公网入口 | `/api/v1/*` → `proxy_pass http://127.0.0.1:3100`；`/admin` → express.static 托管；`/apk/*` → EXE 静态文件 |
+| **3100** | pm2 `aie-backend` | Node 只监听 `127.0.0.1`，**不对外暴露** | pm2 启动时 `PORT=3100` |
+| **8444 / 8091 / 18443** | Nginx | 杂项 HTTPS/HTTP（ERP 或其他项目） | — |
+| **3000** | pm2 `erp-backend` | ERP 后端（跟绿角犀无关） | — |
+| **3002** | pm2 `lvjiaoxi-web` | 另一个服务（跟绿角犀无关） | — |
+
+#### 关键链路（绿角犀）
+
+```
+用户设备 (EXE 或浏览器)
+    ↓ https://47.116.59.141
+Nginx (443)
+    ├─ /api/v1/*     → proxy_pass http://127.0.0.1:3100  ← aie-backend
+    ├─ /admin/*      → express.static /root/backend/public/admin/  ← 同一后端进程托管的 Admin SPA
+    └─ /apk/*        → root /usr/share/nginx/html/apk/  ← EXE 静态文件
+```
+
+#### 本地 vs 云端（最容易搞错）
+
+| 环境 | 后端 Node 监听 |
+|---|---|
+| 本地 | **3001** |
+| 云端 | **3100**（Nginx 443 反代它） |
+
+#### Dev Server 启动命令
+
+```bash
+# 后端（3001）
+cd backend && npm run dev
+
+# 前端普通端（5173）
+cd frontend && npm run dev
+
+# 前端 admin（应该显式 5175）
+cd frontend && npx vite --config admin-vite.config.ts --port 5175
+```
 
 ## 台账铁律（每次新对话第一动作，强制执行）
 

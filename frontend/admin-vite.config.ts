@@ -14,6 +14,11 @@ export default defineConfig({
   // publicDir 是 Vite 顶层选项（不是 build.*）：置 false 避免复制项目 public/
   //（主 APP 的 PWA/贴纸/天气图/ui 样张等静态资源不便混入管理后台）
   publicDir: false,
+  // 固定 dev server 端口为 5175，避免被主前端 5173 抢了之后自动跳 5174/5176...
+  server: {
+    port: 5175,
+    strictPort: true, // 5175 被占就报错，不自动跳
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
