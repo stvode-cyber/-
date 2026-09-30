@@ -77,3 +77,16 @@
   2. 确认没有其他 Chrome 在跑再启动
   3. 用 CDP 操作前先 `curl localhost:9222/json/list` 看 tab URL 对不对
 - **关联**：所有 CDP 自动化场景 #CDP #Chrome #user-data-dir
+
+---
+
+### P-XX Prisma where 同时有 top-level 属性和 AND 数组会冲突（2026-09-30）
+
+**现象**：后端加了 where.AND = [...] 但后面继续赋值 where.status = {...} / where.assigneeId = ...，Prisma 报错或只认 AND，top-level 属性被忽略
+
+**根因**：AND 数组模式下所有条件必须 inside AND 数组，不能混 top-level 属性
+
+**解法**：全部塞进 const and: any[] = [] 数组，最后 const where = and.length ? { AND: and } : {}
+
+**影响**：task-team.routes.ts GET 路由 search 参数之前就因为这个没加进去（加了 AND.push 但没加 assigneeId/status 等）
+

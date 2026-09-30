@@ -100,7 +100,10 @@
                                "allowToChangeInstallationDirectory":  true,
                                "createDesktopShortcut":  true,
                                "createStartMenuShortcut":  true,
-                               "shortcutName":  "绿角犀"
+                               "shortcutName":  "绿角犀",
+                               "include":  "build/installer.nsh",
+                               "runAfterFinish":  true,
+                               "deleteAppDataOnUninstall":  false
                            },
                   "portable":  {
                                    "artifactName":  "绿角犀-Portable-${version}.exe"
