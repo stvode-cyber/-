@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.aie.assistant',
   appName: '绿角犀',
-  webDir: 'dist',
+  webDir: 'mobile-dist',
   android: {
     allowMixedContent: true,
   },

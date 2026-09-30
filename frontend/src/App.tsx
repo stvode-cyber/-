@@ -229,7 +229,7 @@ export default function App() {
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/login" element={<Navigate to="/" replace />} />
-          {isDesktop() ? (
+          {__BUILD_MODE__ === 'desktop' ? (
             <>
               {/* 桌面端：主路由统一在 ConditionalDesktopLayout 下（float=1 时跳过布局） */}
               <Route element={<ConditionalDesktopLayout />}>

@@ -6,6 +6,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
 export default defineConfig({
+  define: {
+    __BUILD_MODE__: JSON.stringify('desktop'), // Vite 编译时常量：'desktop' 或 'mobile'
+  },
   // Electron 通过 file:// 协议加载前端，必须使用相对路径
   // 否则 index.html 会引用 /assets/xxx.js（绝对路径），在 file:// 下指向文件系统根目录导致灰屏
   base: './',

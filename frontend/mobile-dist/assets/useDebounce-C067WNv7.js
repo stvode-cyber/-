@@ -1,0 +1,1 @@
+import{r as t}from"./react-vendor-B0MhQ9iA.js";function s(r,u=300){const[c,n]=t.useState(r),e=t.useRef(null);return t.useEffect(()=>(e.current&&clearTimeout(e.current),e.current=setTimeout(()=>{n(r)},u),()=>{e.current&&clearTimeout(e.current)}),[r,u]),c}export{s as u};

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>绿角犀 · UI 样稿 v1 — 主页头部 / 重要任务置顶 / 对话页</title>
+<style>
+  :root {
+    --primary: #10b981; --primary-deep: #059669; --primary-dark: #064e3b;
+    --accent: #64748b; --surface: #f6faf8; --card: #ffffff;
+    --ink: #1e293b; --ink-2: #475569; --ink-3: #94a3b8;
+    --orange: #f97316; --amber: #f59e0b; --red: #ef4444;
+    --radius: 20px; --shadow: 0 2px 8px rgba(6,78,59,.06), 0 8px 24px rgba(6,78,59,.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    background: #eef2f0; display: flex; flex-direction: column; align-items: center;
+    padding: 40px 20px 60px; gap: 12px;
+  }
+  .stage-title { font-size: 15px; color: #475569; letter-spacing: 2px; }
+  .row { display: flex; gap: 48px; flex-wrap: wrap; justify-content: center; }
+  /* ===== 手机壳 ===== */
+  .phone {
+    width: 375px; height: 760px; background: var(--surface); border-radius: 44px;
+    border: 10px solid #0f172a; overflow: hidden; position: relative;
+    box-shadow: 0 24px 64px rgba(15,23,42,.25); display: flex; flex-direction: column;
+  }
+  .phone .screen { flex: 1; overflow-y: auto; scrollbar-width: none; }
+  .phone .screen::-webkit-scrollbar { display: none; }
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 140px; height: 26px; background: #0f172a; border-radius: 0 0 16px 16px; z-index: 50; }
+  .label { text-align: center; font-size: 13px; color: #64748b; margin-bottom: 18px; font-weight: 600; }
+  .label b { color: #059669; }
+
+  /* ================= 主页头部 ================= */
+  .hero {
+    padding: 44px 20px 22px; color: #fff; position: relative;
+    background: linear-gradient(140deg, #047857 0%, #059669 45%, #10b981 100%);
+    border-radius: 0 0 32px 32px; overflow: hidden;
+  }
+  .hero::before { /* 光斑质感 */
+    content: ''; position: absolute; width: 260px; height: 260px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.14) 0%, transparent 70%);
+    top: -120px; right: -60px;
+  }
+  .hero::after {
+    content: ''; position: absolute; width: 180px; height: 180px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(52,211,153,.25) 0%, transparent 70%);
+    bottom: -80px; left: -40px;
+  }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 2; }
+  .hero-greet { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  .hero-greet .lv {
+    display: inline-flex; align-items: center; gap: 3px; margin-left: 8px; vertical-align: 2px;
+    font-size: 10px; font-weight: 600; background: rgba(255,255,255,.22); backdrop-filter: blur(4px);
+    padding: 3px 8px; border-radius: 99px; border: 1px solid rgba(255,255,255,.25);
+  }
+  .hero-sub { font-size: 12px; opacity: .85; margin-top: 5px; }
+  .chips { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; position: relative; z-index: 2; }
+  .chip {
+    font-size: 10px; padding: 4px 9px; border-radius: 99px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(4px);
+  }
+  .chip.yi { color: #d1fae5; } .chip.ji { color: #fecaca; }
+  .weather {
+    text-align: right; position: relative; z-index: 2;
+    background: rgba(255,255,255,.14); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.2); border-radius: 18px; padding: 10px 14px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; flex-shrink: 0;
+  }
+  .weather .icon { font-size: 26px; }
+  .weather .temp { font-size: 22px; font-weight: 300; }
+  .weather .desc { font-size: 10px; opacity: .85; }
+  .weather .range { font-size: 9px; opacity: .7; }
+
+  /* ★ 头像全新设计：渐变呼吸环 + 状态点 */
+  .avatar-wrap { position: relative; width: 68px; height: 68px; flex-shrink: 0; margin-bottom: 14px; z-index: 2; }
+  .avatar-ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 210deg, #a7f3d0, #fbbf24, #34d399, #a7f3d0);
+    animation: breathe 3.2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,.25));
+  }
+  @keyframes breathe { 0%,100% { transform: scale(1); opacity:.95 } 50% { transform: scale(1.05); opacity: 1 } }
+  .avatar {
+    position: absolute; inset: 3.5px; border-radius: 50%; background: #064e3b;
+    display: flex; align-items: center; justify-content: center; font-size: 30px;
+    overflow: hidden; border: 2.5px solid rgba(255,255,255,.9);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .status-dot {
+    position: absolute; right: 2px; bottom: 4px; width: 15px; height: 15px; border-radius: 50%;
+    background: #34d399; border: 2.5px solid #047857;
+    box-shadow: 0 0 0 0 rgba(52,211,153,.5); animation: pulse 2.4s infinite;
+  }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.55) } 70% { box-shadow: 0 0 0 7px rgba(52,211,153,0) } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0) } }
+
+  /* ================= 重要任务卡（置顶第一位） ================= */
+  .task-card {
+    margin: 14px 14px 0; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+    padding: 16px; position: relative;
+  }
+  .task-card::before { /* 左侧强调条：一眼识别"最重要"区块 */
+    content: ''; position: absolute; left: 0; top: 18px; bottom: 18px; width: 4px;
+    border-radius: 4px; background: linear-gradient(180deg, #ef4444, #f97316);
+  }
+  .task-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .task-head .ic {
+    width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #ef4444, #f97316); color: #fff; font-size: 14px;
+    box-shadow: 0 4px 10px rgba(239,68,68,.3);
+  }
+  .task-head .t { font-size: 15px; font-weight: 700; color: var(--ink); }
+  .task-head .count {
+    font-size: 10px; font-weight: 700; color: #fff; background: #ef4444;
+    min-width: 18px; height: 18px; border-radius: 99px; display: inline-flex; align-items: center; justify-content: center; padding: 0 5px;
+  }
+  .task-head .all { margin-left: auto; font-size: 11px; color: var(--primary-deep); font-weight: 600; }
+  .task-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px;
+    transition: background .15s;
+  }
+  .task-item:hover { background: #f0fdf9; }
+  .task-item.important { background: #fef5f4; border: 1px solid #fecdd3; }
+  .task-item.important + .task-item:not(.important) { margin-top: 8px; } /* 重要与普通之间留缝分区 */
+  .task-star {
+    width: 20px; height: 20px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; flex-shrink: 0;
+  }
+  .task-star.hot { background: #fee2e2; color: #dc2626; }
+  .task-star.normal { background: #e2e8f0; }
+  .task-title { font-size: 13px; color: var(--ink-2); flex: 1; }
+  .task-item.important .task-title { color: var(--ink); font-weight: 600; }
+  .countdown {
+    font-size: 13px; font-weight: 800; padding: 4px 10px; border-radius: 10px;
+    font-variant-numeric: tabular-nums; flex-shrink: 0;
+  }
+  .countdown.danger { color: #dc2626; background: #fee2e2; }
+  .countdown.warn { color: #d97706; background: #fef3c7; }
+  .countdown.normal { color: var(--ink-3); background: #f1f5f9; }
+  .task-add {
+    margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 4px;
+    border: 1.5px dashed #a7f3d0; border-radius: 14px; padding: 9px;
+    color: var(--primary-deep); font-size: 12px; font-weight: 600;
+  }
+
+  .section-card {
+    margin: 14px 14px 0; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px;
+  }
+  .sec-title { font-size: 14px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 7px; }
+  .sec-title .emoji { width: 28px; height: 28px; background: #f0fdf9; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+  .placeholder-block { height: 84px; margin-top: 12px; border-radius: 14px; background: repeating-linear-gradient(-45deg, #f8fafc 0 12px, #f1f5f9 12px 24px); display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; letter-spacing: 1px; }
+
+  /* 底部导航 */
+  .tabbar {
+    height: 64px; background: rgba(255,255,255,.92); backdrop-filter: blur(12px);
+    border-top: 1px solid #e2e8f0; display: flex; align-items: center; padding-bottom: 6px;
+  }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: #94a3b8; }
+  .tab .dot { width: 22px; height: 22px; border-radius: 8px; background: #e2e8f0; }
+  .tab.on { color: #059669; font-weight: 700; }
+  .tab.on .dot { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 10px rgba(16,185,129,.35); }
+
+  /* ================= 对话页 ================= */
+  .chat-hero {
+    padding: 40px 16px 14px; background: rgba(255,255,255,.9); backdrop-filter: blur(12px);
+    border-bottom: 1px solid #eef2f0; display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 12px; background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center; color: #475569; font-size: 15px;
+  }
+  .chat-title-wrap { flex: 1; min-width: 0; }
+  .chat-title { font-size: 15px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+  .ai-state {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 9px; color: #059669;
+    background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 99px; padding: 2px 7px; font-weight: 600;
+  }
+  .ai-state .sd { width: 5px; height: 5px; border-radius: 50%; background: #10b981; animation: pulse 2.4s infinite; }
+  .chat-sub { font-size: 10px; color: var(--ink-3); margin-top: 2px; }
+
+  .msgs { padding: 18px 14px 110px; display: flex; flex-direction: column; gap: 18px; }
+  .date-divider { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 10px; }
+  .date-divider::before, .date-divider::after { content: ''; flex: 1; height: 1px; background: #e8eeeb; }
+
+  .msg { display: flex; gap: 8px; align-items: flex-end; }
+  .msg.me { flex-direction: row-reverse; }
+  .msg-avatar {
+    width: 34px; height: 34px; border-radius: 13px; flex-shrink: 0;
+    background: linear-gradient(135deg, #065f46, #10b981); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    box-shadow: 0 3px 8px rgba(6,95,70,.25);
+  }
+  .msg-avatar.ai { border-radius: 13px; } /* AI 也用用户头像（产品红线），加角标区分 */
+  .msg-avatar .mini-badge {
+    position: absolute; margin: 22px 0 0 22px; width: 13px; height: 13px; border-radius: 50%;
+    background: #10b981; border: 2px solid #fff; font-size: 7px; display: flex; align-items: center; justify-content: center;
+  }
+  .bubble-col { display: flex; flex-direction: column; gap: 3px; max-width: 76%; }
+  .msg.me .bubble-col { align-items: flex-end; }
+  .bubble {
+    padding: 10px 14px; font-size: 14px; line-height: 1.55; position: relative;
+    box-shadow: 0 2px 6px rgba(6,78,59,.05);
+  }
+  .bubble.ai {
+    background: #fff; color: var(--ink); border-radius: 20px 20px 20px 6px; border: 1px solid #eef2f0;
+  }
+  .bubble.me {
+    background: linear-gradient(135deg, #059669, #10b981); color: #fff;
+    border-radius: 20px 20px 6px 20px; box-shadow: 0 4px 12px rgba(5,150,105,.3);
+  }
+  .bubble .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+  .bubble .typing i { width: 6px; height: 6px; border-radius: 50%; background: #94a3b8; animation: blink 1.4s infinite; }
+  .bubble .typing i:nth-child(2) { animation-delay: .2s } .bubble .typing i:nth-child(3) { animation-delay: .4s }
+  @keyframes blink { 0%,80%,100% { opacity:.25; transform: translateY(0) } 40% { opacity:1; transform: translateY(-3px) } }
+  .msg-time { font-size: 9px; color: var(--ink-3); padding: 0 4px; }
+  .msg-ops { display: flex; gap: 10px; padding: 0 4px; font-size: 10px; color: var(--ink-3); }
+  .msg-ops span:hover { color: var(--primary-deep); }
+
+  /* 工具结果卡片 */
+  .tool-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(6,78,59,.05); min-width: 220px;
+  }
+  .tool-card .tc-head {
+    display: flex; align-items: center; gap: 7px; padding: 10px 12px;
+    background: linear-gradient(135deg, #ecfdf5, #f0fdfa); border-bottom: 1px solid #d1fae5;
+    font-size: 12px; font-weight: 700; color: #065f46;
+  }
+  .tool-card .tc-head .ic { width: 22px; height: 22px; border-radius: 8px; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .tool-card .tc-body { padding: 12px; }
+  .tc-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); padding: 4px 0; }
+  .tc-row b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .tc-row b.hot { color: #dc2626; }
+  .tc-actions { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px dashed #e2e8f0; }
+  .tc-btn {
+    flex: 1; text-align: center; font-size: 11px; font-weight: 700; padding: 7px 0; border-radius: 10px;
+  }
+  .tc-btn.pri { background: linear-gradient(135deg, #059669, #10b981); color: #fff; box-shadow: 0 3px 8px rgba(5,150,105,.25); }
+  .tc-btn.ghost { background: #f1f5f9; color: var(--ink-2); }
+
+  /* 输入区 */
+  .composer {
+    position: absolute; bottom: 64px; left: 0; right: 0; padding: 10px 12px;
+    background: rgba(246,250,248,.88); backdrop-filter: blur(14px); border-top: 1px solid #e8eeeb;
+  }
+  .composer-inner {
+    background: #fff; border-radius: 24px; border: 1.5px solid #e2e8f0;
+    display: flex; align-items: center; padding: 6px 6px 6px 16px; gap: 8px;
+    box-shadow: 0 4px 16px rgba(6,78,59,.07); transition: border-color .2s;
+  }
+  .composer-inner:focus-within { border-color: #10b981; box-shadow: 0 4px 20px rgba(16,185,129,.18); }
+  .composer-inner input { flex: 1; border: none; outline: none; font-size: 14px; color: var(--ink); background: transparent; }
+  .composer-inner input::placeholder { color: #b6c2ce; }
+  .plus-btn {
+    width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; color: #64748b;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 400; flex-shrink: 0;
+  }
+  .send-btn {
+    width: 36px; height: 36px; border-radius: 14px; flex-shrink: 0;
+    background: linear-gradient(135deg, #059669, #10b981); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px rgba(5,150,105,.35);
+  }
+  .send-btn .arr { font-size: 15px; margin-top: -2px; }
+  .quick-emotes { display: flex; gap: 14px; padding: 8px 16px 2px; font-size: 17px; opacity: .75; }
+</style>
+</head>
+<body>
+
+<div class="stage-title">绿角犀 · UI 样稿 v1 — ① 主页（头像 / 重要任务置顶） ② 对话页</div>
+
+<div class="row">
+  <!-- ============ 屏 1：主页 ============ -->
+  <div>
+    <div class="label">① 主页 — <b>头像呼吸环</b> · <b>重要任务置顶第一卡</b></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <!-- 头部横幅 -->
+        <div class="hero">
+          <div class="avatar-wrap">
+            <div class="avatar-ring"></div>
+            <div class="avatar">🦏</div>
+            <div class="status-dot" title="IDLE 呼吸"></div>
+          </div>
+          <div class="hero-top">
+            <div>
+              <div class="hero-greet">夜深了，老王 <span class="lv">🌱 Lv6</span></div>
+              <div class="hero-sub">连续陪伴 23 天 · 今晚聊了 12 条</div>
+              <div class="chips">
+                <span class="chip">八月廿三 · 处暑</span>
+                <span class="chip">♍ 处女座</span>
+                <span class="chip yi">宜 整理 复盘 早睡</span>
+                <span class="chip ji">忌 熬夜 焦虑</span>
+              </div>
+            </div>
+            <div class="weather">
+              <div class="icon">🌙</div>
+              <div class="temp">26°</div>
+              <div class="desc">晴</div>
+              <div class="range">22° / 33°</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ★ 重要任务卡：横幅后第一张卡 -->
+        <div class="task-card">
+          <div class="task-head">
+            <span class="ic">★</span>
+            <span class="t">今日要事</span>
+            <span class="count">3</span>
+            <span class="all">全部 ›</span>
+          </div>
+          <!-- 重要任务排最前：红底行 + 星标 + 加粗 -->
+          <div class="task-item important">
+            <span class="task-star hot">★</span>
+            <span class="task-title">下午 3 点产品评审会</span>
+            <span class="countdown danger">⏳ 1:42:05</span>
+          </div>
+          <div class="task-item important">
+            <span class="task-star hot">★</span>
+            <span class="task-title">给客户回方案邮件</span>
+            <span class="countdown warn">⏳ 5:20</span>
+          </div>
+          <!-- 普通任务视觉降级，与重要任务有分区缝 -->
+          <div class="task-item">
+            <span class="task-star normal">●</span>
+            <span class="task-title">取快递</span>
+            <span class="countdown normal">18:00</span>
+          </div>
+          <div class="task-add">＋ 添加任务</div>
+        </div>
+
+        <!-- 其余卡片概览（保持原内容，位置顺延） -->
+        <div class="section-card">
+          <div class="sec-title"><span class="emoji">⚡</span> 今日概览</div>
+          <div class="placeholder-block">其余模块顺延（内容不变）</div>
+        </div>
+        <div class="section-card">
+          <div class="sec-title"><span class="emoji">✍️</span> 随手记</div>
+          <div class="placeholder-block">其余模块顺延（内容不变）</div>
+        </div>
+        <div class="section-card" style="margin-bottom:14px">
+          <div class="sec-title"><span class="emoji">⏳</span> 倒计时</div>
+          <div class="placeholder-block">其余模块顺延（内容不变）</div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab on"><span class="dot"></span>主页</div>
+        <div class="tab"><span class="dot"></span>对话</div>
+        <div class="tab"><span class="dot"></span>社区</div>
+        <div class="tab"><span class="dot"></span>我的</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 屏 2：对话页 ============ -->
+  <div>
+    <div class="label">② 对话页 — <b>毛玻璃会话头</b> · <b>新气泡</b> · <b>悬浮输入条</b></div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen" style="position:relative">
+        <!-- 会话头 -->
+        <div class="chat-hero">
+          <div class="back-btn">‹</div>
+          <div class="chat-title-wrap">
+            <div class="chat-title">角角 <span class="ai-state"><span class="sd"></span>在呢</span></div>
+            <div class="chat-sub">绿角犀 · 你的老朋友</div>
+          </div>
+          <div class="msg-avatar" style="width:36px;height:36px;border-radius:13px">🦏</div>
+        </div>
+
+        <!-- 消息区 -->
+        <div class="msgs">
+          <div class="date-divider">今天</div>
+
+          <!-- AI 问候（B 池极简风示例） -->
+          <div class="msg">
+            <div class="msg-avatar ai" style="position:relative">🦏<span class="mini-badge">角</span></div>
+            <div class="bubble-col">
+              <div class="bubble ai">还没睡？</div>
+              <div class="msg-time">23:41</div>
+            </div>
+          </div>
+
+          <!-- 用户消息 -->
+          <div class="msg me">
+            <div class="msg-avatar">🦏</div>
+            <div class="bubble-col">
+              <div class="bubble me">刚忙完，午饭花了 38</div>
+              <div class="msg-time">23:42</div>
+            </div>
+          </div>
+
+          <!-- AI 工具卡片（记账） -->
+          <div class="msg">
+            <div class="msg-avatar ai" style="position:relative">🦏<span class="mini-badge">角</span></div>
+            <div class="bubble-col">
+              <div class="tool-card">
+                <div class="tc-head"><span class="ic">¥</span>记好了 · 午餐 ¥38</div>
+                <div class="tc-body">
+                  <div class="tc-row"><span>分类</span><b>餐饮</b></div>
+                  <div class="tc-row"><span>今日累计</span><b>¥76</b></div>
+                  <div class="tc-row"><span>本周餐饮预算</span><b class="hot">剩 ¥124</b></div>
+                </div>
+                <div class="tc-actions">
+                  <div class="tc-btn ghost">改分类</div>
+                  <div class="tc-btn pri">没问题</div>
+                </div>
+              </div>
+              <div class="msg-time">23:42</div>
+            </div>
+          </div>
+
+          <!-- 用户短回复（silent_ack：无气泡） -->
+          <div class="msg me">
+            <div class="msg-avatar">🦏</div>
+            <div class="bubble-col">
+              <div class="msg-time" style="padding:6px 4px">“嗯” · 已静默确认（不回气泡）</div>
+            </div>
+          </div>
+
+          <!-- AI 思考中 -->
+          <div class="msg">
+            <div class="msg-avatar ai" style="position:relative">🦏<span class="mini-badge">角</span></div>
+            <div class="bubble-col">
+              <div class="bubble ai"><span class="typing"><i></i><i></i><i></i></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 输入区 -->
+        <div class="composer">
+          <div class="quick-emotes">😊 😂 🤔 👍</div>
+          <div class="composer-inner">
+            <input placeholder="想说啥就说…" />
+            <div class="plus-btn">＋</div>
+            <div class="send-btn"><span class="arr">➤</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <div class="tab"><span class="dot"></span>主页</div>
+        <div class="tab on"><span class="dot"></span>对话</div>
+        <div class="tab"><span class="dot"></span>社区</div>
+        <div class="tab"><span class="dot"></span>我的</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

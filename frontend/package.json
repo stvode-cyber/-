@@ -6,7 +6,9 @@
     "scripts":  {
                     "dev":  "vite",
                     "build":  "tsc --noEmit \u0026\u0026 vite build",
-                    "build:admin":  "vite build --config admin-vite.config.ts",
+                    "build:admin": "vite build --config admin-vite.config.ts",
+    "build:mobile": "vite build --config mobile-vite.config.ts",
+    "dev:mobile": "vite --config mobile-vite.config.ts",
                     "preview":  "vite preview"
                 },
     "dependencies":  {
