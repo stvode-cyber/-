@@ -1,4 +1,4 @@
-# 🤝 绿角犀管家 — AI 交接总览
+﻿# 🤝 绿角犀管家 — AI 交接总览
 
 > 新 AI 进门第一读。**30 秒内读懂项目状态**。每日更新。
 > 
@@ -160,3 +160,4 @@ curl -skL https://47.116.59.141/api/v1/app/windows-version
 
 ## 最近踩坑标签
 #编码修复 #GS-002 #nginx #PS5.1 #immutable锁 #记忆错位 #CDP #Chrome #bot防护 #device-code #user-data-dir #SQLite #Electron-SHA256 #Vite-dev #admin-middleware #BUILD_MODE #ZodError #表名漂移 #PowerShell-Start-Job
+
