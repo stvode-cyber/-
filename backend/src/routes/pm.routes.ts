@@ -1,4 +1,4 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { authRequired } from '../middleware/auth.js'
@@ -230,7 +230,66 @@ router.post('/projects/bulk-delete', async (req, res, next) => {
   } catch (e) { next(e) }
 })
 
-// ============ Payment / Receipt / Invoice 子资源 ============
+// ============ Payment / Receipt / Invoice 全局列表（admin 运营用） ============
+// GET /api/v1/pm/payments?projectId=&from=&to=&limit=
+router.get('/payments', async (req, res, next) => {
+  try {
+    const { projectId, from, to, limit } = req.query as any
+    const isAdmin = req.user!.role === 'admin'
+    const where: any = isAdmin ? {} : { project: { userId: req.user!.userId } }
+    if (projectId) where.projectId = projectId
+    if (from) where.date = { ...where.date, gte: new Date(from) }
+    if (to)   where.date = { ...where.date, lte: new Date(to) }
+    const list = await prisma.payment.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: limit ? parseInt(limit) : 200,
+      include: { project: { select: { id: true, name: true, client: true } } },
+    })
+    res.json({ data: list })
+  } catch (e) { next(e) }
+})
+
+// GET /api/v1/pm/receipts
+router.get('/receipts', async (req, res, next) => {
+  try {
+    const { projectId, from, to, limit } = req.query as any
+    const isAdmin = req.user!.role === 'admin'
+    const where: any = isAdmin ? {} : { project: { userId: req.user!.userId } }
+    if (projectId) where.projectId = projectId
+    if (from) where.date = { ...where.date, gte: new Date(from) }
+    if (to)   where.date = { ...where.date, lte: new Date(to) }
+    const list = await prisma.receipt.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: limit ? parseInt(limit) : 200,
+      include: { project: { select: { id: true, name: true, client: true } } },
+    })
+    res.json({ data: list })
+  } catch (e) { next(e) }
+})
+
+// GET /api/v1/pm/invoices
+router.get('/invoices', async (req, res, next) => {
+  try {
+    const { projectId, type, from, to, limit } = req.query as any
+    const isAdmin = req.user!.role === 'admin'
+    const where: any = isAdmin ? {} : { project: { userId: req.user!.userId } }
+    if (projectId) where.projectId = projectId
+    if (type) where.type = type
+    if (from) where.date = { ...where.date, gte: new Date(from) }
+    if (to)   where.date = { ...where.date, lte: new Date(to) }
+    const list = await prisma.invoice.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: limit ? parseInt(limit) : 200,
+      include: { project: { select: { id: true, name: true, client: true } } },
+    })
+    res.json({ data: list })
+  } catch (e) { next(e) }
+})
+
+// ============ Payment / Receipt / Invoice 子资源（嵌套） ============
 // POST /api/v1/pm/projects/:id/payments
 router.post('/projects/:id/payments', async (req, res, next) => {
   try {
