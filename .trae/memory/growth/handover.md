@@ -1,4 +1,4 @@
-# 🤝 绿角犀管家 — AI 交接总览
+﻿# 🤝 绿角犀管家 — AI 交接总览
 
 > 新 AI 进门第一读。**30 秒内读懂项目状态**。每日更新。
 > 
@@ -23,6 +23,29 @@
 
 ---
 
+
+---
+
+## 🔐 管理员账号（2026-10-08 reset）
+
+| 项 | 值 |
+|---|---|
+| **用户名** | dmin |
+| **密码** | dmin123 |
+| **角色** | admin（超级管理员） |
+| **本地 dev.db** | ✅ 已 reset 干净（仅 1 用户） |
+| **服务器 prod.db** | ✅ 已 reset 干净（仅 1 用户） |
+| **本地 admin 入口** | http://localhost:5175/admin/ |
+| **公网 admin 入口** | https://47.116.59.141/admin/ |
+
+⚠️ **重要约束**：
+- .env 里有 ADMIN_PASSWORD，跑 
+pm run seed 会用它 **upsert 覆盖 admin 密码**
+- 现在 .env ADMIN_PASSWORD=cSQuH83lZSy58IQq 与实际 admin123 不一致
+- 如果某天跑 seed.ts，admin 密码会被改回 env 的值
+- 解法（任选）：①改 .env ADMIN_PASSWORD=admin123 对齐 ②改 seed.ts 逻辑 admin 存在时不覆盖密码
+
+---
 ## 项目一句话
 
 Electron 桌面端（Windows）+ React 18 + Node.js/Express + Prisma/**SQLite**，本地优先的全能个人助理。**数据库是 SQLite 不是 MySQL**。**同时是社交平台（community/conversation/habitTrack/pet 表）+ PM 项目账款工具（pm.routes.ts）**。
@@ -160,4 +183,5 @@ curl -skL https://47.116.59.141/api/v1/app/windows-version
 
 ## 最近踩坑标签
 #编码修复 #GS-002 #nginx #PS5.1 #immutable锁 #记忆错位 #CDP #Chrome #bot防护 #device-code #user-data-dir #SQLite #Electron-SHA256 #Vite-dev #admin-middleware #BUILD_MODE #ZodError #表名漂移 #PowerShell-Start-Job
+
 
