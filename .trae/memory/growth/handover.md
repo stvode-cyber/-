@@ -10,16 +10,16 @@
 
 | 维度 | 当前值 | 上一次变更 |
 |---|---|---|
-| **Git HEAD** | `0828f8e` feat(admin): AdminPMPage 3 Tab（收付款/发票流水） | 2026-10-01 |
-| **运行端口** | 3001 ✅ · 5173 ✅ · 5174 ✅ · 5175 ✅（随时可能死） | 随时可能死，用 blocking=false + web_server 模式驻留 |
-| **BUILD_MODE** | cross-env `VITE_BUILD_MODE=desktop/mobile`（已废弃 vite define 方案） | 3 坑连发修复 |
-| **admin 已全链路交付** ✅：Dashboard 7 聚合 + pm 3 Tab + 已部署服务器 https://47.116.59.141/admin/（`aa37f13`→`44dafc7`→`0828f8e`） |
-| **后端 admin 接口** ✅ `/admin/dashboard` 7 聚合 + `/pm/*` 14 路由全实现（Dashboard 目前是 mock） | 前端已留 fetch 注释 |
-| **pm.routes.ts** ✅ 17 条（加了 `/payments` `/receipts` `/invoices` 全局列表）（departments/projects/stats/CRUD/payments/receipts/invoices） | ZodError → 422 已全局修复 |
-| **issues.md** | 5 组 Master 成长型（M-001 Vite P0 聚合 5 子条） | 归并铁律：子条目≥3 自动升 P0 |
-| **活跃坑 Top 3** | M-001 Vite dev proxy/入口/envFile / M-004 PS5 特定坑 / ZodError 漏接 | pitfalls.md 按 Master 分组 |
-| **未闭环工单** | M-001-ZH-005 admin middleware rewrite 方案 / IS-003 BUILD_MODE | 见 issues.md |
-| **下一步优先级** | 新功能开发（pm 增删改 / community 管理） / GitHub 仓库改名 / 桌面版发版 | — |
+| **Git HEAD** | `9942df8` build(release): v1.0.6 桌面版发版 — gate 7/7 全绿 | 2026-10-08 |
+| **运行端口** | 3001 ✅ · 5173 ❌ · 5174 ❌ · 5175 ✅ | 5173/5174 常驻进程可能死，admin 5175 稳 |
+| **版本号** | electron=1.0.6 backend=1.0.6 frontend=1.0.6 ✅ 三落点一致 | gate-check G1 硬约束 |
+| **桌面版已发版** ✅ v1.0.6 Setup 160.4MB + Portable 160MB，SHA256 公网 API 匹配 | 2026-10-08 `9942df8` |
+| **服务器 nginx 清爽** ✅ 3 活跃 conf（greenrhino-cloud-ssl/Garh/erp-web），lujax/lvjiaoxi 全清 | 2026-10-08 `5d0acfc` |
+| **admin 已全链路交付** ✅：Dashboard 7 真聚合（DAU/MAU/留存/7天趋势/TOP/24h/实时流）+ pm 3 Tab + 已部署 https://47.116.59.141/admin/ | `aa37f13`→`44dafc7`→`0828f8e` |
+| **pm.routes.ts** ✅ 17 条（含 `/payments` `/receipts` `/invoices` 全局列表），非 admin 自动加 userId 过滤 | ZodError → 422 已全局修复 |
+| **windows-version API** ✅ `/api/v1/app/windows-version?current=xxx` 返回完整更新信息 + SHA256 + ASCII symlink 下载链接 | 2026-10-08 修复 prod.db + setupUrl |
+| **活跃坑 Top 4** | ①seed upsert 不更新 SHA256（有旧记录先 delete）②中文文件名 HTTP 404（用 ASCII symlink）③electron-builder 报 repository 错（加 --publish never）④PS5 ConvertTo-Json 加 BOM（git checkout 恢复） | 见 daily 2026-10-08 |
+| **下一步优先级** | ①GitHub 仓库改名（`-` → `APP-AIE`）②admin pm 项目增删改页面③今天到这？ | 用户拍板 |
 
 ---
 
