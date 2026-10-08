@@ -1,4 +1,4 @@
-﻿# 🤝 绿角犀管家 — AI 交接总览
+# 🤝 绿角犀管家 — AI 交接总览
 
 > 新 AI 进门第一读。**30 秒内读懂项目状态**。每日更新。
 > 
@@ -10,16 +10,16 @@
 
 | 维度 | 当前值 | 上一次变更 |
 |---|---|---|
-| **Git HEAD** | `47cb261` feat(admin): Dashboard 社交活跃度数据中心 | 2026-09-30 |
-| **运行端口** | 3001 后端 ✅ · 5173 桌面 ✅ · 5174 手机 ✅ · 5175 admin ✅ | 随时可能死，用 blocking=false + web_server 模式驻留 |
+| **Git HEAD** | `0828f8e` feat(admin): AdminPMPage 3 Tab（收付款/发票流水） | 2026-10-01 |
+| **运行端口** | 3001 ✅ · 5173 ✅ · 5174 ✅ · 5175 ✅（随时可能死） | 随时可能死，用 blocking=false + web_server 模式驻留 |
 | **BUILD_MODE** | cross-env `VITE_BUILD_MODE=desktop/mobile`（已废弃 vite define 方案） | 3 坑连发修复 |
-| **admin 新交付** | Dashboard 社交活跃度数据中心 + 侧边栏 4 组重新分组 | `47cb261` + `5f6df89` |
-| **后端 admin 接口** | `/admin/stats/overview` ⚠️ **TODO 未实现**（Dashboard 目前是 mock） | 前端已留 fetch 注释 |
-| **pm.routes.ts** | 14 条路由 ✅（departments/projects/stats/CRUD/payments/receipts/invoices） | ZodError → 422 已全局修复 |
+| **admin 已全链路交付** ✅：Dashboard 7 聚合 + pm 3 Tab + 已部署服务器 https://47.116.59.141/admin/（`aa37f13`→`44dafc7`→`0828f8e`） |
+| **后端 admin 接口** ✅ `/admin/dashboard` 7 聚合 + `/pm/*` 14 路由全实现（Dashboard 目前是 mock） | 前端已留 fetch 注释 |
+| **pm.routes.ts** ✅ 17 条（加了 `/payments` `/receipts` `/invoices` 全局列表）（departments/projects/stats/CRUD/payments/receipts/invoices） | ZodError → 422 已全局修复 |
 | **issues.md** | 5 组 Master 成长型（M-001 Vite P0 聚合 5 子条） | 归并铁律：子条目≥3 自动升 P0 |
 | **活跃坑 Top 3** | M-001 Vite dev proxy/入口/envFile / M-004 PS5 特定坑 / ZodError 漏接 | pitfalls.md 按 Master 分组 |
 | **未闭环工单** | M-001-ZH-005 admin middleware rewrite 方案 / IS-003 BUILD_MODE | 见 issues.md |
-| **下一步优先级** | 后端补 admin/stats/overview 聚合接口 → 替换 Dashboard mock | — |
+| **下一步优先级** | 新功能开发（pm 增删改 / community 管理） / GitHub 仓库改名 / 桌面版发版 | — |
 
 ---
 
@@ -153,9 +153,9 @@ curl -skL https://47.116.59.141/api/v1/app/windows-version
 
 ## 下一步（按优先级）
 - [ ] **后端补 /admin/stats/overview 聚合接口**（聚合 community / conversation / habitTrack / pet 表真实数据，替换 Dashboard mock）
-- [ ] admin 5175 部署到服务器（scp admin-dist/ → /usr/share/nginx/html/admin/ + nginx location /admin/ 配置）
-- [ ] pm.routes.ts 全接口冒烟测试（后端已通，admin 前端调通）
-- [ ] 清服务器旧 nginx conf 备份（15 份 .bak.*）
+- [x] admin 5175 已部署 https://47.116.59.141/admin/（scp admin-dist/ → /usr/share/nginx/html/admin/ + nginx location /admin/ 配置）
+- [x] pm 17 路由全冒烟通过（本地 + 服务器）（后端已通，admin 前端调通）
+- [x] 清服务器 nginx conf.d（16 → 7 文件，清了 6 bak + 3 disabled，2026-10-08）
 - [ ] （可选）GitHub 仓库改名 `-` → `APP-AIE`
 
 ## 最近踩坑标签
