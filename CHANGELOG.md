@@ -2,6 +2,32 @@
 
 > 倒序排列，只记录不分析。详细推演在 93\_讨论与处理/。
 
+## 2026-10-09 v1.1.0 团队门槛 + 群立团队自动建对话群
+
+### 变更
+
+- **团队功能门槛上线**：新增"群立团队"机制——用户必须先创建团队（成为 boss + leader）才能使用团队任务/团队设置/项目账款。双层防护：后端 team/pm/task-team 路由组中间件（无 departmentId 返回 403 NO_TEAM）+ 前端 RequireTeam 路由守卫
+- **群立团队自动建对话群**：bootstrap 事务 6 步——创建部门 → 创建 Group（群名"XX 团队"）+ GroupMember(owner) → 双向绑定 groupId → 用户设 boss → 创建 Conversation。返回 conversation.id，前端创建成功直接跳 `/chat/g/:convId`
+- **Schema 加字段**：Department.groupId + Group.departmentId（可选，bootstrap 时双向绑定）
+- **导航分级**：DesktopLayout 侧边栏无团队只显示"群立团队"入口，有团队展开"团队对话/团队任务/团队设置/项目账款"
+- **auth 接口补团队字段**：login/register/phone-login/me 的 select 加 employeeRole + departmentId
+- **版本号 1.0.6 → 1.1.0 全对齐**（新功能升 minor，semver 决策）
+- **启动闸 7 项全绿**：PASS 7 / FAIL 0 / WARN 0
+- **产物归档**：Setup-1.1.0.exe (160.5MB) + Portable-1.1.0.exe (160MB)，SHA256 已生成待推云端
+
+### 踩坑
+
+- [P0] **PowerShell -replace 捕获组陷阱**：替换串写 `$11.1.0` 被解析成"组 11 引用"，把 package.json 的 version 行替换成 `$11.1.0",`，JSON 直接损坏。**预防**：替换串里写捕获组+字面量数字要用 `${1}1.1.0` 或干脆用 Edit 工具改
+- [P0-复发] **prisma generate EPERM**：dev server 的 node 进程锁 query_engine-windows.dll.node，打包前必须全停 node 进程。build-desktop.cjs 第 2 步会跑 prisma generate
+- [P2] **bootstrap 事务返回快照**：事务内 update leaderId/groupId 后，返回的 dept 对象是 create 时的快照，leaderId/groupId 显示 null；用 me.department 二次查询拿真实值
+
+### 决策
+
+- [2026-10-09] 群立团队自动创建团队对话群，群名 = "团队名 + 团队"，创建者为群主（active）
+- [2026-10-09] 团队门槛用 Department.departmentId 而非 Group 判断（社交群聊 Group/GroupMember 不承担组织职责）（active）
+
+---
+
 ## 2026-09-22 内测优化 + 安全加固 + 运维清理
 
 ### 变更
