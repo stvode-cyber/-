@@ -1142,20 +1142,6 @@ function createTray() {
 // ---- 应用生命周期 ----
 app.whenReady().then(async () => {
   try {
-    // 防多实例：若后端端口已被占用，探测是否是绿角犀自己的后端
-    const portInUse = await isPortInUse(BACKEND_PORT);
-    if (portInUse) {
-      // 探测 /health：200 = 自己的后端已在运行 → 退出；非 200 = 别的进程（dev server）→ 不挡
-      const isOurBackend = await probeBackend(`http://${BACKEND_HOST}:${BACKEND_PORT}`, 1500);
-      if (isOurBackend) {
-        console.log('检测到已有实例运行（后端 /health 响应），本实例退出');
-        dialog.showErrorBox('已在运行', '绿角犀已在运行中。');
-        app.quit();
-        return;
-      }
-      console.log('端口 3001 被其他进程占用（非绿角犀后端），继续启动');
-    }
-
     console.log('=== 绿角犀启动 ===');
     console.log(`运行模式: ${app.isPackaged ? '打包' : '开发'}`);
     console.log(`后端路径: ${getBackendPath()}`);
