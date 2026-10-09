@@ -143,6 +143,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     localStorage.setItem('aie_user', JSON.stringify(res.user))
     set({ token: useLocalToken() ? res.token : '__cookie__', user: res.user })
+    return res
   },
 
   /** 注册：成功后等同于登录。昵称由后端基于编号自动生成（"用户1"、"用户2"...） */
