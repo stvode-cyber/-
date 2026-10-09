@@ -37,6 +37,10 @@ export interface UserInfo {
   levelInfo?: LevelInfo
   /** 是否已设置登录密码（手机注册用户初始为 false） */
   hasPassword?: boolean
+  /** 团队角色：user | supervisor | boss */
+  employeeRole?: string
+  /** 所属部门 ID（为空表示还没群立团队） */
+  departmentId?: string | null
 }
 
 /**

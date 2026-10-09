@@ -7,6 +7,19 @@ import { HttpError } from '../utils/response.js'
 const router = Router()
 router.use(authRequired)
 
+/** 门槛：必须先群立团队才能用 PM 项目账款 */
+router.use(async (req, _res, next) => {
+  try {
+    const u = await prisma.user.findUnique({ where: { id: req.user!.userId }, select: { departmentId: true } })
+    if (!u?.departmentId) {
+      const err = new HttpError('你还没有团队，请先群立团队', 403) as any
+      err.code = 'NO_TEAM'
+      throw err
+    }
+    next()
+  } catch (e) { next(e) }
+})
+
 /* =====================================================
    项目订单账款管理（PM）
    Project / Payment / Receipt / Invoice / Department

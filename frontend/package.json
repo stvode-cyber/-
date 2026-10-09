@@ -1,7 +1,7 @@
 {
     "name":  "aie-frontend",
     "private":  true,
-    "version":  "1.0.6",
+    "version":  "1.1.0",
     "type":  "module",
     "scripts":  {
                     "dev":  "cross-env VITE_BUILD_MODE=desktop vite",

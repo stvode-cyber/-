@@ -836,6 +836,7 @@ model Group {
   ownerId     String
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members     GroupMember[]
+  departmentId String? // 关联团队（bootstrap 创建时绑定，一对一）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1385,6 +1386,7 @@ model Department {
   leaderId    String?  // 主管用户 ID（关联 User.employeeRole=supervisor）
   leader      User?    @relation("DepartmentLeader", fields: [leaderId], references: [id], onDelete: SetNull)
   members     User[]   @relation("DepartmentMembers")
+  groupId     String?  // 团队对话群（bootstrap 创建时绑定，一对一）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

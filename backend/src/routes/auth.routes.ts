@@ -106,7 +106,7 @@ router.post('/register', authRateLimit, async (req, res, next) => {
         agreedToTermsAt: new Date(), // 合规：记录接受协议时间
         wallet: { create: { balance: isFirstUser ? 10000 : 0 } },
       },
-      select: { id: true, username: true, nickname: true, avatar: true, role: true, phone: true },
+      select: { id: true, username: true, nickname: true, avatar: true, role: true, phone: true, employeeRole: true, departmentId: true },
     })
 
     const token = signToken({
@@ -254,7 +254,7 @@ router.post('/phone-register', authRateLimit, async (req, res, next) => {
         agreedToTermsAt: new Date(), // 合规：记录接受协议时间
         wallet: { create: { balance: isFirstUser ? 10000 : 0 } },
       },
-      select: { id: true, username: true, nickname: true, avatar: true, role: true },
+      select: { id: true, username: true, nickname: true, avatar: true, role: true, employeeRole: true, departmentId: true },
     })
 
     const token = signToken({
@@ -330,7 +330,7 @@ router.post('/phone-login', authRateLimit, async (req, res, next) => {
     // 必须已存在用户
     const user = await prisma.user.findUnique({
       where: { phone },
-      select: { id: true, username: true, nickname: true, avatar: true, role: true, phone: true, password: true },
+      select: { id: true, username: true, nickname: true, avatar: true, role: true, phone: true, password: true, employeeRole: true, departmentId: true },
     })
     if (!user) {
       await auditReqAsync(req, res, {
@@ -379,6 +379,8 @@ router.post('/phone-login', authRateLimit, async (req, res, next) => {
         avatar: user.avatar,
         role: user.role,
         phone: user.phone,
+        employeeRole: user.employeeRole,
+        departmentId: user.departmentId,
       },
       hasPassword,
     }, '登录成功')
@@ -516,6 +518,8 @@ router.post('/login', authRateLimit, async (req, res, next) => {
         nickname: user.nickname,
         avatar: user.avatar,
         role: user.role,
+        employeeRole: user.employeeRole,
+        departmentId: user.departmentId,
         onboarded: user.onboarded,
         preferredTone: user.preferredTone,
         aiNickname: user.aiNickname,
@@ -621,6 +625,7 @@ router.get('/me', authRequired, async (req, res, next) => {
         role: true, onboarded: true, preferredTone: true, primaryGoal: true, aiNickname: true,
         email: true, phone: true, lastLoginAt: true, createdAt: true,
         totalOnlineMinutes: true, password: true,
+        employeeRole: true, departmentId: true,
       },
     })
     if (!user) throw new HttpError('用户不存在', 404)

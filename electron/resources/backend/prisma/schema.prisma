@@ -99,6 +99,23 @@ model User {
   aiPlan      String? // none | basic | pro
   aiExpiresAt DateTime?
 
+  // ============ 团队跟踪系统（方案 A：任务管理 + 权限归属）============
+  // 团队角色：user（普通成员）| supervisor（部门主管）| boss（老板）
+  employeeRole  String   @default("user")
+  // 所属部门（关联 Department.id）
+  departmentId  String?
+  // 直接上级主管 ID（用于逾期通知链）
+  supervisorId  String?
+
+  // 团队关联
+  assignedTasks  Task[]  @relation("TaskAssignee")
+  // 作为部门主管（leader）
+  departments    Department[]  @relation("DepartmentLeader")
+  // 作为部门成员（多对一，departmentId 为外键）
+  department     Department?  @relation("DepartmentMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  // PM 项目订单账款
+  pmProjects     Project[]
+
   @@map("users")
 }
 
@@ -415,29 +432,50 @@ model Transaction {
 }
 
 // ============ 任务与日程 ============
+// origin: personal（私人任务，userId=创建人=归属人）| team（团队任务，userId=创建人，assigneeId=归属人）
+// status 扩展：todo → pending，加 paused（已暂停），overdue（系统自动标逾期）
+//   旧 status 值：todo | in_progress | done | cancelled
+//   新 status 值：pending | in_progress | completed | paused | overdue
+//   旧数据迁移：todo→pending, done→completed, cancelled 保留
 model Task {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title        String
   description  String?
-  // status: todo | in_progress | done | cancelled
-  status       String   @default("todo")
+  // status: pending（待开始）| in_progress（进行中）| completed（已完成）| paused（已暂停）| overdue（已逾期·系统自动）
+  status       String   @default("pending")
   // priority: low | medium | high | urgent
   priority     String   @default("medium")
   progress     Int      @default(0) // 0-100
   dueDate      DateTime?
   remindAt     DateTime?
   // 标签/分类
-  category     String?  // work | life | finance | custom
+  category     String?  // work | life | finance | custom | team
   tags         String?  // JSON 数组字符串
   important    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // ============ 团队跟踪扩展字段 ============
+  // 来源：personal（私人任务）| team（团队任务）
+  origin       String   @default("personal")
+  // 归属人（可以是别人也可以是自己，默认等于 userId）
+  assigneeId   String?
+  assignee     User?    @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  // 完成时间（status=completed 时自动写入）
+  completedAt  DateTime?
+  // 逾期通知是否已发过（防重复通知）
+  overdueNotified Boolean @default(false)
+  // 备注（执行记录/交接说明等）
+  remark       String?
+
   @@map("tasks")
   @@index([userId])
   @@index([dueDate])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([origin])
 }
 
 // ============ 饮食记录 ============
@@ -798,6 +836,7 @@ model Group {
   ownerId     String
   owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members     GroupMember[]
+  departmentId String? // 关联团队（bootstrap 创建时绑定，一对一）
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1336,4 +1375,102 @@ model WindowsRelease {
   publishedAt  DateTime @default(now())
 
   @@map("windows_releases")
+}
+
+// ============ 团队跟踪系统：部门 ============
+// 管理员创建的组织架构单位。一个部门有一个 leader（主管），可包含多个成员（通过 User.departmentId 关联）。
+model Department {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  leaderId    String?  // 主管用户 ID（关联 User.employeeRole=supervisor）
+  leader      User?    @relation("DepartmentLeader", fields: [leaderId], references: [id], onDelete: SetNull)
+  members     User[]   @relation("DepartmentMembers")
+  groupId     String?  // 团队对话群（bootstrap 创建时绑定，一对一）
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("departments")
+  @@index([leaderId])
+
+  projects Project[]  // PM 项目（可选，不强制）
+}
+
+// ============ 项目订单账款管理（PM） ============
+// 采购→销售→收付款→发票 全链路追踪，按用户隔离，支持多部门
+model Project {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  departmentId   String?
+  department     Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  name           String          // 项目名称
+  client         String          // 客户名称
+  contractNo     String?         // 合同号
+  productType    String?         // 产品类型
+  purchaseAmount Float           @default(0)  // 采购额（成本）
+  saleAmount     Float           @default(0)  // 销售额（收入）
+  note           String?         // 备注
+  status         String          @default("active")  // active | done | cancelled
+  sample         Boolean         @default(false)
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  payments       Payment[]
+  receipts       Receipt[]
+  invoices       Invoice[]
+
+  @@map("pm_projects")
+  @@index([userId])
+  @@index([departmentId])
+  @@index([status])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_payments")
+  @@index([projectId])
+  @@index([date])
+}
+
+model Receipt {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_receipts")
+  @@index([projectId])
+  @@index([date])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   // in = 进项（成本侧） | out = 销项（收入侧）
+  date      DateTime
+  amount    Float
+  note      String?
+
+  createdAt DateTime @default(now())
+
+  @@map("pm_invoices")
+  @@index([projectId])
+  @@index([type])
+  @@index([date])
 }

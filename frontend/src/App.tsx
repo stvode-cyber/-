@@ -12,10 +12,18 @@ import ChatListPage from './pages/ChatListPage'
 import ChatUserPage from './pages/ChatUserPage'
 import CommunityPage from './pages/CommunityPage'
 import ProfilePage from './pages/ProfilePage'
+import TeamCreatePage from './pages/TeamCreatePage'
 import { PWAUpdatePrompt } from './components/PWAUpdatePrompt'
 import OfflineBanner from './components/OfflineBanner'
 import { Toaster } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
+
+/** 团队门槛守卫：有部门直接放行，没部门跳 /team/create */
+function RequireTeam() {
+  const { user } = useAuthStore()
+  if (!user?.departmentId) return <Navigate to="/team/create" replace />
+  return <Outlet />
+}
 
 // 路由懒加载：非首屏页面按需加载，降低主 bundle 体积
 const WalletPage = lazy(() => import('./pages/WalletPage'))
@@ -304,9 +312,14 @@ export default function App() {
                 <Route path="/zodiac-match" element={<ZodiacMatchPage />} />
                 <Route path="/weekly-report" element={<WeeklyReportPage />} />
                 <Route path="/office-doc/:id" element={<OfficeDocPage />} />
-                <Route path="/team/tasks" element={<TeamTasksPage />} />
-                <Route path="/team/settings" element={<TeamSettingsPage />} />
-                <Route path="/pm" element={<PMBoardPage />} />
+                {/* 群立团队（无团队时的入口） */}
+                <Route path="/team/create" element={<TeamCreatePage />} />
+                {/* 团队相关（有团队才能访问） */}
+                <Route element={<RequireTeam />}>
+                  <Route path="/team/tasks" element={<TeamTasksPage />} />
+                  <Route path="/team/settings" element={<TeamSettingsPage />} />
+                  <Route path="/pm" element={<PMBoardPage />} />
+                </Route>
                 {/* 合规协议页 */}
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
@@ -385,9 +398,14 @@ export default function App() {
               <Route path="/zodiac-match" element={<ZodiacMatchPage />} />
               <Route path="/weekly-report" element={<WeeklyReportPage />} />
               <Route path="/office-doc/:id" element={<OfficeDocPage />} />
-              <Route path="/team/tasks" element={<TeamTasksPage />} />
-              <Route path="/team/settings" element={<TeamSettingsPage />} />
-              <Route path="/pm" element={<PMBoardPage />} />
+              {/* 群立团队（无团队时的入口） */}
+              <Route path="/team/create" element={<TeamCreatePage />} />
+              {/* 团队相关（有团队才能访问） */}
+              <Route element={<RequireTeam />}>
+                <Route path="/team/tasks" element={<TeamTasksPage />} />
+                <Route path="/team/settings" element={<TeamSettingsPage />} />
+                <Route path="/pm" element={<PMBoardPage />} />
+              </Route>
               <Route path="/profile-panel" element={<ProfilePanelPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               {/* 合规协议页 */}

@@ -1,4 +1,4 @@
-﻿import { Router } from 'express'
+import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { success, HttpError } from '../utils/response.js'
@@ -13,6 +13,109 @@ import { auditReq } from '../utils/audit.js'
 
 const router = Router()
 router.use(authRequired)
+
+// ============ 门槛校验 ============
+
+/**
+ * 团队功能门槛：必须先"群立团队"（创建一个部门并成为 boss）才能使用团队功能。
+ * - 创建团队接口 /bootstrap 放行（校验方向相反：只给无团队的人用）
+ * - 其他所有团队接口需要 departmentId 不为空
+ */
+async function requireTeam(userId: string): Promise<void> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { departmentId: true },
+  })
+  if (!u?.departmentId) {
+    const err = new HttpError('你还没有团队，请先群立团队', 403) as any
+    err.code = 'NO_TEAM'
+    throw err
+  }
+}
+
+// ============ 群立团队（bootstrap） ============
+
+const bootstrapSchema = z.object({
+  name: z.string().min(1, '团队名不能为空').max(50),
+  description: z.string().max(500).optional(),
+})
+
+/** 创建团队（只能给自己建，有团队的人再调会报错） */
+router.post('/bootstrap', async (req, res, next) => {
+  try {
+    const body = bootstrapSchema.parse(req.body)
+    const userId = req.user!.userId
+
+    // 已经有团队就不允许再建
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { departmentId: true, employeeRole: true },
+    })
+    if (existing?.departmentId) throw new HttpError('你已经在团队中，无需重复创建', 400)
+
+    const { dept, group, conversation } = await prisma.$transaction(async (tx) => {
+      // 1. 创建部门
+      const d = await tx.department.create({
+        data: { name: body.name, description: body.description || null },
+      })
+      // 2. 创建团队对话群（群名 = 团队名，创建者 = owner）
+      const g = await tx.group.create({
+        data: {
+          name: `${body.name} 团队`,
+          ownerId: userId,
+          departmentId: d.id,
+          members: { create: [{ userId, role: 'owner' }] },
+        },
+      })
+      // 3. 部门也绑定 groupId（双向关联）
+      await tx.department.update({
+        where: { id: d.id },
+        data: { groupId: g.id },
+      })
+      // 4. 把自己设为部门 leader + 绑定 departmentId + employeeRole=boss
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          employeeRole: 'boss',
+          departmentId: d.id,
+        },
+      })
+      // 5. 部门 leaderId 也指向自己（双向关联保持一致）
+      await tx.department.update({
+        where: { id: d.id },
+        data: { leaderId: userId },
+      })
+      // 6. 创建群聊会话（让老板进群聊列表）
+      const conv = await tx.conversation.create({
+        data: {
+          userId,
+          type: 'group',
+          groupId: g.id,
+        },
+      })
+      return { dept: d, group: g, conversation: conv }
+    })
+
+    auditReq(req, res, {
+      category: 'team', action: 'bootstrap', targetType: 'department', targetId: dept.id,
+      summary: `群立团队: ${dept.name}（用户成为 boss + leader + 群 owner）`,
+    })
+
+    // 返回时把用户对象也一并带回，让前端同步 store
+    const me = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, employeeRole: true, departmentId: true, department: { select: { id: true, name: true, groupId: true } } },
+    })
+    success(res, { department: dept, group, conversation, me }, `团队「${dept.name}」已创建，对话群也建好了`)
+  } catch (err) { next(err) }
+})
+
+// 其他所有团队接口加门槛（bootstrap 除外，上面已经定义）
+router.use((req, _res, next) => {
+  // /bootstrap 放行，其余需要团队
+  if (req.path === '/bootstrap') return next()
+  requireTeam(req.user!.userId).then(() => next()).catch(next)
+})
 
 // ============ 工具函数 ============
 

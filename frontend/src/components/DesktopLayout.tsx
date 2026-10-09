@@ -6,7 +6,7 @@ import {
   LogOut, Bell, ChevronLeft,
   Command, Sun,
   ShieldCheck, ChevronDown, Camera,
-  Group, ClipboardList, BarChart3,
+  Group, ClipboardList, BarChart3, Plus,
 } from 'lucide-react'
 // LogOut 仅用于顶栏用户菜单中的退出登录入口
 import { useAuthStore } from '../stores/auth'
@@ -52,6 +52,18 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: '团队',
     items: [
+      { to: '/team/create', label: '群立团队', icon: Plus },
+    ],
+  },
+]
+
+/** 有团队时的导航（团队 + 财务完整展开） */
+const NAV_GROUPS_WITH_TEAM: NavGroup[] = [
+  NAV_GROUPS[0],
+  {
+    title: '团队',
+    items: [
+      { to: '/chat', label: '团队对话', icon: MessageCircle },
       { to: '/team/tasks', label: '团队任务', icon: ClipboardList },
       { to: '/team/settings', label: '团队设置', icon: Group },
     ],
@@ -65,11 +77,11 @@ const NAV_GROUPS: NavGroup[] = [
 ]
 
 /** 根据 pathname 推导顶栏标题（最长前缀匹配优先） */
-function usePageTitle(): string {
+function usePageTitle(groups: NavGroup[]): string {
   const { pathname } = useLocation()
   // 收集所有匹配项，选最长的（解决 /finance 与 /finance/analytics 嵌套）
   let best: { label: string; len: number } | null = null
-  for (const g of NAV_GROUPS) {
+  for (const g of groups) {
     for (const it of g.items) {
       const match = it.to === '/' ? pathname === '/' : pathname === it.to || pathname.startsWith(it.to + '/')
       if (match && (!best || it.to.length > best.len)) {
@@ -82,6 +94,7 @@ function usePageTitle(): string {
   if (pathname.startsWith('/chat/')) return '对话'
   if (pathname.startsWith('/countdowns/')) return '倒计时'
   if (pathname.startsWith('/settings/')) return '设置'
+  if (pathname.startsWith('/team/create')) return '群立团队'
   return '绿角犀'
 }
 
@@ -93,8 +106,11 @@ export default function DesktopLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const pageTitle = usePageTitle()
   const { effectiveMode, toggle: toggleTheme } = useThemeStore()
+
+  // 根据是否有团队，选择侧边栏导航
+  const navGroups = user?.departmentId ? NAV_GROUPS_WITH_TEAM : NAV_GROUPS
+  const pageTitle = usePageTitle(navGroups)
 
   // 点击外部关闭用户菜单
   useEffect(() => {
@@ -125,7 +141,7 @@ export default function DesktopLayout() {
     if (to === '/') return p === '/' || p === ''
     if (!(p === to || p.startsWith(to + '/'))) return false
     // 若存在更长的同前缀路由也匹配当前路径，则较短的让位
-    for (const g of NAV_GROUPS) {
+    for (const g of navGroups) {
       for (const it of g.items) {
         if (it.to !== to && it.to.startsWith(to + '/') && (p === it.to || p.startsWith(it.to + '/'))) {
           return false
@@ -175,7 +191,7 @@ export default function DesktopLayout() {
 
         {/* 导航（可滚动） */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 sidebar-scroll">
-          {NAV_GROUPS.map((group) => (
+          {navGroups.map((group) => (
             <div key={group.title} className="mb-4">
               {!collapsed && (
                 <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">

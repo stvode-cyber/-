@@ -84,6 +84,7 @@ let backendReady = false;
 let tray = null;
 // 是否正在主动退出（区别于「关闭按钮 → 最小化到托盘」）
 let isQuitting = false;
+let hasShownTrayHint = false; // 首次隐藏到托盘时气泡提示
 
 // ---- 路径（打包后 / 开发模式）----
 // 开发模式：electron/resources/{backend,frontend}
@@ -519,6 +520,20 @@ async function startBackend() {
   return waitForBackend();
 }
 
+// ---- 主窗口位置/尺寸持久化（防止窗口跑到屏幕外找不到）----
+function getWindowBounds() {
+  try {
+    const p = path.join(app.getPath('userData'), 'window-bounds.json');
+    if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch { /* ignore */ }
+  return null;
+}
+function saveWindowBounds(bounds) {
+  try {
+    fs.writeFileSync(path.join(app.getPath('userData'), 'window-bounds.json'), JSON.stringify(bounds), 'utf8');
+  } catch { /* ignore */ }
+}
+
 // ---- 创建主窗口 ----
 function createWindow() {
   // 防重入：如果主窗口已存在且未销毁，直接 show/focus，不新建
@@ -532,11 +547,28 @@ function createWindow() {
   const frontendPath = getFrontendPath();
   const indexPath = path.join(frontendPath, 'index.html');
 
+  // 恢复上次窗口位置和尺寸（含屏幕边界校验，防止跑到屏幕外）
+  const savedBounds = getWindowBounds();
+  const { workArea } = screen.getPrimaryDisplay();
+  const boundsOpts = {};
+  if (savedBounds) {
+    // x/y 必须在可见工作区内（留 200px 最小可见余量）
+    if (savedBounds.x != null && savedBounds.x >= workArea.x - 50 && savedBounds.x <= workArea.x + workArea.width - 200) {
+      boundsOpts.x = savedBounds.x;
+    }
+    if (savedBounds.y != null && savedBounds.y >= workArea.y - 50 && savedBounds.y <= workArea.y + workArea.height - 200) {
+      boundsOpts.y = savedBounds.y;
+    }
+    if (savedBounds.width) boundsOpts.width = savedBounds.width;
+    if (savedBounds.height) boundsOpts.height = savedBounds.height;
+  }
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 640,
+    ...boundsOpts,
     title: '绿角犀',
     show: false,
     autoHideMenuBar: true,
@@ -570,6 +602,17 @@ function createWindow() {
     mainWindow.focus();
   });
 
+  // 持久化窗口位置和尺寸（防抖 500ms）
+  let boundsTimer = null;
+  const persistBounds = () => {
+    clearTimeout(boundsTimer);
+    boundsTimer = setTimeout(() => {
+      if (mainWindow && !mainWindow.isDestroyed()) saveWindowBounds(mainWindow.getBounds());
+    }, 500);
+  };
+  mainWindow.on('resize', persistBounds);
+  mainWindow.on('move', persistBounds);
+
   // 关闭主窗口 = 最小化到托盘（不再完全隐藏）。
   // 过去：直接销毁浮窗 → 用户看不到任何入口，只能去任务管理器结束进程。
   // 现在：关闭按钮隐藏主窗口，托盘图标常驻，用户可点击托盘重新唤出主窗口或完整退出。
@@ -579,6 +622,16 @@ function createWindow() {
       e.preventDefault();
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.hide();
+        // 首次隐藏时气泡提示用户应用在托盘
+        if (!hasShownTrayHint && tray && !tray.isDestroyed()) {
+          hasShownTrayHint = true;
+          try {
+            tray.displayBalloon({
+              title: '绿角犀仍在运行',
+              content: '应用已最小化到系统托盘，点击托盘图标可重新打开。',
+            });
+          } catch { /* 部分系统不支持 displayBalloon */ }
+        }
       }
       return;
     }
@@ -1034,7 +1087,9 @@ function createTray() {
     'base64'
   );
   const trayIcon = nativeImage.createFromBuffer(iconPng, { scaleFactor: 1.0 });
-  tray = new Tray(trayIcon.isEmpty() ? img : trayIcon);
+  // 放大到 32x32，Windows 托盘里更醒目
+  const resizedIcon = trayIcon.resize({ width: 32, height: 32 });
+  tray = new Tray(resizedIcon.isEmpty() ? img : resizedIcon);
   tray.setToolTip('绿角犀 · 点击显示主窗口');
 
   const contextMenu = Menu.buildFromTemplate([
@@ -1087,14 +1142,18 @@ function createTray() {
 // ---- 应用生命周期 ----
 app.whenReady().then(async () => {
   try {
-    // 防多实例：若后端端口已被占用，说明已有实例运行，本实例退出
+    // 防多实例：若后端端口已被占用，探测是否是绿角犀自己的后端
     const portInUse = await isPortInUse(BACKEND_PORT);
     if (portInUse) {
-      console.log('检测到已有实例运行（端口已占用），本实例退出');
-      const { dialog } = require('electron');
-      dialog.showErrorBox('已在运行', '绿角犀已在运行中。');
-      app.quit();
-      return;
+      // 探测 /health：200 = 自己的后端已在运行 → 退出；非 200 = 别的进程（dev server）→ 不挡
+      const isOurBackend = await probeBackend(`http://${BACKEND_HOST}:${BACKEND_PORT}`, 1500);
+      if (isOurBackend) {
+        console.log('检测到已有实例运行（后端 /health 响应），本实例退出');
+        dialog.showErrorBox('已在运行', '绿角犀已在运行中。');
+        app.quit();
+        return;
+      }
+      console.log('端口 3001 被其他进程占用（非绿角犀后端），继续启动');
     }
 
     console.log('=== 绿角犀启动 ===');
@@ -1323,11 +1382,16 @@ app.whenReady().then(async () => {
       return true;
     });
 
-    // 创建窗口
-    createWindow();
+    // 系统托盘（先于窗口创建：关闭按钮 hide 时托盘必须已就绪）
+    try {
+      createTray();
+    } catch (e) {
+      console.error('托盘创建失败:', e.message);
+      dialog.showErrorBox('托盘初始化失败', '系统托盘创建失败，关闭主窗口后可能无法唤回应用。\n错误：' + e.message);
+    }
 
-    // 系统托盘（关闭主窗口时最小化到托盘，避免应用"完全隐藏"找不到入口）
-    try { createTray(); } catch (e) { console.error('托盘创建失败:', e.message); }
+    // 创建窗口（托盘就绪后再创建，确保 close → hide 时托盘入口已存在）
+    createWindow();
 
     // 桌面宠物浮窗（默认不自动启动，用户可从托盘右键「桌面宠物」或设置里手动唤出）
     // try { createPetWindow(); } catch (e) { console.error('宠物浮窗启动失败:', e.message); }

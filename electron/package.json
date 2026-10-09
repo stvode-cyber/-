@@ -1,10 +1,11 @@
 {
     "name":  "aie-desktop",
-    "version":  "1.0.6",
+    "version":  "1.1.0",
     "description":  "绿角犀 - Windows 桌面版",
     "main":  "main.cjs",
     "author":  "绿角犀 Team",
     "license":  "MIT",
+    "repository": { "url": "https://github.com/lvjiaxi/aie-desktop" },
     "scripts":  {
                     "start":  "electron .",
                     "pack":  "electron-builder --dir",
@@ -84,12 +85,6 @@
                                                  "arch":  [
                                                               "x64"
                                                           ]
-                                             },
-                                             {
-                                                 "target":  "portable",
-                                                 "arch":  [
-                                                              "x64"
-                                                          ]
                                              }
                                          ],
                               "icon":  "build/icon.ico",
@@ -104,9 +99,6 @@
                                "include":  "build/installer.nsh",
                                "runAfterFinish":  true,
                                "deleteAppDataOnUninstall":  false
-                           },
-                  "portable":  {
-                                   "artifactName":  "绿角犀-Portable-${version}.exe"
-                               }
+                           }
               }
 }
