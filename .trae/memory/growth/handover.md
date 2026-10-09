@@ -1,187 +1,361 @@
-﻿# 🤝 绿角犀管家 — AI 交接总览
+# 🤝 绿角犀管家 (APP-AIE) — AI 交接总览
 
-> 新 AI 进门第一读。**30 秒内读懂项目状态**。每日更新。
-> 
-> 🔴 **入场必读顺序**：handover.md（本文件）→ pitfalls.md（活跃坑清单）→ issues.md（当前未闭环工单）→ daily/今日流水
-
----
-
-## ⚡ AI 接手 30 秒快照（每天更新一次顶部）
-
-| 维度 | 当前值 | 上一次变更 |
-|---|---|---|
-| **Git HEAD** | `9942df8` build(release): v1.0.6 桌面版发版 — gate 7/7 全绿 | 2026-10-08 |
-| **运行端口** | 3001 ✅ · 5173 ❌ · 5174 ❌ · 5175 ✅ | 5173/5174 常驻进程可能死，admin 5175 稳 |
-| **版本号** | electron=1.0.6 backend=1.0.6 frontend=1.0.6 ✅ 三落点一致 | gate-check G1 硬约束 |
-| **桌面版已发版** ✅ v1.0.6 Setup 160.4MB + Portable 160MB，SHA256 公网 API 匹配 | 2026-10-08 `9942df8` |
-| **服务器 nginx 清爽** ✅ 3 活跃 conf（greenrhino-cloud-ssl/Garh/erp-web），lujax/lvjiaoxi 全清 | 2026-10-08 `5d0acfc` |
-| **admin 已全链路交付** ✅：Dashboard 7 真聚合（DAU/MAU/留存/7天趋势/TOP/24h/实时流）+ pm 3 Tab + 已部署 https://47.116.59.141/admin/ | `aa37f13`→`44dafc7`→`0828f8e` |
-| **pm.routes.ts** ✅ 17 条（含 `/payments` `/receipts` `/invoices` 全局列表），非 admin 自动加 userId 过滤 | ZodError → 422 已全局修复 |
-| **windows-version API** ✅ `/api/v1/app/windows-version?current=xxx` 返回完整更新信息 + SHA256 + ASCII symlink 下载链接 | 2026-10-08 修复 prod.db + setupUrl |
-| **活跃坑 Top 4** | ①seed upsert 不更新 SHA256（有旧记录先 delete）②中文文件名 HTTP 404（用 ASCII symlink）③electron-builder 报 repository 错（加 --publish never）④PS5 ConvertTo-Json 加 BOM（git checkout 恢复） | 见 daily 2026-10-08 |
-| **下一步优先级** | ①GitHub 仓库改名（`-` → `APP-AIE`）②admin pm 项目增删改页面③今天到这？ | 用户拍板 |
+> **新 AI 进门第一读。5 分钟内读懂项目状态。**
+> 🔴 **入场必读顺序**：本文件 → pitfalls.md → daily/今日流水
+> 🔴 **先检查**：`git log --oneline -3` + `git status` + 运行端口
 
 ---
 
+## ⚡ AI 接手 30 秒快照（2026-10-09 更新）
 
----
-
-## 🔐 管理员账号（2026-10-08 reset）
-
-| 项 | 值 |
+| 维度 | 当前值 |
 |---|---|
-| **用户名** | dmin |
-| **密码** | dmin123 |
-| **角色** | admin（超级管理员） |
-| **本地 dev.db** | ✅ 已 reset 干净（仅 1 用户） |
-| **服务器 prod.db** | ✅ 已 reset 干净（仅 1 用户） |
-| **本地 admin 入口** | http://localhost:5175/admin/ |
-| **公网 admin 入口** | https://47.116.59.141/admin/ |
-
-⚠️ **重要约束**：
-- .env 里有 ADMIN_PASSWORD，跑 
-pm run seed 会用它 **upsert 覆盖 admin 密码**
-- 现在 .env ADMIN_PASSWORD=cSQuH83lZSy58IQq 与实际 admin123 不一致
-- 如果某天跑 seed.ts，admin 密码会被改回 env 的值
-- 解法（任选）：①改 .env ADMIN_PASSWORD=admin123 对齐 ②改 seed.ts 逻辑 admin 存在时不覆盖密码
+| **Git HEAD** | `a03b355` docs(auth): admin 账号重置 — admin/admin123 |
+| **远程仓库** | `git@github.com:stvode-cyber/-.git`（仓库名是 `-`） |
+| **运行端口** | 3001 ✅ · 5173 ✅ · 5174 ✅ · 5175 ✅（当前全绿） |
+| **版本号** | electron=1.0.6 · backend=1.0.6 · frontend=1.0.6 ✅ 三落点一致 |
+| **服务器** | 47.116.59.141（公网 admin + API + EXE 全在线） |
+| **admin 运营后台** | ✅ 全链路交付：Dashboard 7 真聚合 + pm 3 Tab + 项目 CRUD |
+| **桌面版** | ✅ v1.0.6 Setup 已发 + 用户已安装使用（安装在 `C:\Program Files\aie-desktop\`） |
+| **活跃坑 Top 5** | 见下方 §活跃坑 |
 
 ---
-## 项目一句话
 
-Electron 桌面端（Windows）+ React 18 + Node.js/Express + Prisma/**SQLite**，本地优先的全能个人助理。**数据库是 SQLite 不是 MySQL**。**同时是社交平台（community/conversation/habitTrack/pet 表）+ PM 项目账款工具（pm.routes.ts）**。
+## 🔐 管理员账号（2026-10-09 统一重置）
 
-## 技术栈速查
+### 所有环境统一
 
-| 层 | 选型 | 注意事项 |
-|---|---|---|
-| 前端 | React 18 + React Router v6 + Zustand + Vite | **3 份 Vite config**（vite / mobile-vite / admin-vite），cross-env 设 BUILD_MODE |
-| 后端 | Node.js + Express + Prisma + SQLite | Zod schema.parse 全局 handler 在 middleware/error.ts |
-| 桌面 | Electron（electron-builder NSIS） | NSIS custom installer 加 taskkill |
-| 手机 | Capacitor（APK，mobile-dist 构建） | 正式签名 keystore 在 C:\path\to\keystore |
-| 管理后台 | admin-vite.config.ts（端口 5175） | **middleware rewrite `/admin/ → /admin/admin.html`** 返回正确入口 |
-| 数据库 | SQLite（dev.db 本地 / prod.db 服务器） | 表名漂移：本地 `User`，服务器 `users`（小写 s） |
-
-## 三端产品面（编译常量分离）
-
-| 产品面 | Vite Config | Dev 端口 | 构建产物 | 布局组件 | BUILD_MODE |
-|---|---|---|---|---|---|
-| **电脑端** | vite.config.ts | 5173 | `dist/` | `DesktopLayout` 深色侧边栏 | desktop |
-| **手机端** | mobile-vite.config.ts | 5174 | `mobile-dist/` | `Layout` 底部 TabBar | mobile |
-| **运营管理** | admin-vite.config.ts | 5175 | `admin-dist/` | `AdminLayout` 白底浅灰蓝紫 | admin（独立入口） |
-
-```bash
-cd frontend
-npm run dev          # 桌面端 5173
-npm run dev:mobile   # 手机端 5174
-npx vite --config admin-vite.config.ts --port 5175  # 管理后台
-```
-
-## admin 侧边栏（社交运营视角）
-
-```
-工作台     → 活跃总汇（Dashboard 社交活跃度数据中心）
-社区运营   → 社区内容（AdminCommunity）+ 用户管理（AdminUsers）
-业务协作   → 团队管理（AdminTeamPage）+ 项目账款（AdminPMPage）
-系统管理   → 操作日志（AdminAuditLogs）+ 系统设置（AdminAgentConfigPage）
-```
-
-## 台账体系（5 本账）
-
-| 账 | 写什么 | 什么时候写 | 索引方式 |
+| 环境 | 用户名 | 密码 | 数据库文件 |
 |---|---|---|---|
-| **handover.md**（本文件） | 项目状态快照 + 远程资源 + 铁律 | 每天更新顶部 30 秒快照 | 时间 + 版本 |
-| **daily/YYYY-MM-DD.md** | 每次动作流水 + 踩坑一笔带过 | 改完立刻追加 | 时间戳 |
-| **pitfalls.md** | 坑清单（现象→根因→解法），**Master+子条目归并** | 踩了才写，同类→append 子条目 | 坑类型 Master |
-| **issues.md** | 问题工单（bug 生命周期），**Master+子条目** | 修了真 bug 才写 | 工单编号 IS-xxx / Master M-xxx |
-| **decisions.md** | 关键决策（为什么选 A 不选 B） | 拍板时写 | 决策编号 D-xxx |
+| **本地 dev（后端 npm run dev）** | `admin` | `admin123` | `backend/prisma/dev.db` |
+| **桌面版 aie.db（Electron 内置）** | `admin` | `admin123` | `%APPDATA%\aie-desktop\data\aie.db` |
+| **服务器 prod.db** | `admin` | `admin123` | `/root/backend/prisma/prod.db` |
 
-**成长型铁律**：
-1. 踩坑先查 Master → 有就 append 子条目，没有才开新 Master
-2. **子条目 ≥ 3 → 自动升 1 级**（P2→P1，P1→P0）
-3. 活跃 Master ≤ 10 个，超过归档到 issues-archive.md
+### 登录入口
+
+| 环境 | URL |
+|---|---|
+| 本地 admin | http://localhost:5175/admin/ |
+| 公网 admin | https://47.116.59.141/admin/ |
+| 本地 Desktop | http://localhost:5173（或桌面版 EXE） |
+| 公网 API | https://47.116.59.141/api/v1 |
+
+### ⚠️ 重要风险：.env ADMIN_PASSWORD 会覆盖！
+
+`.env` 里有 `ADMIN_PASSWORD=xxx`。如果跑 `npm run seed`，**seed.ts 会用这个值 upsert 覆盖 admin 密码**。
+
+当前 `.env ADMIN_PASSWORD=cSQuH83lZSy58IQq` 和实际 `admin123` 不一致。
+
+**解法**（任选）：
+1. 改 `.env ADMIN_PASSWORD=admin123` 对齐
+2. 改 `backend/src/seed.ts`，admin 已存在时不覆盖 password 字段
 
 ---
 
-## 远程资源清单
-| 资源 | URL/位置 | 状态 | 备注 |
-|------|---------|------|------|
-| GitHub | git@github.com:stvode-cyber/-.git | ✅ 已 push | 仓库名是 `-`（自动化失败 + 误输入），SSH key 在 C:\Users\Administrator\.ssh\id_rsa |
-| 云端 API | https://47.116.59.141/api/v1/app/windows-version | ✅ HTTP 200 | 返回 v1.0.6 + 真实 SHA256 + 下载链接 |
-| 下载链接 | https://47.116.59.141/apk/lvjiaoxi-setup-1.0.6.exe | ✅ HTTP 200 | 软链接 → 绿角犀-Setup-1.0.6.exe |
-| EXE 托管 | /usr/share/nginx/html/apk/ | ✅ 两个 EXE + 软链接 | nginx root /usr/share/nginx/html + location /apk/ |
-| 生产库 | /root/backend/prisma/prod.db | ✅ SQLite | **服务器表名 `users`（小写 s），本地 `User`** |
-| nginx conf | /etc/nginx/conf.d/greenrhino-cloud-ssl.conf | ✅ | 补 X-Forwarded-For + /apk/ 301 跳 HTTPS |
-| admin 静态 | /usr/share/nginx/html/admin/ | ⚠️ **还没部署** | 本地 admin-dist/ 还没 scp 上去 |
+## 🖥️ 桌面版特殊情况（Setup 安装 vs dev.db）
 
-## 服务器 SSH
-```bash
-ssh root@47.116.59.141
-pm2 list                          # 看进程
-pm2 restart aie-backend           # 重启后端
-tail -f /root/backend/logs/out.log  # 看日志
-lsattr /etc/nginx/conf.d/*.conf   # 查 immutable 锁
-sqlite3 /root/backend/prisma/prod.db ".schema"  # 查表结构（注意：表名 users 不是 User）
-sqlite3 /root/backend/prisma/prod.db "SELECT username, role FROM users WHERE role='admin'"  # 查管理员
+**Setup 安装路径**：`C:\Program Files\aie-desktop\绿角犀.exe`
+**userData 目录**：`%APPDATA%\aie-desktop\`
+
+**Setup 版 Electron 用 `aie.db` 不是 `dev.db`！** 它的数据在：
+```
+%APPDATA%\aie-desktop\data\aie.db    ← 桌面版内置 backend 读写
 ```
 
-## 铁律（别碰）
-1. **版本号三处同步**：electron/backend/frontend 三个 package.json + 前端 5 处硬编码
-2. **改后端端口**：必须同步改 nginx conf.d 里所有 proxy_pass
-3. **内测两步走**：本机改完 → 用户拍板 → 推服务器
-4. **LLM_API_KEY 不进安装包**：新电脑手动放 userData/llm.env
-5. **DEV 登录仅限开发环境**：import.meta.env.DEV 包起来（双保险：auth.ts + LoginPage）
-6. **Electron SHA256 必同步**：build 完 EXE SHA 会变，必须 scp 传服务器 + 更新 SQLite windows_releases 表
-7. **PowerShell 起 Web 进程**：**不能用 Start-Job**，必须 `RunCommand blocking=false + command_type=web_server`，否则进程会被清理
-8. **admin middleware rewrite**：admin-vite.config.ts 用 middleware 把 `/admin/` rewrite 到 `/admin/admin.html`（configureServer 直接改 req.url 不生效，Vite HTML middleware 先跑了）
-9. **SQLite 表名漂移**：本地 `prisma/dev.db` 默认 `User`，服务器迁移后是 `users`（小写 s），操作前先 `.tables` 确认
-
-## ⚡ 防失忆双铁律（work-growth-logger Skill）
-1. **关键操作前先查记录**：`git ls-remote` / API 查 / `pm2 list`，查到才算做过
-2. **关键操作后立刻同步**：别等对话结束，改完远程资源（服务器/仓库/数据库）立刻追加 handover.md + daily
-
-## 发版命令速查（v1.0.6 验证过）
+**首次安装后如果 aie.db schema 不对齐或没 admin 用户**，手动修复：
 ```powershell
-# 1. 本地 build
-cd APP-AIE
+# 1. 杀桌面版进程（防锁 db）
+Get-Process | Where-Object { $_.ProcessName -match "绿角犀" } | Stop-Process -Force
+
+# 2. 用正确 schema 对齐 aie.db
+cd backend
+$env:DATABASE_URL = "file:$env:APPDATA\aie-desktop\data\aie.db"
+npx prisma db push --accept-data-loss
+npx prisma generate
+
+# 3. seed admin 用户
+cd ..
+node -e "
+const { PrismaClient } = require('./backend/node_modules/.prisma/client');
+const bcrypt = require('./backend/node_modules/bcryptjs');
+const prisma = new PrismaClient({ datasourceUrl: 'file:' + process.env.APPDATA.replace(/\\\\/g,'/') + '/aie-desktop/data/aie.db' });
+async function main() {
+  await prisma.user.deleteMany({ where: { username: 'admin' } });
+  await prisma.user.create({
+    data: { username: 'admin', password: bcrypt.hashSync('admin123', 10), role: 'admin', nickname: '超级管理员', employeeRole: 'admin' }
+  });
+  console.log('✅ admin/admin123 创建完成');
+}
+main().catch(console.error).finally(() => prisma.`$disconnect`());
+"
+```
+
+---
+
+## 📁 项目结构
+
+```
+D:\源码存档\助理项目\助理项目\APP-AIE\
+├── backend/              # Node.js + Express + Prisma + SQLite
+│   ├── src/
+│   │   ├── index.ts          # Express 入口（3001）
+│   │   ├── middleware/       # authMiddleware + errorHandler（含 ZodError→422）
+│   │   ├── routes/
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── admin.routes.ts   # /admin/dashboard 7 聚合
+│   │   │   ├── pm.routes.ts      # /pm/* 17 路由（项目+付款+收款+发票）
+│   │   │   └── ...
+│   │   └── seed.ts           # 首次建库 seed（⚠️ 会覆盖 admin 密码）
+│   ├── prisma/
+│   │   ├── schema.prisma
+│   │   └── dev.db            # 本地 SQLite（Backend dev server 用）
+│   └── dist/                 # tsc 编译产物（部署用）
+├── frontend/             # React 18 + Vite
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── admin/         # AdminLayout + AdminDashboard + AdminPMPage(3Tab)
+│   │   │   └── ...
+│   │   └── App.tsx
+│   ├── vite.config.ts          # 桌面端 5173
+│   ├── mobile-vite.config.ts   # 手机端 5174
+│   └── admin-vite.config.ts    # 管理后台 5175
+├── electron/             # Electron 壳（打包桌面版）
+│   ├── main.ts
+│   ├── preload.ts
+│   ├── resources/backend/      # 打包进 EXE 的 backend（aie.db 在 userData）
+│   └── release-v16/            # 打包产物（绿角犀-Setup-1.0.6.exe + Portable）
+├── .trae/memory/growth/  # 台账
+│   ├── handover.md           # ← 你正在读
+│   ├── pitfalls.md           # 所有踩过的坑
+│   └── daily/
+└── build-desktop.cjs     # 一键打包（sync-dist → tsc → vite build → electron-builder）
+```
+
+---
+
+## 🚀 启动命令
+
+### 本地开发（4 端口全开）
+
+```powershell
+# 后端 3001
+cd backend
+npx tsx watch src/index.ts
+
+# 桌面端 5173
+cd frontend
+npm run dev
+
+# 手机端 5174
+npm run dev:mobile
+
+# 管理后台 5175
+npx vite --config admin-vite.config.ts --port 5175
+```
+
+### 桌面版打包 + 部署
+
+```powershell
+# 1. 一键 build（sync-dist → tsc → vite → electron-builder）
 node build-desktop.cjs
 
-# 2. gate-check
+# 2. gate-check（7 项硬约束，不过别发）
 powershell -ExecutionPolicy Bypass -File .\gate-check.ps1
 
 # 3. 传 EXE 到服务器
 scp "electron\release-v*\绿角犀-*.exe" "root@47.116.59.141:/usr/share/nginx/html/apk/"
 
-# 4. 服务器算 SHA256 + 更新 SQLite
-ssh root@47.116.59.141 "sha256sum /usr/share/nginx/html/apk/绿角犀-*.exe"
-# 写临时 SQL 文件 → scp 上去 → ssh sqlite3 prod.db < update.sql
-
-# 5. 验证 API
-curl -skL https://47.116.59.141/api/v1/app/windows-version
+# 4. 服务器算 SHA256 + 更新 SQLite windows_releases 表
+ssh root@47.116.59.141 "sha256sum /usr/share/nginx/html/apk/绿角犀-Setup-1.0.6.exe"
+# 然后写 SQL 文件 scp 上去 sqlite3 prod.db < update.sql
 ```
 
-## admin 密码（明牌）
+---
 
-| 环境 | 用户名 | 密码 |
+## 🌐 服务器信息
+
+### SSH
+
+```bash
+ssh root@47.116.59.141   # 公钥登录，无密码（密钥在 C:\Users\Administrator\.ssh\id_rsa）
+```
+
+### pm2 进程
+
+| 进程 | 端口 | 目录 |
 |---|---|---|
-| **本地 dev** (prisma/dev.db) | `16100214673` | `admin123ABC` |
-| **公网 prod** (服务器 prod.db) | `tone_test2` | `admin123ABC` |
+| aie-backend | 3100 | `/root/backend/dist/` |
+| erp-backend | (ERP 项目) | ERP 目录 |
 
-## 代码规范
-- PowerShell 脚本必须 UTF-8 带 BOM
-- **Node/Admin 工具生成文件用无 BOM UTF8**（`[System.Text.UTF8Encoding]::new($false)`）
-- **PowerShell here-string / Out-File 写 JSX 会吃反引号** — 用 Edit 工具或 Node 临时 .cjs 改
-- SQLite 不是 MySQL！更新用 `sqlite3 prod.db < update.sql`，引号嵌套问题写临时 SQL 文件
-- Electron build 后 EXE SHA256 必变，必须同步更新服务器 + 数据库
-- 所有文件改动记录在 .trae/memory/growth/
+```bash
+pm2 list                              # 看进程
+pm2 restart aie-backend               # 重启
+pm2 logs aie-backend --lines 50       # 看日志
+```
 
-## 下一步（按优先级）
-- [ ] **后端补 /admin/stats/overview 聚合接口**（聚合 community / conversation / habitTrack / pet 表真实数据，替换 Dashboard mock）
-- [x] admin 5175 已部署 https://47.116.59.141/admin/（scp admin-dist/ → /usr/share/nginx/html/admin/ + nginx location /admin/ 配置）
-- [x] pm 17 路由全冒烟通过（本地 + 服务器）（后端已通，admin 前端调通）
-- [x] 清服务器 nginx conf.d（16 → 7 文件，清了 6 bak + 3 disabled，2026-10-08）
-- [ ] （可选）GitHub 仓库改名 `-` → `APP-AIE`
+### nginx conf.d（3 活跃 + 2 disabled）
 
-## 最近踩坑标签
-#编码修复 #GS-002 #nginx #PS5.1 #immutable锁 #记忆错位 #CDP #Chrome #bot防护 #device-code #user-data-dir #SQLite #Electron-SHA256 #Vite-dev #admin-middleware #BUILD_MODE #ZodError #表名漂移 #PowerShell-Start-Job
+| conf | listen | 用途 |
+|---|---|---|
+| `greenrhino-cloud-ssl.conf` | **443 default_server** | 绿角犀主 HTTPS（/admin/ + /apk/ + /api） |
+| `greenrhino-cloud.conf` | 8091 | Garh Commercial HTTP |
+| `erp-web.conf` | ? | ERP 项目 |
+| ~~lujax-cloud-https.conf~~ | 已 disabled | proxy_pass 8090 空进程 |
+| ~~lvjiaoxi.conf~~ | 已 disabled | DNS 没解析 + chattr +i |
 
+```bash
+lsattr /etc/nginx/conf.d/*.conf       # 查 immutable 锁
+nginx -t && nginx -s reload           # 改完必须 reload
+```
 
+### 数据库
+
+```bash
+sqlite3 /root/backend/prisma/prod.db ".tables"           # 查表名（注意：服务器是小写复数 users 不是 User）
+sqlite3 /root/backend/prisma/prod.db "SELECT username, role FROM users"  # 查用户
+sqlite3 /root/backend/prisma/prod.db ".schema pm_projects"  # 查 pm 表结构
+```
+
+⚠️ **表名漂移**：本地 `prisma/dev.db` 用 Prisma 默认（如 `User`），服务器 prod.db 用迁移后的小写复数（如 `users`）。**写 SQL 前先 `.tables` 确认！**
+
+### 服务器 admin 前端重新部署
+
+```powershell
+# 本地 build
+cd frontend
+npm run build:admin
+
+# scp 到服务器
+scp -r admin-dist/* root@47.116.59.141:/usr/share/nginx/html/admin/
+
+# 后端也要重新 build（如果改了后端代码）
+scp -r backend/dist root@47.116.59.141:/root/backend/
+scp backend/prisma/schema.prisma root@47.116.59.141:/root/backend/prisma/
+# 服务器上：
+#   npx prisma db push
+#   npx prisma generate
+#   pm2 restart aie-backend
+```
+
+### pm 脏表重建（2026-10-08 遇到过）
+
+如果 pm_projects / pm_payments 等表是旧 schema（手写 SQL 建的，createdAt 是 INTEGER 不是 DATETIME）：
+```bash
+cd /root/backend
+cp prisma/prod.db prisma/prod.db.bak-$(date +%Y%m%d-%H%M%S)
+sqlite3 prisma/prod.db "DROP TABLE IF EXISTS pm_payments; DROP TABLE IF EXISTS pm_receipts; DROP TABLE IF EXISTS pm_invoices; DROP TABLE IF EXISTS pm_projects; DROP TABLE IF EXISTS pm_departments;"
+npx prisma db push       # 按 schema.prisma 正确重建
+npx prisma generate      # 重新编译 @prisma/client
+pm2 restart aie-backend
+```
+
+---
+
+## 📊 admin 运营后台功能清单（全已交付）
+
+### Dashboard（`/admin/` 首页）
+
+| 聚合 | 后端字段 | 说明 |
+|---|---|---|
+| DAU | `dau` | lastLoginAt today 精确计数 |
+| MAU | `mau` | lastLoginAt 30 天内精确计数 |
+| 次日留存率 | `retention` | 昨日注册 + 今日活跃 ÷ 昨日注册 × 100 |
+| 7 天活跃趋势 | `dailyTrend[]` | 每天 lastLoginAt 聚合 |
+| TOP 用户 5 | `topUsers[]` | $queryRaw 4 表 union groupBy userId |
+| 24h 活跃分布 | `hourlyDist[24]` | $queryRaw strftime('%H', lastLoginAt) groupBy |
+| 实时互动流 | `recentActivity[]` | $queryRaw 4 表 union ORDER BY createdAt LIMIT 10 |
+
+### 项目账款（`/admin/pm`，AdminPMPage 3 Tab）
+
+| Tab | 功能 | 后端接口 |
+|---|---|---|
+| 项目列表 | CRUD + 批量删除 + 搜索 | GET/POST/PATCH/DELETE `/pm/projects` + bulk-delete |
+| 收付款流水 | 合并 payments+receipts 按日期倒序 | GET `/pm/payments` + `/pm/receipts` |
+| 发票流水 | 类型着色（进项/销项） | GET `/pm/invoices` |
+
+pm.routes.ts 完整 17 路由——本地 + 服务器双端全冒烟通过。
+
+---
+
+## ⚠️ 活跃坑 Top 5（接手必看）
+
+1. **prod.db pm 脏表**：手写 SQL 建的 pm_* 表 schema 不对齐，必须 `prisma db push --accept-data-loss` 重建
+2. **SQLite 表名漂移**：本地 `User` vs 服务器 `users`，**写 SQL 前先 `.tables` 确认**
+3. **aie.db（桌面版）首次安装后 schema 不对齐 + 没 admin**：需手动 `prisma db push` + seed（详见上方 §桌面版）
+4. **.env ADMIN_PASSWORD 会被 seed.ts upsert 覆盖**：要跑 seed 先改 .env 或改 seed.ts 逻辑
+5. **Prisma Client 锁 db**：`Stop-Process -Force` 杀 backend 后锁可能没释放，等 2 秒再起
+
+**更多坑** → pitfalls.md（永不归档，持续积累）
+
+---
+
+## 📋 已定硬规则（别再问）
+
+- 数据库：**SQLite 不是 MySQL**
+- 三端口分离：5173 desktop · 5174 mobile · 5175 admin（各一份 vite.config）
+- Build 模式：cross-env `VITE_BUILD_MODE=xxx`（不是 Vite define）
+- admin middleware rewrite：admin-vite.config.ts 用 configureServer middleware 把 `/admin/` rewrite 到 `/admin/admin.html`
+- 密码重置：统一用 `bcrypt.hashSync('admin123', 10)` + `prisma.user.update`
+- 内测两步走：本机改完 → 用户拍板 → 推服务器
+
+---
+
+## 🎯 下一步（可选）
+
+- [ ] GitHub 仓库改名 `-` → `APP-AIE`（改完 `git remote set-url origin git@github.com:stvode-cyber/APP-AIE.git`）
+- [ ] 改 `.env ADMIN_PASSWORD=admin123` 对齐（防 seed 覆盖）
+- [ ] pm 项目详情页（点击项目进详情看关联付款/收款/发票）
+- [ ] community 管理页面（帖子列表 + 删除 + 审核）
+- [ ] 今天先到这
+
+---
+
+## 台账索引
+
+| 文件 | 用途 |
+|---|---|
+| **本文件** | 30 秒快照 + 远程资源 + 硬规则 + 启动命令 |
+| **pitfalls.md** | 所有踩过的坑（永不归档，持续积累） |
+| **daily/2026-10-08.md** | 今日流水（发版 + nginx 清理 + 桌面版安装） |
+| **daily/2026-09-30.md** | Admin 前端首次 build + Vite envFile 踩坑 |
+| **daily/2026-09-23.md** | 初始台账建立 |
+
+---
+
+## 最近 commit（`a03b355` → 往前）
+
+```
+a03b355 docs(auth): admin 账号重置 — admin/admin123, 本地+服务器双端 reset
+693ea9f fix(deploy): 服务器 prod.db pm 脏表重建 — prisma db push + prisma generate, CRUD 6/6 全绿
+9b43cd6 feat(admin): AdminPMPage 项目增删改 — 新建/编辑 Modal + 行删除 + 批量删除 checkbox
+693ea9f fix(deploy): 服务器 pm 脏表重建
+b79296e docs(ledger): handover 快照更新至 v1.0.6 发版 + nginx 清爽状态
+9942df8 build(release): v1.0.6 桌面版发版 — gate 7/7 全绿
+5d0acfc docs(ledger): lvjiaoxi + lujax_cloud 终极清理
+aa37f13 feat(admin): /admin/dashboard 补全 5 组后端聚合接口
+```
+
+---
+
+## 快速验证清单（新 AI 接手先跑一遍）
+
+```powershell
+# 1. Git 干净
+git status
+
+# 2. 端口
+Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in 3001,5173,5174,5175 }
+
+# 3. 本地 admin 登录
+$body = @{username='admin';password='admin123'} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:3001/api/v1/auth/login" -Method POST -ContentType "application/json" -Body $body
+
+# 4. 公网 admin 登录
+curl.exe -sk -X POST -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"admin123\"}" https://47.116.59.141/api/v1/auth/login
+
+# 5. 服务器存活
+ssh root@47.116.59.141 "pm2 list && curl -s http://127.0.0.1:3100/health"
+
+# 6. EXE 下载
+curl.exe -skI https://47.116.59.141/apk/lvjiaoxi-setup-1.0.6.exe
+```
