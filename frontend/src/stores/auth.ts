@@ -56,7 +56,7 @@ interface AuthState {
   token: string | null
   loading: boolean
   init: () => void
-  login: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<{ token: string; user: UserInfo }>
   register: (username: string, password: string, agreeTerms: boolean) => Promise<void>
   /** 发送短信验证码，返回验证码（本地版直接返回，无真实短信网关） */
   sendSms: (phone: string) => Promise<string>

@@ -7,6 +7,15 @@ import { LoadingState, ErrorState, EmptyState } from '../components/StateView'
 import { fromNow } from '../lib/utils'
 import { communityCategoryMeta } from '../lib/constants'
 
+/**
+ * 圈子页（对标 QQ 空间动态流）
+ *
+ * 三个 Tab 对应 QQ 空间经典结构：
+ * - 全部动态：所有用户的帖子（按点赞+时间排序）
+ * - 我的说说：当前用户自己的帖子
+ * - 好友说说：仅好友的帖子
+ */
+
 /** 帖子作者信息 */
 interface PostUser {
   id: string
@@ -44,7 +53,7 @@ interface Comment {
   user: PostUser | null
 }
 
-type Tab = 'recommend' | 'companion' | 'life' | 'work' | 'finance'
+type Tab = 'all' | 'mine' | 'friends'
 
 /** 头像兜底：无 avatar 时取 nickname 首字 */
 function avatarText(post: Post): string {
@@ -78,7 +87,7 @@ function avatarText(post: Post): string {
 export default function CommunityPage() {
   const toast = useToast((s) => s.show)
   const [posts, setPosts] = useState<Post[]>([])
-  const [tab, setTab] = useState<Tab>('recommend')
+  const [tab, setTab] = useState<Tab>('all')
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(false)
@@ -99,8 +108,15 @@ export default function CommunityPage() {
         setLoading(true)
         setError(false)
       }
+      // all → tab=recommend 走点赞排序；mine/friends → filter 按用户/好友过滤
+      const params: Record<string, string | number> = { page: pageNum, pageSize }
+      if (tab === 'all') {
+        params.tab = 'recommend'
+      } else {
+        params.filter = tab
+      }
       const res = await unwrap<{ list: Post[]; total: number; page: number; pageSize: number }>(
-        api.get('/community/posts', { params: { tab, page: pageNum, pageSize } }),
+        api.get('/community/posts', { params }),
       )
       setPosts((prev) => (append ? [...prev, ...res.list] : res.list))
       setTotal(res.total)
@@ -226,18 +242,16 @@ export default function CommunityPage() {
   }
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'recommend', label: '推荐' },
-    { key: 'companion', label: '同行者' },
-    { key: 'life', label: '生活' },
-    { key: 'work', label: '工作' },
-    { key: 'finance', label: '财务' },
+    { key: 'all', label: '全部动态' },
+    { key: 'mine', label: '我的说说' },
+    { key: 'friends', label: '好友说说' },
   ]
 
   return (
     <div className="app-shell pb-4">
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-accent-200">
         <div className="h-12 flex items-center justify-between px-4">
-          <h1 className="font-semibold text-gradient text-lg">社区</h1>
+          <h1 className="font-semibold text-gradient text-lg">圈子</h1>
           <button
             onClick={() => setShowPostForm(true)}
             className="p-2 text-white rounded-full transition-all active:scale-90 bg-gradient-to-br from-primary-500 to-teal-500"
@@ -303,13 +317,29 @@ export default function CommunityPage() {
             <div key={p.id} className="card hover:shadow-md transition-shadow">
               {/* 用户信息 */}
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-primary-600 text-sm font-medium">
-                  {p.user?.avatar || avatarText(p)}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-800">
-                    {p.user?.nickname || p.user?.username || '匿名用户'}
+                {p.user ? (
+                  <Link
+                    to={`/space/${p.user.id}`}
+                    className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-primary-600 text-sm font-medium hover:opacity-80 transition-opacity"
+                  >
+                    {p.user?.avatar || avatarText(p)}
+                  </Link>
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 flex items-center justify-center text-primary-600 text-sm font-medium">
+                    {avatarText(p)}
                   </div>
+                )}
+                <div className="flex-1">
+                  {p.user ? (
+                    <Link
+                      to={`/space/${p.user.id}`}
+                      className="text-sm font-medium text-gray-800 hover:text-primary-600 transition-colors"
+                    >
+                      {p.user?.nickname || p.user?.username || '匿名用户'}
+                    </Link>
+                  ) : (
+                    <div className="text-sm font-medium text-gray-800">匿名用户</div>
+                  )}
                   <div className="text-xs text-gray-400">{fromNow(p.createdAt)}</div>
                 </div>
                 {/* 分类标签 */}

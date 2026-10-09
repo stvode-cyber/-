@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { success, HttpError } from '../utils/response.js'
 import { authRequired } from '../middleware/auth.js'
@@ -154,27 +155,49 @@ function serializeComment(comment: CommentSerializeInput) {
 
 /**
  * 帖子列表
- * - tab=recommend：按点赞数降序展示全部
+ * - filter=mine：只看自己的说说（QQ空间"我的说说"）
+ * - filter=friends：只看好友的说说（QQ空间"好友动态"）
+ * - tab=recommend：按点赞数降序展示全部（QQ空间"推荐"）
  * - tab=companion：按时间降序展示全部（同行者动态）
  * - tab=life|work|finance：按分类过滤，按时间降序
  * - 分页：page + pageSize
+ *
+ * 注意：filter 与 tab 互斥，filter 优先。
  */
 router.get('/posts', async (req, res, next) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1)
     const pageSize = Math.min(Math.max(1, Number(req.query.pageSize) || 10), 50)
     const tab = (req.query.tab as string) || 'recommend'
+    const filter = (req.query.filter as string) || ''
     const currentUserId = req.user!.userId
 
     // 构造查询条件
-    const where: { category?: string } = {}
-    if (['life', 'work', 'finance'].includes(tab)) {
+    const where: Prisma.PostWhereInput = {}
+
+    if (filter === 'mine') {
+      // 我的说说
+      where.userId = currentUserId
+    } else if (filter === 'friends') {
+      // 好友说说：先查好友ID列表，再过滤
+      const friendRows = await prisma.friendship.findMany({
+        where: {
+          status: 'accepted',
+          OR: [{ userId: currentUserId }, { friendId: currentUserId }],
+        },
+        select: { userId: true, friendId: true },
+      })
+      const friendIds = friendRows.map((f) =>
+        f.userId === currentUserId ? f.friendId : f.userId,
+      )
+      where.userId = { in: friendIds }
+    } else if (['life', 'work', 'finance'].includes(tab)) {
       where.category = tab
     }
 
     // 排序：推荐按点赞数降序，其他按时间降序
     const orderBy =
-      tab === 'recommend'
+      tab === 'recommend' && !filter
         ? [{ likesCount: 'desc' as const }, { createdAt: 'desc' as const }]
         : [{ createdAt: 'desc' as const }]
 
@@ -498,6 +521,121 @@ router.post('/posts/:id/comments', async (req, res, next) => {
     })
 
     return success(res, serializeComment(comment), '评论已发表', 201)
+  } catch (e) {
+    next(e)
+  }
+})
+
+/**
+ * 个人空间（QQ空间个人主页）
+ * - 返回用户资料 + 帖子统计 + 与当前用户的关系（是否好友）
+ * - 路径参数 userId 为目标用户 ID
+ * - 若看自己则 isSelf=true
+ */
+router.get('/users/:userId', async (req, res, next) => {
+  try {
+    const { userId } = req.params
+    const currentUserId = req.user!.userId
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        nickname: true,
+        avatar: true,
+        createdAt: true,
+      },
+    })
+    if (!user) throw new HttpError('用户不存在', 404)
+
+    // 帖子总数 + 收到点赞总数
+    const [postsCount, totalLikesReceived, totalCommentsReceived] = await Promise.all([
+      prisma.post.count({ where: { userId } }),
+      prisma.post.aggregate({
+        where: { userId },
+        _sum: { likesCount: true },
+      }),
+      prisma.post.aggregate({
+        where: { userId },
+        _sum: { commentsCount: true },
+      }),
+    ])
+
+    // 是否是好友（双向查）
+    const isSelf = userId === currentUserId
+    let isFriend = false
+    if (!isSelf) {
+      const friendship = await prisma.friendship.findFirst({
+        where: {
+          status: 'accepted',
+          OR: [
+            { userId: currentUserId, friendId: userId },
+            { userId, friendId: currentUserId },
+          ],
+        },
+        select: { id: true },
+      })
+      isFriend = !!friendship
+    }
+
+    return success(res, {
+      user: {
+        id: user.id,
+        username: user.username,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+      },
+      stats: {
+        postsCount,
+        totalLikesReceived: totalLikesReceived._sum.likesCount || 0,
+        totalCommentsReceived: totalCommentsReceived._sum.commentsCount || 0,
+      },
+      relation: {
+        isSelf,
+        isFriend,
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+/**
+ * 用户说说列表（个人空间时间线）
+ * - 路径参数 userId 为目标用户 ID
+ * - 分页：page + pageSize
+ * - 与 /posts 接口返回结构一致，便于复用前端卡片组件
+ */
+router.get('/users/:userId/posts', async (req, res, next) => {
+  try {
+    const { userId } = req.params
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const pageSize = Math.min(Math.max(1, Number(req.query.pageSize) || 10), 50)
+    const currentUserId = req.user!.userId
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where: { userId },
+        include: {
+          user: { select: { id: true, username: true, nickname: true, avatar: true } },
+          likes: { where: { userId: currentUserId }, select: { userId: true } },
+          favorites: { where: { userId: currentUserId }, select: { userId: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.post.count({ where: { userId } }),
+    ])
+
+    return success(res, {
+      list: posts.map((p) => serializePost(p, currentUserId)),
+      total,
+      page,
+      pageSize,
+    })
   } catch (e) {
     next(e)
   }

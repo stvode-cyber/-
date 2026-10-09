@@ -45,7 +45,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: '/', label: '首页', icon: Home },
       { to: '/chat', label: '对话', icon: MessageCircle },
-      { to: '/community', label: '社区', icon: Users },
+      { to: '/community', label: '圈子', icon: Users },
       { to: '/profile', label: '我的', icon: User },
     ],
   },

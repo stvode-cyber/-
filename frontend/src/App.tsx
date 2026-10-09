@@ -72,6 +72,7 @@ const StickyPage = lazy(() => import('./pages/StickyPage'))
 const WallpaperPage = lazy(() => import('./pages/WallpaperPage'))
 const MomentsPage = lazy(() => import('./pages/MomentsPage'))
 const AlbumPage = lazy(() => import('./pages/AlbumPage'))
+const SpacePage = lazy(() => import('./pages/SpacePage'))
 // 设置子页面（二次跳转结构）
 const ProfileSettingsPage = lazy(() => import('./pages/settings/ProfileSettingsPage'))
 const ToneSettingsPage = lazy(() => import('./pages/settings/ToneSettingsPage'))
@@ -244,6 +245,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/chat" element={<ChatListPage />} />
                 <Route path="/community" element={<CommunityPage />} />
+                <Route path="/space/:userId" element={<SpacePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/wallet" element={<WalletPage />} />
                 <Route path="/wallet/recharge" element={<WalletRechargePage />} />
@@ -333,6 +335,7 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/chat" element={<ChatListPage />} />
                 <Route path="/community" element={<CommunityPage />} />
+                <Route path="/space/:userId" element={<SpacePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
               <Route path="/wallet" element={<WalletPage />} />
