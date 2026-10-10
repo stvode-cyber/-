@@ -8,12 +8,15 @@ echo.
 REM 设置 Node.js 路径（如果不在 PATH 中）
 set PATH=C:\Users\Administrator\node-portable\node-v20.18.0-win-x64;%PATH%
 
-REM 设置移动端 API 地址（修改为你的后端服务器地址）
-set VITE_API_BASE_URL=https://lujax.fun:8444/api/v1
+REM 设置移动端 API 地址
+REM   默认: 云端正式版 HTTP（80端口无SSL，Android WebView兼容）
+REM   内网调试: set VITE_API_BASE_URL=http://192.168.1.132:3001/api/v1
+REM   注意: 443端口 HTTPS 需手机信任自签证书，80端口已反代到绿角犀主后端
+set VITE_API_BASE_URL=http://47.116.59.141/api/v1
 
 echo [1/4] 构建前端（移动端配置）...
 cd /d "%~dp0\.."
-call npx vite build
+call npx cross-env VITE_BUILD_MODE=mobile vite build --config mobile-vite.config.ts
 if errorlevel 1 (
     echo 前端构建失败！
     pause

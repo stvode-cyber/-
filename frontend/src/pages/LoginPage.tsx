@@ -562,6 +562,7 @@ export default function LoginPage() {
               </div>
 
               {loginMethod === 'password' ? (
+                <>
                 <form onSubmit={onSubmit} className="space-y-4">
                   <ErrorBanner formError={formError} />
                   <div>
@@ -574,6 +575,22 @@ export default function LoginPage() {
                   </div>
                   <button type="submit" disabled={loading} className="btn-primary w-full py-3 disabled:opacity-60">{loading ? '处理中...' : '登录'}</button>
                 </form>
+                {import.meta.env.DEV && !desktop && (
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={async () => {
+                      setLoading(true)
+                      try { await login('admin', 'admin123'); nnavigate('/') }
+                      catch (err) { setFormError((err as Error).message) }
+                      finally { setLoading(false) }
+                    }}
+                    className="w-full mt-2 py-3 text-sm text-gray-400 hover:text-primary-500 border border-dashed border-gray-300 rounded-md transition-colors"
+                  >
+                    🛠 DEV 快速登录 admin
+                  </button>
+                )}
+                </>
               ) : (
                 <PhoneLoginSection
                   formError={formError} phone={phone} smsCode={smsCode} loading={loading}

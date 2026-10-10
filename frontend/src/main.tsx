@@ -7,6 +7,7 @@ import { initMobileAdapter } from './lib/mobile-adapter'
 import { initServerConfig } from './lib/api'
 import { isElectron, isCapacitor } from './lib/platform'
 import { useThemeStore } from './stores/theme'
+import { useAuthStore } from './stores/auth'
 import './index.css'
 
 // 移动端适配：在渲染前注入 mock desktopAPI
@@ -14,6 +15,10 @@ initMobileAdapter()
 
 // 主题初始化：在 React 渲染前同步应用 .dark class，避免首帧闪烁
 useThemeStore.getState().init()
+
+// 🔑 认证初始化：在 React 渲染前同步执行，避免首帧渲染 loading=true 状态
+// （mobile 模式下这里会触发 auto-login admin/admin123）
+useAuthStore.getState().init()
 
 // Electron（file://）和 Capacitor（capacitor:// 或 https://localhost）使用 HashRouter
 // Web 端使用 BrowserRouter

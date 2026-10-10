@@ -25,21 +25,25 @@ interface HeaderProps {
 export default function Header({ title, back = true, right }: HeaderProps) {
   const navigate = useNavigate()
   return (
-    <header className="sticky top-0 z-30 bg-panel-300/95 backdrop-blur-md border-b border-accent-200">
-      <div className="h-12 flex items-center px-3 gap-2">
-        {back && (
-          <button
-            onClick={() => navigate(-1)}
-            className="p-1.5 -ml-1 rounded-full hover:bg-panel-400 transition-colors active:scale-90"
-            aria-label="返回"
-          >
-            <ChevronLeft size={22} className="text-accent-600" />
-          </button>
-        )}
-        <h1 className="flex-1 text-base font-semibold text-accent-800 truncate">{title}</h1>
-        {right}
-      </div>
-    </header>
+    <>
+      <header className="fixed top-0 left-0 right-0 max-w-[480px] mx-auto z-50 bg-panel-300/98 backdrop-blur-md border-b border-accent-200 pt-[env(safe-area-inset-top)]">
+        <div className="h-14 flex items-center px-3 gap-2">
+          {back && (
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-1 rounded-full hover:bg-panel-400 transition-colors active:scale-90"
+              aria-label="返回"
+            >
+              <ChevronLeft size={26} className="text-accent-600" />
+            </button>
+          )}
+          <h1 className="flex-1 text-lg font-semibold text-accent-800 truncate">{title}</h1>
+          {right}
+        </div>
+      </header>
+      {/* 占位：fixed 脱离文档流，需要占位推下内容（h-14 + safe-area ≈ h-16） */}
+      <div className="h-16" aria-hidden="true" />
+    </>
   )
 }
 

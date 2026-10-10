@@ -10,22 +10,19 @@
 type Platform = 'electron' | 'capacitor' | 'web'
 
 function detectPlatform(): Platform {
+  // #Hotfix mobile: __BUILD_MODE__ 是编译时常量，Rollup 会做 dead code elimination
+  // mobile 构建恒为 'mobile' → 强制 capacitor，绕过运行时 window.Capacitor 注入时序问题
+  if (__BUILD_MODE__ === 'mobile') return 'capacitor'
+  if (__BUILD_MODE__ === 'desktop') return 'electron'
+
+  // 纯 Web 构建（dev server 或 admin）走运行时检测
   if (typeof window === 'undefined') return 'web'
-
-  // Capacitor 注入 window.Capacitor
   if ((window as any).Capacitor?.isNativePlatform?.()) return 'capacitor'
-
-  // Electron 注入 window.desktopAPI
   if ((window as any).desktopAPI) return 'electron'
-
-  // Electron 子窗口可能 desktopAPI 未注入，用协议兜底
   if (window.location.protocol === 'file:') return 'electron'
-
-  // Capacitor Android 使用 https://localhost 协议
   if (window.location.protocol === 'capacitor:' || (window.location.hostname === 'localhost' && (window as any).Capacitor)) {
     return 'capacitor'
   }
-
   return 'web'
 }
 
@@ -45,17 +42,16 @@ export const isMobile = isCapacitor
  * - Web: 相对路径 /api/v1（由 vite proxy 或 Nginx 转发）
  */
 export function getAPIBaseURL(): string {
+  // mobile 构建：直接返回 Vite 注入的 API 地址，不依赖运行时 isCapacitor
+  if (__BUILD_MODE__ === 'mobile') {
+    return import.meta.env.VITE_API_BASE_URL || 'https://lujax.fun:8444/api/v1'
+  }
+
   if (isElectron) {
     if ((window as any).desktopAPI?.getBaseURL) {
       return (window as any).desktopAPI.getBaseURL()
     }
     return 'http://127.0.0.1:3001/api/v1'
-  }
-
-  if (isCapacitor) {
-    // 移动端连接远程后端服务器
-    // 通过 vite 环境变量配置：VITE_API_BASE_URL=https://api.example.com/api/v1
-    return import.meta.env.VITE_API_BASE_URL || 'https://lujax.fun:8444/api/v1'
   }
 
   // Web 端使用相对路径

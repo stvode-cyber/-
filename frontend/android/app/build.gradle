@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// 用 JDK 17 编译（当前环境只有 JDK 17）
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
 // ===== 正式签名（keys/keystore.properties，勿入库）=====
 // 读取签名配置；不存在（CI/未初始化）时退化为 debug 签名，保证构建不中断
 def keystorePropertiesFile = rootProject.file("keys/keystore.properties")

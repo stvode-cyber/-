@@ -277,6 +277,8 @@ APP-AIE/
 
 9. **Electron SHA256 必同步**：每次 electron-builder 重新打包后，EXE 的 SHA256 会变（Electron 每次打包产物 SHA 不固定），必须立刻 `sha256sum /usr/share/nginx/html/apk/*.exe` + 更新 SQLite `windows_releases` 表。否则客户端校验 SHA 对不上。
 
+10. **Android APK 发版必须走 android-auto-update SKILL**：版本号 3 处对齐（UpdateNotice.tsx CURRENT_APK_VERSION / build.gradle versionName / seed 参数）→ vite build → cap sync → gradlew assembleDebug → SCP 到 nginx /usr/share/nginx/html/apk/ → seed-android-release.cjs 插 android_releases 表 → curl 回查 hasUpdate 正确。**SKILL 文件**：`.trae/skills/android-auto-update/SKILL.md`。铁律：APK URL 必须走 47.116.59.141 直连（SNI 封锁）；手机端应用分身必须先手动关掉。
+
 ## 质量基线
 
 - TypeScript strict 零错误

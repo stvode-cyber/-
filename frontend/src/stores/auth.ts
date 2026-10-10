@@ -79,9 +79,10 @@ interface AuthState {
 // Capacitor 跨源请求 cookie 不可靠）。
 // 浮窗等子窗口可能因 sandbox 时序问题导致 desktopAPI 未注入，
 // 额外用 file: 协议兜底，确保子窗口也走 localStorage token 恢复路径
-const useLocalToken = () => useHeaderAuth
+// #Hotfix mobile: Capacitor platform 检测在 WebView 里可能时序问题，用 __BUILD_MODE__ 编译常量兜底
+const useLocalToken = () => __BUILD_MODE__ !== 'desktop' || useHeaderAuth
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   loading: true,
@@ -100,6 +101,17 @@ export const useAuthStore = create<AuthState>((set) => ({
         } catch {
           // ignore
         }
+      } else if (__BUILD_MODE__ !== 'desktop') {
+        // 🛠 内测: mobile 模式无 token 自动登录普通测试用户（admin 仅用于管理后台）
+        // #Hotfix: 保持 loading=true 直到 login 完成，避免渲染登录路由再跳主页的闪烁
+        console.log('[auto-login] attempting login testuser/test123A...')
+        get().login('testuser', 'test123A').then(() => {
+          console.log('[auto-login] SUCCESS')
+        }).catch((e) => {
+          console.error('[auto-login] FAILED:', e)
+          set({ loading: false })  // 失败也要放开 loading
+        })
+        return
       }
       set({ token: null, user: null, loading: false })
       return
@@ -142,7 +154,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.setItem('aie_token', res.token)
     }
     localStorage.setItem('aie_user', JSON.stringify(res.user))
-    set({ token: useLocalToken() ? res.token : '__cookie__', user: res.user })
+    set({ token: useLocalToken() ? res.token : '__cookie__', user: res.user, loading: false })
     return res
   },
 

@@ -25,6 +25,30 @@ allprojects {
         maven { url 'https://maven.aliyun.com/repository/google' }
         mavenCentral()
     }
+    // 强制所有子模块用 JDK 17 编译（含 capacitor 插件的 kotlin toolchain）
+    // 必须在子模块自己的 android { compileOptions } 和 kotlin { jvmToolchain } 之后执行
+    // 所以用 gradle.taskGraph.whenReady 或 subprojects afterEvaluate
+    subprojects { subp ->
+        subp.afterEvaluate {
+            if (subp.plugins.hasPlugin('com.android.library') || subp.plugins.hasPlugin('com.android.application')) {
+                try {
+                    subp.android {
+                        compileOptions {
+                            sourceCompatibility JavaVersion.VERSION_17
+                            targetCompatibility JavaVersion.VERSION_17
+                        }
+                    }
+                } catch(e) {}
+            }
+            if (subp.plugins.hasPlugin('org.jetbrains.kotlin.android') || subp.plugins.hasPlugin('kotlin-android')) {
+                try {
+                    subp.kotlin {
+                        jvmToolchain(17)
+                    }
+                } catch(e) {}
+            }
+        }
+    }
 }
 
 task clean(type: Delete) {

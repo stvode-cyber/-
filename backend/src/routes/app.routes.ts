@@ -136,4 +136,47 @@ router.get('/windows-version', async (req, res) => {
   }
 })
 
+// ============ Android APK 在线更新检查 ============
+// 手机端启动时自动调：GET /api/v1/app/android-version?current=1.0.2
+// 前端拿到 hasUpdate=true → 弹 Dialog 提示下载安装
+router.get('/android-version', async (req, res) => {
+  try {
+    const current = (req.query.current as string) || '0.0.0'
+    const latest = await prisma.androidRelease.findFirst({
+      where: { isLatest: true },
+      orderBy: { publishedAt: 'desc' },
+    })
+    if (!latest) {
+      return res.json({ code: 404, message: '无发布记录', data: null })
+    }
+    // semver compare
+    const cur = current.split('.').map(n => parseInt(n) || 0)
+    const lat = latest.version.split('.').map(n => parseInt(n) || 0)
+    let hasUpdate = false
+    for (let i = 0; i < 3; i++) {
+      if ((lat[i] || 0) > (cur[i] || 0)) { hasUpdate = true; break }
+      if ((lat[i] || 0) < (cur[i] || 0)) break
+    }
+    const ip = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown'
+    console.log(`[android-version] ip=${ip} current=${current} latest=${latest.version} hasUpdate=${hasUpdate}`)
+    res.json({
+      code: 200,
+      data: {
+        version: latest.version,
+        current,
+        hasUpdate,
+        forceUpdate: latest.forceUpdate,
+        sizeMB: latest.sizeMB,
+        apkUrl: latest.apkUrl,
+        apkMd5: latest.apkMd5,
+        notes: latest.notes,
+        publishedAt: latest.publishedAt,
+      },
+    })
+  } catch (err) {
+    console.error('android-version error:', err)
+    res.status(500).json({ code: 500, message: '服务器错误' })
+  }
+})
+
 export default router

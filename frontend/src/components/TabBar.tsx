@@ -32,36 +32,36 @@ export default function TabBar() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white border-t border-slate-200/80 z-40">
-      <div className="grid grid-cols-4 h-16">
+      <div className="grid grid-cols-4 h-[72px] pb-[env(safe-area-inset-bottom)]">
         {tabs.map(({ to, label, icon: Icon, avatar }) => {
           const active = to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)
           return (
             <NavLink
               key={to}
               to={to}
-              className="relative flex flex-col items-center justify-center gap-0.5 transition-all active:scale-90"
+              className="relative flex flex-col items-center justify-center gap-1 transition-all active:scale-90"
             >
               {/* QQ 式激活光条：Tab 顶部黑条，切角过渡 */}
               <span
                 className={`absolute top-0 left-1/2 -translate-x-1/2 h-[3px] rounded-b-full bg-slate-900 transition-all duration-300 ${
-                  active ? 'w-8 opacity-100' : 'w-0 opacity-0'
+                  active ? 'w-10 opacity-100' : 'w-0 opacity-0'
                 }`}
               />
               {avatar ? (
                 <img
                   src={avatar}
                   alt={label}
-                  className={`w-7 h-7 rounded-full object-cover transition-all ${active ? 'ring-2 ring-slate-900 shadow-md shadow-slate-900/20 scale-110' : 'ring-1 ring-slate-200'}`}
+                  className={`w-9 h-9 rounded-full object-cover transition-all ${active ? 'ring-2 ring-slate-900 shadow-md shadow-slate-900/20 scale-110' : 'ring-1 ring-slate-200'}`}
                 />
               ) : (
                 <Icon
-                  size={22}
+                  size={26}
                   className={`transition-all ${active ? 'text-slate-900 scale-110' : 'text-slate-400'}`}
                   strokeWidth={active ? 2.4 : 2}
                 />
               )}
               <span
-                className={`text-[10px] transition-colors ${active ? 'text-slate-900 font-semibold' : 'text-slate-400'}`}
+                className={`text-xs transition-colors ${active ? 'text-slate-900 font-semibold' : 'text-slate-400'}`}
               >
                 {label}
               </span>

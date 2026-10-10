@@ -1377,6 +1377,23 @@ model WindowsRelease {
   @@map("windows_releases")
 }
 
+// ============ Android APK 发布表 ============
+// 启动时自动检查：GET /api/v1/app/android-version?current=X.Y.Z
+// 发现新版本 → 前端弹 Dialog 提示用户下载（Capacitor Intent 调系统安装）
+model AndroidRelease {
+  id          String   @id @default(cuid())
+  version     String   @unique            // "1.0.2" semver，必须与 APK versionCode/versionName 对齐
+  isLatest    Boolean  @default(false)     // current latest (only one true)
+  sizeMB      Float                      // APK 文件大小
+  apkUrl      String                     // APK 下载 URL（必须走 47.116.59.141 直连，域名被 SNI 封）
+  apkMd5      String                     // APK MD5（下载完成后前端校验完整性）
+  notes       String   @default("")       // 更新说明（弹框时展示）
+  forceUpdate Boolean  @default(false)    // true → 强制更新不允许跳过
+  publishedAt DateTime @default(now())
+
+  @@map("android_releases")
+}
+
 // ============ 团队跟踪系统：部门 ============
 // 管理员创建的组织架构单位。一个部门有一个 leader（主管），可包含多个成员（通过 User.departmentId 关联）。
 model Department {
