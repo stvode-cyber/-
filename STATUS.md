@@ -11,10 +11,10 @@
 | 项 | 值 |
 |---|---|
 | 分支 | main |
-| 最新 commit | `1bcd54b` feat(community): QQ空间风格圈子改造 |
-| 领先 origin | 5 个 commit（未 push） |
+| 最新 commit | `5c0fc1b` docs(ledger): 交接包更新至 v1.1.0 + QQ空间圈子 + 团队门槛 + Electron单实例锁修复 |
+| 领先 origin | **0**（已 push 2026-10-10 16:00） |
 | remote | git@github.com:stvode-cyber/-.git |
-| 工作区 | 源码干净，electron/resources/ 有 build 产物变动（正常） |
+| 工作区 | 已跟踪文件干净（untracked：build 产物 + JDK 工具，正常） |
 
 ## 模块状态
 
@@ -52,7 +52,7 @@
 
 ## 下一步
 
-- [ ] git push 到 GitHub（main 领先 origin 5 个 commit）
+- [x] git push 到 GitHub（2026-10-10 push 6 个 commit → 5c0fc1b）
 - [ ] 真机验证圈子功能（手机已装 APK）
 - [ ] SpacePage 加 bio 字段（User 表当前没有）
 - [ ] 好友功能完善（当前 isFriend 只读，加好友按钮未实现）

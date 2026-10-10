@@ -260,7 +260,7 @@ nginx -t && nginx -s reload           # 改完必须 reload
 
 ## 🎯 下一步建议
 
-- [ ] **git push 到 GitHub**（当前 main 领先 origin 5 个 commit）
+- [x] ~~**git push 到 GitHub**~~（2026-10-10 16:00 push 6 commits → `5c0fc1b`，main 与 origin 完全同步）
 - [ ] **圈子功能在真机验证**（手机已装 APK，打开试 Tab + 点头像进空间）
 - [ ] **圈子数据初始化**（如果圈子没帖子，可以先手动 seed 几条）
 - [ ] **SpacePage 加 bio 字段**（User 表当前没有 bio，想加个人简介要先改 schema）
