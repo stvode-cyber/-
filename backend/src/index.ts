@@ -97,7 +97,9 @@ app.use(cors({
 
     // 其他一律拒绝（原来的 callback(null, origin) 是安全漏洞）
     console.warn(`[CORS] 拒绝未知 origin: ${origin}`)
-    return callback(new Error(`Origin ${origin} 不在允许列表`))
+    // 返回 false 让 Express cors 中间件自动处理（不带 ACAO 头 → 浏览器拦截）
+    // 用 callback(new Error) 会走全局 errorHandler 返回 500，不是最佳实践
+    return callback(null, false)
   },
   credentials: true,
 }))
