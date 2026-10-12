@@ -61,7 +61,8 @@ function isPortInUse(port) {
 // ---- 配置 ----
 const BACKEND_PORT = 3001; // 后端监听端口
 const BACKEND_HOST = '127.0.0.1';
-const CLOUD_BACKEND_URL = 'http://47.116.59.141:3001'; // L3 公网云中枢
+// 默认走 Nginx 443 反代（HTTPS），3001 端口只监听 127.0.0.1 不能公网直连
+const CLOUD_BACKEND_URL = process.env.CLOUD_BACKEND_URL || 'https://47.116.59.141/api/v1';
 let backendProcess = null;
 
 // Worker JWT 持久化路径（跨 Electron 重启保留登录态）
@@ -173,7 +174,7 @@ function getLLMEnv() {
   const hasLocalKey = !!env.LLM_API_KEY && env.LLM_PROVIDER !== 'none';
   if (!hasLocalKey) {
     env.LLM_ROUTING = 'cloud';
-    env.LLM_GATEWAY_URL = 'http://47.116.59.141:3001/api/v1/ai/proxy';
+    env.LLM_GATEWAY_URL = `${CLOUD_BACKEND_URL}/ai/proxy`;
     delete env.LLM_API_KEY; // 不注入空 key，避免后端误用
   } else {
     env.LLM_ROUTING = env.LLM_ROUTING || 'local';
@@ -1173,9 +1174,9 @@ app.whenReady().then(async () => {
       });
     });
 
-    // ---- 自动更新（轻量自更新：frp 公网链路拉取 → 应用 → 重启生效）----
-    // 启动早期（后端未启动、无 Prisma DLL 锁）：先处理上次更新遗留的重新生成标记
-    const UPDATE_SOURCE = (process.env.AIE_UPDATE_URL || 'http://47.116.59.141:3900/updates').replace(/\/+$/, '');
+    // ---- 自动更新（轻量自更新：拉 manifest → 校验 → 应用 → 重启）----
+    // 默认走 Nginx 443 下的 /apk/updates 路径；开发环境可通过 AIE_UPDATE_URL 覆盖（frp 隧道）
+    const UPDATE_SOURCE = (process.env.AIE_UPDATE_URL || 'https://47.116.59.141/apk/updates').replace(/\/+$/, '');
     let updater = null;
     try {
       const { createUpdater } = require('./updater.cjs');

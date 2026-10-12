@@ -65,7 +65,42 @@ import { fileURLToPath } from 'url'
 
 const app = express()
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || 'http://localhost:5173', credentials: true }))
+app.use(cors({
+  // 动态白名单：精确匹配已知 origin + 允许的协议后缀
+  // credentials: true 配合动态回显 origin，浏览器合法（不同于 *）
+  // 远程 WebView / Capacitor 场景靠具体 origin 放行，未知 origin 明确拒绝
+  origin(origin, callback) {
+    // 无 Origin header（curl / server-to-server / file:// Electron）直接放行
+    if (!origin) return callback(null, true)
+
+    // 精确白名单：本地 dev server + Capacitor WebView
+    const exactAllowed = new Set([
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'https://localhost',
+      'http://localhost',
+      'capacitor://localhost',
+    ])
+    if (exactAllowed.has(origin)) return callback(null, origin)
+
+    // 生产环境：Nginx 反代的直连 IP + 自定义 CORS_ORIGIN env
+    if (origin.startsWith('https://47.116.59.141')) return callback(null, origin)
+    const envOrigin = process.env.CORS_ORIGIN
+    if (envOrigin && origin === envOrigin) return callback(null, origin)
+
+    // 已知协议后缀：Android WebView / 自定义 scheme
+    if (/^(capacitor|greenrhino|ionic):\/\//.test(origin)) return callback(null, origin)
+
+    // 开发环境宽松：localhost 任意端口（vite 临时端口、react-refresh）
+    if (origin.startsWith('http://localhost:')) return callback(null, origin)
+
+    // 其他一律拒绝（原来的 callback(null, origin) 是安全漏洞）
+    console.warn(`[CORS] 拒绝未知 origin: ${origin}`)
+    return callback(new Error(`Origin ${origin} 不在允许列表`))
+  },
+  credentials: true,
+}))
 // P1-1 修复：注入 helmet 安全响应头（X-Frame-Options/X-Content-Type-Options/STS 等）
 // 关闭 crossOriginResourcePolicy 以允许 file:// 协议的 Electron 渲染进程加载资源
 app.use(helmet({
@@ -160,9 +195,10 @@ app.use(notFound)
 app.use(errorHandler)
 
 const PORT = Number(process.env.PORT) || 3001
-// #2 修复：默认绑定 127.0.0.1 仅本机访问（防止局域网接管）
+// 默认绑定 127.0.0.1 仅本机访问（防止局域网接管）
 // - 桌面应用场景：前端与本机后端通信，无需暴露到局域网
-// - 显式开放外部访问时通过 HOST=0.0.0.0 注入
+// - 云端 nginx 反代场景：backend 监听 localhost，nginx 对外暴露
+// - 手机端调试时显式暴露：HOST=0.0.0.0 npm run dev
 const HOST = process.env.HOST || '127.0.0.1'
 
 app.listen(PORT, HOST, () => {

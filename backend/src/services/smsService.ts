@@ -29,8 +29,10 @@ export const isRealSmsConfigured = Boolean(
  */
 export async function sendVerificationCode(phone: string, code: string) {
   // —— Mock 模式（没配阿里云） ——
+  // 注意：code 是 6 位验证码，绝对不能打日志，生产环境会泄露到 pm2 logs
   if (!isRealSmsConfigured) {
-    console.log(`[SMS/MOCK] phone=${phone} code=${code} (Aliyun not configured, mock send)`)
+    const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+    console.log(`[SMS/MOCK] phone=${masked}（Aliyun not configured, mock send, code 不打日志）`)
     return { sent: true, via: 'mock' as const }
   }
 
@@ -62,7 +64,8 @@ export async function sendVerificationCode(phone: string, code: string) {
     const response = await client.sendSmsWithOptions(request, runtime)
 
     if (response.body?.code === 'OK') {
-      console.log(`[SMS/ALIYUN] OK phone=${phone}`)
+      const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+      console.log(`[SMS/ALIYUN] OK phone=${masked}`)
       return { sent: true, via: 'aliyun' as const }
     } else {
       const msg = response.body?.message || response.body?.code || 'unknown'
@@ -72,7 +75,8 @@ export async function sendVerificationCode(phone: string, code: string) {
   } catch (err: any) {
     // 网络错误 / SDK 错误 → 降级 mock + 打日志（不阻塞用户注册）
     console.error(`[SMS/ALIYUN] send failed, fallback mock: ${err?.message || err}`)
-    console.log(`[SMS/MOCK] phone=${phone} code=${code} (Aliyun failed, fallback mock)`)
+    const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+    console.log(`[SMS/MOCK] phone=${masked}（Aliyun failed, fallback mock, code 不打日志）`)
     return { sent: true, via: 'mock' as const, message: 'Real SMS send failed, fallback mock' }
   }
 }

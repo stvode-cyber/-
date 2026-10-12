@@ -174,15 +174,25 @@ router.post('/send-sms', smsRateLimit, async (req, res, next) => {
     const code = genSmsCode()
     smsStore.set(phone, { code, expires: Date.now() + 5 * 60 * 1000, attempts: 0 })
 
-    // 控制台日志（生产环境也应保留，便于排查）
-    console.log(`[SMS] 验证码发送: ${phone} → ${code}`)
+    // 控制台日志：生产环境只打脱敏 phone，绝不打 code（避免验证码进 pm2 logs）
+    // 开发环境保留完整日志方便本地调试（真实短信网关未配置时验证码本就回传前端）
+    if (process.env.NODE_ENV === 'production') {
+      const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+      console.log(`[SMS] 验证码已发送: ${masked}`)
+    } else {
+      console.log(`[SMS][DEV] phone=${phone} code=${code}（开发环境明文回传）`)
+    }
 
-    return success(res, {
-      // 本地优先版本：直接返回验证码，前端展示给用户
-      // 接入真实短信网关后删除 code 字段
-      code,
+    // 是否真实短信网关？生产环境必须是真实网关，否则 mock 降级后直接回传 code 等于裸奔
+    const prodMock = process.env.NODE_ENV === 'production'
+    const body: { expiresIn: number; code?: string; via: string } = {
       expiresIn: 300,
-    }, '验证码已发送')
+      via: prodMock ? 'cloud-proxy' : 'dev-mock',
+    }
+    // 仅开发环境 / mock 模式回传 code；生产环境一律不回传，等真实短信网关接入
+    if (!prodMock) body.code = code
+
+    return success(res, body, '验证码已发送')
   } catch (e) {
     next(e)
   }
