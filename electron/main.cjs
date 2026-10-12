@@ -453,7 +453,7 @@ async function startBackend() {
     // 上架激活（cloud-proxy）：本端只验不签，用云端公钥验签 + 认证代理到云端
     ...(authMode === 'cloud-proxy' && cloudPublicKey ? {
       AUTH_MODE: 'cloud-proxy',
-      CLOUD_AUTH_BASE_URL: 'http://47.116.59.141:3001',
+      CLOUD_AUTH_BASE_URL: CLOUD_BACKEND_URL,
       JWT_PUBLIC_KEY: cloudPublicKey,
     } : {
       AUTH_MODE: authMode,
