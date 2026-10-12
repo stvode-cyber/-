@@ -20,3 +20,12 @@ electron/resources/
 # 台账：只忽略临时文件和归档区，4 个核心文件要入库（团队知识积累）
 .trae/memory/归档/
 .session-memory.md
+# 临时产物（截图、打包 tar、一次性脚本）
+screenshots/
+*.tar.gz
+*.tar
+*.tgz
+screen-*.png
+patch-*.py
+check-*.mjs
+parse-*.cjs
