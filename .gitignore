@@ -29,3 +29,4 @@ screen-*.png
 patch-*.py
 check-*.mjs
 parse-*.cjs
+tools/
