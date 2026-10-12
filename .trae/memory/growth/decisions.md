@@ -38,3 +38,25 @@
 - **选了啥**：只给 /apk/ location 加 return 301，其他 HTTP 路径不动（ERP 的 /api/ 和 / 需要继续走 HTTP）
 - **为啥**：粗暴全跳 HTTPS 会崩 ERP 前端，它只配了 HTTP 代理
 - **备选**：全部 301 → 崩 ERP；给 ERP 也配 HTTPS → 工作量大，ERP 是独立项目
+
+---
+
+## [2026-10-10] 推翻 "Capacitor v8 硬要 JDK 21" 规则
+- **选了啥**：用 root build.gradle 的 `subprojects { afterEvaluate { kotlin jvmToolchain(17) } }` 覆盖所有 capacitor 插件硬写的 jvmToolchain(21)
+- **为啥**：本机只有 JDK 17（C:/greenrhino-tools/jdk17），装 JDK 21 又重又可能有兼容性问题。afterEvaluate 能覆盖所有子模块包括 capacitor 插件自己的 toolchain，实测 gradlew assembleDebug BUILD SUCCESSFUL
+- **备选**：解压 JDK 21（tools/jdk-21.0.2 已有）+ 每次 gradlew 前设 JAVA_HOME → 改环境多一步，且 AGP/capacitor 后续升级可能又硬要更高版本
+
+## [2026-10-10] 桌面版开发者用 win-unpacked 直拷，不用 Setup.exe 静默
+- **选了啥**：`Copy-Item win-unpacked\* → C:\Program Files\aie-desktop\` 覆盖安装
+- **为啥**：Setup.exe `/S` 静默被 Windows Defender 拦（ExitCode 0 但文件消失）。手动双击 Setup 也有 UAC 弹窗，自动化不了
+- **备选**：给 EXE 签数字证书 → 要花钱且每次重签；改 electron-builder 加 skip 启动项 → 还是 Defender 拦；Portable zip → 体验差
+
+## [2026-10-10] Android 自动更新自己写 IntentInstallerPlugin，不用 cordova-plugin-app-update
+- **选了啥**：1 个 Java 文件 IntentInstallerPlugin.java（FileProvider + Intent.ACTION_VIEW）+ TypeScript bridge + UpdateNotice.tsx（fetch + 进度条 + Filesystem 写盘）
+- **为啥**：cordova-plugin-app-update 已停更 3 年，默认跳浏览器安装（用户要的 App 内直接调系统安装器）。自己写 80 行 Java + 200 行 TS 搞定，可控可维护
+- **备选**：cordova-plugin-app-update（太老、跳浏览器）; capacitor-updater（要签名 + auto-update server 配置重）
+
+## [2026-10-10] 手机端 CORS 后端动态回显，删掉 nginx add_header 覆盖
+- **选了啥**：后端 cors() 函数 fn(origin, cb) 动态回显，删掉 nginx conf 里硬加的 `add_header Access-Control-Allow-Origin *`
+- **为啥**：`Access-Control-Allow-Origin: *` + `Access-Control-Allow-Credentials: true` 违反 CORS 规范，Android Chromium WebView 严格拒绝。之前 nginx 追硬加 `*` 导致双重头，后端正确回显被吞
+- **备选**：nginx 里判断 Origin 动态回显 → 多一层维护；前端 fetch 加 credentials: 'omit' → 不能带 cookie，JWT 自动续期失效

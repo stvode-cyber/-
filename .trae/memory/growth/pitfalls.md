@@ -184,3 +184,33 @@ if (err instanceof ZodError) {
 - PS5 ssh "cmd '"'"'x'"'"'" 嵌套必炸 → 统一写 .sql 文件 scp 上去 sqlite3 db < file.sql
 - Vite proxy 配置一致性：3 个 vite.config.ts（主/mobile/admin）proxy 必须完全一致（/api → 3001），admin 后来加的忘了配置，dev 模式所有 API 404
 - Vite rollupOptions.input 只在 build 生效，dev server 一律用 root/index.html 当入口：多 HTML 入口项目（如 admin.html 独立后台）dev 模式必须用 transformIndexHtml 插件 hook 拦截
+
+---
+
+## [P0][2026-10-10] Capacitor v8 硬要 kotlin jvmToolchain(21)，JDK 17 直接炸
+
+- **现象**：装了 `@capacitor/filesystem` 后 gradlew assembleDebug 报 `Cannot find a Java installation on your machine matching this tasks requirements: {languageVersion=21}`
+- **根因**：所有 capacitor 插件（app/filesystem/status-bar 等）的 Android build.gradle 硬写 `kotlin { jvmToolchain(21) }`，AGP 按此 toolchain 版本找 JDK，本机只有 JDK 17 就炸
+- **解法**：根 build.gradle 加 `subprojects { subp.afterEvaluate { subp.kotlin { jvmToolchain(17) } } }` 覆盖子模块自己的 toolchain；同时 gradle.properties 加 `org.gradle.java.home=C:/greenrhino-tools/jdk17` 全局锁
+- **铁律**：**推翻旧规则 "Capacitor 8 硬要 JDK 21"**——JDK 17 够用！afterEvaluate 覆盖所有子模块（包括 capacitor 插件）
+- **关联**：frontend/android/build.gradle · frontend/android/gradle.properties · 所有 capacitor-xxx 插件 android/build.gradle #android-build #gradle #capacitor
+
+---
+
+## [P1][2026-10-10] Setup.exe /S 静默安装被 Windows Defender 拦
+
+- **现象**：`绿角犀-Setup-1.1.0.exe /S` 跑了，ExitCode 0，但 `C:\Program Files\aie-desktop\` 下文件消失
+- **根因**：Windows Defender SmartScreen 拦截了没有签名的 EXE 静默装到 Program Files
+- **解法**：直接 `Copy-Item electron\release-v16\win-unpacked\* -Destination C:\Program Files\aie-desktop\` —— 跳过 NSIS 安装器，最稳
+- **预防**：Setup.exe 只给用户手动装用（双击有 UAC 弹窗），开发者用 win-unpacked 直拷覆盖
+- **关联**：所有桌面版覆盖安装场景 #electron #nsis #defender
+
+---
+
+## [P1][2026-10-10] electron-builder publish 配置错仓库 404
+
+- **现象**：`node build-desktop.cjs` 最后一步 `npm run dist:win` 报 `HttpError: 404 Not Found, https://api.github.com/repos/lvjiaxi/aie-desktop/releases`
+- **根因**：electron/package.json build.publish.repo 配成了 `lvjiaxi/aie-desktop`（不存在的旧项目），electron-builder 默认 publish: always 尝试往 GitHub push
+- **解法**：`npx electron-builder --win nsis --publish never` 跳过 publish
+- **预防**：改 electron/package.json 的 publish.repo 到正确仓库，或 build-desktop.cjs 里加 `--publish never`
+- **关联**：electron/package.json · build-desktop.cjs #electron-builder #publish
