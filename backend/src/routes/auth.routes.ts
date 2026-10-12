@@ -10,6 +10,7 @@ import { authRequired, signToken, setAuthCookie, clearAuthCookie, revokeToken } 
 import { auditReq, auditReqAsync } from '../utils/audit.js'
 import { rateLimit } from '../middleware/rateLimit.js'
 import { getLevelInfo } from '../utils/level.js'
+import { sendVerificationCode, isRealSmsConfigured } from '../services/smsService.js'
 
 const router = Router()
 
@@ -167,31 +168,39 @@ router.post('/send-sms', smsRateLimit, async (req, res, next) => {
     // 60 秒内同一手机号不可重复发送
     const existing = smsStore.get(phone)
     if (existing && existing.expires - Date.now() > 4 * 60 * 1000) {
-      // 还剩超过 4 分钟说明发送不到 1 分钟
       throw new HttpError('验证码已发送，请 60 秒后重试', 429)
     }
 
     const code = genSmsCode()
     smsStore.set(phone, { code, expires: Date.now() + 5 * 60 * 1000, attempts: 0 })
 
-    // 控制台日志：生产环境只打脱敏 phone，绝不打 code（避免验证码进 pm2 logs）
-    // 开发环境保留完整日志方便本地调试（真实短信网关未配置时验证码本就回传前端）
-    if (process.env.NODE_ENV === 'production') {
-      const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
-      console.log(`[SMS] 验证码已发送: ${masked}`)
-    } else {
-      console.log(`[SMS][DEV] phone=${phone} code=${code}（开发环境明文回传）`)
+    // —— 调短信网关（阿里云 DYSMSAPI） ——
+    // smsService 内部已做：真实网关 mock 降级 + 错误日志脱敏 + 失败 fallback mock
+    const result = await sendVerificationCode(phone, code)
+    const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+
+    // 生产环境严格门禁：真实网关未配置 + 又没成功发出 → 拒绝，让管理员先配凭证
+    const isProd = process.env.NODE_ENV === 'production'
+    if (isProd && !isRealSmsConfigured) {
+      // 真实网关凭证缺失 → 生产环境禁止 mock 降级回传 code（等于裸奔）
+      throw new HttpError('短信服务暂不可用，请稍后重试', 503)
+    }
+    if (isProd && result.via === 'mock' && !isRealSmsConfigured) {
+      // 同上：降级 mock 但凭证没配 → 拒绝
+      throw new HttpError('短信服务暂不可用，请稍后重试', 503)
     }
 
-    // 是否真实短信网关？生产环境必须是真实网关，否则 mock 降级后直接回传 code 等于裸奔
-    const prodMock = process.env.NODE_ENV === 'production'
     const body: { expiresIn: number; code?: string; via: string } = {
       expiresIn: 300,
-      via: prodMock ? 'cloud-proxy' : 'dev-mock',
+      via: result.via, // 'aliyun' | 'mock'
     }
-    // 仅开发环境 / mock 模式回传 code；生产环境一律不回传，等真实短信网关接入
-    if (!prodMock) body.code = code
 
+    // 仅开发环境回传 code（方便本地调试）；生产环境一律不回传，用户只能从短信里拿到
+    if (!isProd) {
+      body.code = code
+    }
+
+    console.log(`[SMS] ${result.via} phone=${masked} sent=${result.sent}`)
     return success(res, body, '验证码已发送')
   } catch (e) {
     next(e)
