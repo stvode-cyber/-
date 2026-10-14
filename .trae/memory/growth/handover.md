@@ -6,15 +6,15 @@
 
 ---
 
-## ⚡ AI 接手 30 秒快照（2026-10-12 更新）
+## ⚡ AI 接手 30 秒快照（2026-10-14 更新）
 
 | 维度 | 当前值 |
 |---|---|
-| **Git HEAD** | `2e2ee55` feat(android): 自动更新全链路 + 顶部/底部导航放大固定 |
+| **Git HEAD** | `e95a995` fix(app): windows-version/android-version Prisma异常降级404代替500 |
 | **远程仓库** | `git@github.com:stvode-cyber/-.git`（仓库名是 `-`）|
 | **版本号** | **v1.1.0**（electron + frontend + backend 三落点全对齐 ✅）|
 | **运行端口** | 3001 ✅（后端）· 5173（桌面 dev）· 5174（手机 dev）· 5175（admin dev）|
-| **服务器** | 47.116.59.141 · pm2 `aie-backend` 端口 3100 · 公网 admin + API + EXE + APK |
+| **服务器** | 47.116.59.141 · pm2 `backend` 端口 3100 · 后端已升 v1.1.0（2026-10-14 部署）· 公网 admin + API + EXE + APK |
 | **已打包桌面** | `electron/release-v16/绿角犀-Setup-1.1.0.exe`（160.5MB, 10/10 21:42）|
 | **已安装桌面** | `C:\Program Files\aie-desktop\绿角犀.exe`（v1.1.0, 215.4MB, 10/10 21:42）|
 | **手机 APK** | 已构建（13.71MB, MD5 7f134aef8d05d21a85a680bd8fe6ae05），**手机暂时没连上 adb 还没真机验自动更新** |
@@ -143,7 +143,7 @@ scp -r backend/dist root@47.116.59.141:/root/backend/
 scp backend/prisma/schema.prisma root@47.116.59.141:/root/backend/prisma/
 
 # 服务器上
-ssh root@47.116.59.141 "cd /root/backend && npx prisma db push && npx prisma generate && pm2 restart aie-backend"
+ssh root@47.116.59.141 "cd /root/backend && npx prisma db push && npx prisma generate && pm2 restart backend"
 ```
 
 ---
@@ -161,12 +161,12 @@ ssh root@47.116.59.141
 
 | 进程 | 端口 | 目录 |
 |---|---|---|
-| aie-backend | 3100（仅监听 127.0.0.1）| `/root/backend/` |
+| backend | 3100（仅监听 127.0.0.1）| `/root/backend/` |
 
 ```bash
 pm2 list && curl -s http://127.0.0.1:3100/health
-pm2 restart aie-backend
-pm2 logs aie-backend --lines 100
+pm2 restart backend
+pm2 logs backend --lines 100
 ```
 
 ### nginx conf.d

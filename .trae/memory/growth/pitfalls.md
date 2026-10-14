@@ -214,3 +214,13 @@ if (err instanceof ZodError) {
 - **解法**：`npx electron-builder --win nsis --publish never` 跳过 publish
 - **预防**：改 electron/package.json 的 publish.repo 到正确仓库，或 build-desktop.cjs 里加 `--publish never`
 - **关联**：electron/package.json · build-desktop.cjs #electron-builder #publish
+
+---
+
+## [P0][2026-10-14] pm2 进程名文档写 aie-backend，实际是 backend
+
+- **现象**：部署服务器后 `pm2 restart aie-backend` → `Process or Namespace aie-backend not found`
+- **根因**：AGENTS.md + handover.md + STATUS.md 历史文档写的进程名是 `aie-backend`，但服务器 pm2 实际注册名是 `backend`（应该是最初 ecosystem.config.cjs 里的 name 字段决定的）
+- **解法**：`pm2 list` 查实际名字 → `pm2 restart backend` ✅；同时更新所有文档（AGENTS.md 3 处 + handover.md 4 处）
+- **预防**：任何远程操作前**必须**先 `pm2 list` / `systemctl status xxx` / `docker ps` 确认真实进程名，不能信文档
+- **关联**：AGENTS.md · handover.md · STATUS.md #pm2 #deploy #文档漂移

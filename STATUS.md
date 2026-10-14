@@ -1,6 +1,6 @@
 # STATUS.md — 工程状态汇总
 
-最后更新：2026-10-10（v1.1.0 + QQ空间圈子 + 团队门槛）
+最后更新：2026-10-14（v1.1.0 已部署到生产服务器 + ai-reply 拆分 + SMS SDK + Prisma 异常降级）
 
 ## 当前版本
 
@@ -11,8 +11,8 @@
 | 项 | 值 |
 |---|---|
 | 分支 | main |
-| 最新 commit | `5c0fc1b` docs(ledger): 交接包更新至 v1.1.0 + QQ空间圈子 + 团队门槛 + Electron单实例锁修复 |
-| 领先 origin | **0**（已 push 2026-10-10 16:00） |
+| 最新 commit | `e95a995` fix(app): windows-version/android-version Prisma异常降级404代替500 |
+| 领先 origin | **0**（已 push 2026-10-14） |
 | remote | git@github.com:stvode-cyber/-.git |
 | 工作区 | 已跟踪文件干净（untracked：build 产物 + JDK 工具，正常） |
 
@@ -26,7 +26,7 @@
 | 管理后台 5175 | ✅ 稳定 | 2026-10-10 | auth.ts login() 补 return res |
 | Electron 壳 | ✅ v1.1.0 | 2026-10-10 | 删端口探测误判，只留 requestSingleInstanceLock |
 | 桌面版打包 | ✅ v1.1.0 | 2026-10-10 | Setup.exe 168MB 覆盖 C:\Program Files\aie-desktop\ |
-| 服务器 47.116.59.141 | ✅ online | — | pm2 aie-backend 端口 3100 |
+| 服务器 47.116.59.141 | ✅ online | 2026-10-14 | pm2 backend 端口 3100 · 后端已升 v1.1.0 |
 
 ## 2026-10-09~10 改动记录（v1.1.0）
 

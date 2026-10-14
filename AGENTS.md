@@ -26,7 +26,7 @@
 | 端口 | 谁 | 说明 |
 |---|---|---|
 | **443** | Nginx HTTPS（用户唯一入口） | `/api/v1/*` → 3100；`/admin` → express.static；`/apk/*` → EXE 静态文件 |
-| **3100** | pm2 `aie-backend`（后端 Node） | 只监听 `127.0.0.1`，Nginx 反代它 |
+| **3100** | pm2 `backend`（后端 Node） | 只监听 `127.0.0.1`，Nginx 反代它 |
 | **80** | Nginx HTTP → 443 301 | — |
 
 #### 三个产品面的关系
@@ -126,7 +126,7 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 
 ```
 [14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
-[14:35] 服务器 scp dist + pm2 restart aie-backend · online · https 401 ✅
+[14:35] 服务器 scp dist + pm2 restart backend · online · https 401 ✅
 [15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
 [15:30] 🐛 真 Bug: ZodError 全局 handler 没接 → 加 instanceof 判断返回 422 · commit de8b142
 ```
@@ -177,7 +177,7 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 
 ```
 [14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
-[14:35] 服务器 scp dist + pm2 restart aie-backend · online · https 401 ✅
+[14:35] 服务器 scp dist + pm2 restart backend · online · https 401 ✅
 [15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
 ```
 
@@ -295,7 +295,7 @@ APP-AIE/
 - 后端目录：`/root/backend/`
 - 生产库：`/root/backend/prisma/prod.db`（**SQLite**，不是 MySQL！更新用 `sqlite3 prod.db < update.sql`）
 - GitHub：`git@github.com:stvode-cyber/-.git`（仓库名是短横线，SSH key 在 C:\Users\Administrator\.ssh\id_rsa）
-- PM2：`pm2 aie-backend`（restart / logs，Node 监听 127.0.0.1:3100）
+- PM2：`pm2 backend`（restart / logs，Node 监听 127.0.0.1:3100）
 - 后端在线更新 API：`GET /api/v1/app/windows-version?current=X.Y.Z`（Prisma WindowsRelease model 数据源）
 - Nginx：`/etc/nginx/conf.d/greenrhino-cloud-ssl.conf`（443 location /apk/ 托管安装包 → `root /usr/share/nginx/html`，实际路径 `/usr/share/nginx/html/apk/`；location / proxy_pass 3100 API）
 - EXE 托管目录：`/usr/share/nginx/html/apk/`（两个中文文件名 + 两个软链接：`lvjiaoxi-setup-1.0.6.exe` → `绿角犀-Setup-1.0.6.exe`）
