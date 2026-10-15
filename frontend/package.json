@@ -8,7 +8,7 @@
         "build": "cross-env VITE_BUILD_MODE=desktop vite build",
         "build:admin": "vite build --config admin-vite.config.ts",
         "build:mobile": "cross-env VITE_BUILD_MODE=mobile vite build --config mobile-vite.config.ts",
-        "dev:mobile": "cross-env VITE_BUILD_MODE=mobile vite --config mobile-vite.config.ts",
+        "dev:mobile": "cross-env VITE_BUILD_MODE=mobile VITE_API_BASE_URL=/api/v1 vite --config mobile-vite.config.ts",
         "dev:admin": "vite --config admin-vite.config.ts --port 5175",
         "preview": "vite preview"
     },
