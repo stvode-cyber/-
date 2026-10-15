@@ -147,21 +147,21 @@ export default function AlbumPage() {
   return (
     <div className="app-shell pb-4">
       {/* 头部横幅（QQ 风白灰） */}
-      <div className="relative overflow-hidden text-slate-800 px-4 pt-5 pb-4 bg-white border-b border-slate-200/70">
-        <div className="absolute w-[160px] h-[160px] rounded-full bg-slate-100/80 -top-16 -right-10 pointer-events-none" />
-        <div className="absolute w-[100px] h-[100px] rounded-full bg-slate-50 -bottom-10 -left-6 pointer-events-none" />
+      <div className="relative overflow-hidden text-accent-800 px-4 pt-5 pb-4 bg-white border-b border-accent-200/70">
+        <div className="absolute w-[160px] h-[160px] rounded-full bg-accent-100/80 -top-16 -right-10 pointer-events-none" />
+        <div className="absolute w-[100px] h-[100px] rounded-full bg-accent-50 -bottom-10 -left-6 pointer-events-none" />
         <div className="relative flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/')}
-              className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-95 transition-all shrink-0"
+              className="w-8 h-8 rounded-full bg-accent-100 flex items-center justify-center text-accent-500 hover:bg-accent-200 active:scale-95 transition-all shrink-0"
               title="返回主页"
             >
               <ArrowLeft size={16} />
             </button>
             <div>
               <h1 className="text-lg font-bold leading-tight">相册</h1>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-accent-400">
                 照片 · 回忆 {photos.length > 0 && <span className="tabular-nums">· 共 {photos.length} 张</span>}
               </p>
             </div>
@@ -201,8 +201,7 @@ export default function AlbumPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="mt-4 px-5 py-2 rounded-full text-white text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 mx-auto"
-              style={{ background: 'linear-gradient(135deg, #334155, #1E293B)' }}
+              className="mt-4 px-5 py-2 rounded-full text-white text-sm font-medium disabled:opacity-50 flex items-center gap-1.5 mx-auto bg-gradient-accent"
             >
               {uploading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} 上传照片
             </button>
@@ -214,7 +213,7 @@ export default function AlbumPage() {
               <div key={g.key}>
                 {/* 月份分隔标题 */}
                 <div className="flex items-center gap-2 mb-2 px-0.5">
-                  <span className="w-1 h-4 rounded-full" style={{ background: 'linear-gradient(135deg, #334155, #1E293B)' }} />
+                  <span className="w-1 h-4 rounded-full bg-gradient-accent" />
                   <span className="text-sm font-bold text-gray-800">{g.label}</span>
                   <span className="text-[10px] text-gray-400">{g.photos.length} 张</span>
                 </div>

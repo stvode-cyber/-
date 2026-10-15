@@ -166,7 +166,7 @@ export default function DesktopLayout() {
       <aside
         className={`${
           collapsed ? 'w-16' : 'w-56'
-        } shrink-0 flex flex-col bg-[#0A0A0F] text-slate-300 transition-all duration-200 ring-1 ring-white/[0.03]`}
+        } shrink-0 flex flex-col bg-[#0A0A0F] text-accent-300 transition-all duration-200 ring-1 ring-white/[0.03]`}
       >
         {/* Logo 区：直接用当前用户头像，避免出现「绿角犀 logo + 用户头像」两个头像 */}
         <button
@@ -184,7 +184,7 @@ export default function DesktopLayout() {
           {!collapsed && (
             <div className="flex-1 min-w-0 text-left">
               <div className="text-white font-semibold text-[15px] tracking-wide truncate">{user?.nickname || user?.username || '绿角犀'}</div>
-              <div className="text-[10px] text-slate-500 truncate">{user?.role === 'admin' ? '管理员' : '角角'}</div>
+              <div className="text-[10px] text-accent-500 truncate">{user?.role === 'admin' ? '管理员' : '角角'}</div>
             </div>
           )}
         </button>
@@ -194,7 +194,7 @@ export default function DesktopLayout() {
           {navGroups.map((group) => (
             <div key={group.title} className="mb-4">
               {!collapsed && (
-                <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                <div className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-accent-600">
                   {group.title}
                 </div>
               )}
@@ -211,7 +211,7 @@ export default function DesktopLayout() {
                       } ${
                         active
                           ? 'bg-white/[0.10] text-white font-medium'
-                          : 'text-slate-400 hover:text-slate-100 hover:bg-white/[0.06]'
+                          : 'text-accent-400 hover:text-accent-100 hover:bg-white/[0.06]'
                       }`}
                     >
                       {active && (
@@ -230,7 +230,7 @@ export default function DesktopLayout() {
         {/* 折叠按钮 */}
         <button
           onClick={() => setCollapsed((c) => !c)}
-          className="shrink-0 h-9 flex items-center justify-center text-slate-500 hover:text-slate-200 hover:bg-white/[0.06] transition-colors border-t border-white/[0.06]"
+          className="shrink-0 h-9 flex items-center justify-center text-accent-500 hover:text-accent-200 hover:bg-white/[0.06] transition-colors border-t border-white/[0.06]"
           title={collapsed ? '展开侧边栏' : '收起侧边栏'}
         >
           <ChevronLeft size={16} className={`transition-transform ${collapsed ? 'rotate-180' : ''}`} />

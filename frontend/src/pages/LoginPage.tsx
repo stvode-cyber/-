@@ -64,9 +64,9 @@ function PhoneRegisterSection({
       <ErrorBanner formError={formError} dark={dark} />
       {/* 手机号输入 */}
       <div>
-        <label className={`block text-sm mb-1.5 font-medium ${dark ? 'text-slate-300' : 'text-gray-600'}`}>手机号</label>
+        <label className={`block text-sm mb-1.5 font-medium ${dark ? 'text-accent-300' : 'text-gray-600'}`}>手机号</label>
         <div className="relative">
-          <Phone size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-slate-500' : 'text-gray-400'}`} />
+          <Phone size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-accent-500' : 'text-gray-400'}`} />
           <input
             className="input pl-9"
             placeholder="请输入手机号"
@@ -82,7 +82,7 @@ function PhoneRegisterSection({
       {/* 验证码输入 + 发送按钮 */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <MessageSquare size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-slate-500' : 'text-gray-400'}`} />
+          <MessageSquare size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-accent-500' : 'text-gray-400'}`} />
           <input
             className="input pl-9"
             placeholder="6 位验证码"
@@ -112,7 +112,7 @@ function PhoneRegisterSection({
       )}
 
       {/* 合规：协议勾选 */}
-      <label className={`flex items-start gap-2 px-1 text-xs cursor-pointer select-none ${dark ? 'text-slate-400' : 'text-gray-500'}`}>
+      <label className={`flex items-start gap-2 px-1 text-xs cursor-pointer select-none ${dark ? 'text-accent-400' : 'text-gray-500'}`}>
         <input
           type="checkbox"
           checked={agreeTerms}
@@ -121,9 +121,9 @@ function PhoneRegisterSection({
         />
         <span>
           我已阅读并同意
-          <Link to="/terms" target="_blank" className={`${dark ? 'text-slate-300 hover:text-white' : 'text-primary-600 hover:text-primary-700'} underline underline-offset-1`}>《用户协议》</Link>
+          <Link to="/terms" target="_blank" className={`${dark ? 'text-accent-300 hover:text-white' : 'text-primary-600 hover:text-primary-700'} underline underline-offset-1`}>《用户协议》</Link>
           和
-          <Link to="/prprivacy-policy" target="_blank" className={`${dark ? 'text-slate-300 hover:text-white' : 'text-primary-600 hover:text-primary-700'} underline underline-offset-1`}>《隐私政策》</Link>
+          <Link to="/prprivacy-policy" target="_blank" className={`${dark ? 'text-accent-300 hover:text-white' : 'text-primary-600 hover:text-primary-700'} underline underline-offset-1`}>《隐私政策》</Link>
         </span>
       </label>
 
@@ -141,7 +141,7 @@ function PhoneRegisterSection({
           </>
         )}
       </button>
-      <p className={`text-center text-xs ${dark ? 'text-slate-500' : 'text-gray-400'}`}>
+      <p className={`text-center text-xs ${dark ? 'text-accent-500' : 'text-gray-400'}`}>
         自动绑定手机号，注册后可在安全中心设置密码
       </p>
 
@@ -176,9 +176,9 @@ function PhoneLoginSection({
       <ErrorBanner formError={formError} dark={dark} />
       {/* 手机号输入 */}
       <div>
-        <label className={`block text-sm mb-1.5 font-medium ${dark ? 'text-slate-300' : 'text-gray-600'}`}>手机号</label>
+        <label className={`block text-sm mb-1.5 font-medium ${dark ? 'text-accent-300' : 'text-gray-600'}`}>手机号</label>
         <div className="relative">
-          <Phone size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-slate-500' : 'text-gray-400'}`} />
+          <Phone size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-accent-500' : 'text-gray-400'}`} />
           <input
             className="input pl-9"
             placeholder="请输入手机号"
@@ -194,7 +194,7 @@ function PhoneLoginSection({
       {/* 验证码输入 + 发送按钮 */}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <MessageSquare size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-slate-500' : 'text-gray-400'}`} />
+          <MessageSquare size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dark ? 'text-accent-500' : 'text-gray-400'}`} />
           <input
             className="input pl-9"
             placeholder="6 位验证码"
@@ -677,7 +677,7 @@ export default function LoginPage() {
             你的全能<br />
             <span className="bg-gradient-to-r from-primary-300 to-teal-300 bg-clip-text text-transparent">桌面个人助理</span>
           </h2>
-          <p className="mt-3 text-slate-400 text-sm leading-relaxed max-w-sm">
+          <p className="mt-3 text-accent-400 text-sm leading-relaxed max-w-sm">
             对话、任务、财务、宠物、社区 —— 一个应用，搞定你的数字生活。
           </p>
         </div>
@@ -691,15 +691,15 @@ export default function LoginPage() {
               </div>
               <div className="min-w-0">
                 <div className="text-[13px] font-medium text-white">{title}</div>
-                <div className="text-[11px] text-slate-400 truncate">{desc}</div>
+                <div className="text-[11px] text-accent-400 truncate">{desc}</div>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="relative z-10 flex items-center gap-2 text-xs text-slate-500 select-none">
+        <div className="relative z-10 flex items-center gap-2 text-xs text-accent-500 select-none">
           <Sparkles size={14} />
-          <span onClick={import.meta.env.DEV ? onVersionClick : undefined} className={`transition-colors ${import.meta.env.DEV ? 'cursor-pointer hover:text-slate-400' : ''}`}>v1.0.6 · 本地优先 · 隐私安全</span>
+          <span onClick={import.meta.env.DEV ? onVersionClick : undefined} className={`transition-colors ${import.meta.env.DEV ? 'cursor-pointer hover:text-accent-400' : ''}`}>v1.0.6 · 本地优先 · 隐私安全</span>
           {import.meta.env.DEV && devClickCount >= 5 && (
             <button
               onClick={handleDevLogin}

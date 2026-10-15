@@ -405,7 +405,7 @@ export default function HomePage() {
   return (
     <div className="app-shell pb-4">
       {/* 日常模式区域 - 实时天气横幅：真实天气景图（按天气/昼夜切换），白渐变过渡到内容区（底部大圆角，与下方卡片形成呼吸感） */}
-      <div className="sticky top-0 z-30 text-slate-800 relative overflow-hidden rounded-b-[28px] shadow-lg shadow-slate-300/40" style={{ background: 'linear-gradient(160deg, #FFFFFF 0%, #F4F5F7 100%)' }}>
+      <div className="sticky top-0 z-30 text-accent-800 relative overflow-hidden rounded-b-[28px] shadow-lg shadow-accent-300/40" style={{ background: 'linear-gradient(160deg, #FFFFFF 0%, #F4F5F7 100%)' }}>
         {/* 实时天气景图层：真实照片原色全幅显示，随天气/昼夜自动切换 */}
         <div
           className="absolute inset-0 bg-cover bg-center transition-all duration-700"
@@ -470,23 +470,23 @@ export default function HomePage() {
             )}
             <div className="flex-1 min-w-0 flex flex-col gap-1">
               {/* DG-12 场景化问候：title 主问候 + subtitle 次级信息（不截断，完整显示） */}
-              <div className="font-bold leading-snug text-[17px] text-slate-900 drop-shadow-sm">
+              <div className="font-bold leading-snug text-[17px] text-accent-900 drop-shadow-sm">
                 {data?.sceneGreeting?.title || data?.greeting || '你好'}，{user?.nickname || user?.username}
                 {user?.levelInfo && (
-                  <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] bg-white/80 text-slate-700 px-1.5 py-0.5 rounded-full font-normal align-middle">
+                  <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] bg-white/80 text-accent-700 px-1.5 py-0.5 rounded-full font-normal align-middle">
                     {user.levelInfo.icon} Lv{user.levelInfo.level}
                   </span>
                 )}
               </div>
               {/* 副问候 + 日期农历生肖星座合并，自动换行完整显示 */}
-              <div className="text-[11px] leading-relaxed text-slate-700">
+              <div className="text-[11px] leading-relaxed text-accent-700">
                 {data?.sceneGreeting?.subtitle && <>{data.sceneGreeting.subtitle} · </>}
                 {lunarInfo.gregorian} {lunarInfo.lunarShort} · {lunarInfo.zodiacYear} · {lunarInfo.constellation.emoji}{lunarInfo.constellation.name}
                 {lunarInfo.festival && <span className="ml-1">🎉{lunarInfo.festival}</span>}
               </div>
               {/* 宜忌双 chip（信息密度最高的放最后） */}
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] leading-none text-slate-700 bg-white/80 border border-slate-200/60 px-2 py-1 rounded-full">
+                <span className="text-[10px] leading-none text-accent-700 bg-white/80 border border-accent-200/60 px-2 py-1 rounded-full">
                   宜 {lunarInfo.yi.slice(0, 2).join(' ')}
                 </span>
                 <span className="text-[10px] leading-none text-red-600 bg-white/80 border border-red-200/60 px-2 py-1 rounded-full">
@@ -499,11 +499,11 @@ export default function HomePage() {
               <div className="flex-shrink-0 self-center bg-white/70 backdrop-blur-md border border-white/90 rounded-2xl px-2.5 py-1.5 flex flex-col items-center gap-0.5">
                 <div className="text-xl leading-none">{weather.current.weatherIcon}</div>
                 <div className="flex items-baseline">
-                  <span className="text-lg font-thin tabular-nums leading-none text-slate-800">{weather.current.tempC}</span>
-                  <span className="text-[10px] font-thin text-slate-800">°</span>
+                  <span className="text-lg font-thin tabular-nums leading-none text-accent-800">{weather.current.tempC}</span>
+                  <span className="text-[10px] font-thin text-accent-800">°</span>
                 </div>
-                <div className="text-[9px] text-slate-600 leading-none">{weather.current.weatherDesc}</div>
-                <div className="text-[9px] text-slate-500 leading-none tabular-nums">
+                <div className="text-[9px] text-accent-600 leading-none">{weather.current.weatherDesc}</div>
+                <div className="text-[9px] text-accent-500 leading-none tabular-nums">
                   {weather.today.minTempC}°/{weather.today.maxTempC}°
                 </div>
               </div>
@@ -511,7 +511,7 @@ export default function HomePage() {
           </div>
           {/* DG-12 场景化问候：tip 场景化建议 */}
           {data?.sceneGreeting?.tip && (
-            <div className="mt-3 bg-white/70 backdrop-blur rounded-2xl px-3 py-2 text-xs text-slate-700">
+            <div className="mt-3 bg-white/70 backdrop-blur rounded-2xl px-3 py-2 text-xs text-accent-700">
               💡 {data.sceneGreeting.tip}
             </div>
           )}
@@ -523,7 +523,7 @@ export default function HomePage() {
       <div className="relative mx-3 mt-3 p-4 rounded-3xl bg-white border border-primary-100" style={{ boxShadow: '0 10px 30px rgba(148,163,184,.14)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="w-[30px] h-[30px] rounded-[11px] flex items-center justify-center text-white text-sm" style={{ background: 'linear-gradient(135deg, #334155, #1E293B)', boxShadow: '0 4px 12px rgba(30,41,59,.30)' }}>📅</span>
+            <span className="w-[30px] h-[30px] rounded-[11px] flex items-center justify-center text-white text-sm bg-gradient-accent shadow-lg shadow-accent-900/30">📅</span>
             <span className="text-[15px] font-bold text-primary-800">事件总汇</span>
             {data.conflicts.length > 0 && (
               <span className="badge bg-orange-100 text-orange-700 text-[10px]">

@@ -86,16 +86,16 @@ function getCurrentHourlyIndex(hourly: WeatherData['today']['hourly']): number {
 /** 天气背景渐变：根据 weatherCode 和昼夜返回 Tailwind 渐变色（对标墨迹天气沉浸式背景） */
 function getWeatherBg(code: number, isDay: boolean): string {
   const type = getWeatherType(code)
-  if (!isDay && type === 'sunny') return 'from-indigo-700 via-blue-800 to-slate-900'
+  if (!isDay && type === 'sunny') return 'from-indigo-700 via-blue-800 to-accent-900'
   if (type === 'sunny') return 'from-sky-400 via-sky-500 to-blue-600'
   if (type === 'cloudy') return isDay
-    ? 'from-sky-300 via-blue-400 to-slate-500'
-    : 'from-slate-600 via-slate-700 to-slate-900'
-  if (type === 'overcast') return 'from-gray-400 via-gray-500 to-slate-600'
-  if (type === 'rainy') return 'from-slate-400 via-slate-500 to-slate-700'
-  if (type === 'thunder') return 'from-slate-600 via-slate-700 to-gray-900'
-  if (type === 'snowy') return 'from-blue-200 via-indigo-300 to-slate-400'
-  if (type === 'foggy') return 'from-gray-300 via-gray-400 to-slate-500'
+    ? 'from-sky-300 via-blue-400 to-accent-500'
+    : 'from-accent-600 via-accent-700 to-accent-900'
+  if (type === 'overcast') return 'from-gray-400 via-gray-500 to-accent-600'
+  if (type === 'rainy') return 'from-accent-400 via-accent-500 to-accent-700'
+  if (type === 'thunder') return 'from-accent-600 via-accent-700 to-gray-900'
+  if (type === 'snowy') return 'from-blue-200 via-indigo-300 to-accent-400'
+  if (type === 'foggy') return 'from-gray-300 via-gray-400 to-accent-500'
   return 'from-sky-400 to-blue-600'
 }
 
@@ -188,7 +188,7 @@ export default function WeatherCard() {
   if (error && !weather) {
     return (
       <div className="rounded-2xl overflow-hidden shadow-lg shadow-black/5">
-        <div className="bg-gradient-to-br from-slate-400 to-slate-600 text-white px-4 py-5">
+        <div className="bg-gradient-to-br from-accent-400 to-accent-600 text-white px-4 py-5">
           <div className="flex items-center gap-1.5 text-xs">
             <MapPin size={12} className="opacity-80" />
             <span className="font-medium">天气获取失败</span>
@@ -429,7 +429,7 @@ function SunnyAnimation() {
 /** 晴天（夜间）动效：月亮 + 闪烁星星 */
 function NightAnimation() {
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-indigo-900 to-slate-800 overflow-hidden flex items-center justify-center">
+    <div className="absolute inset-0 bg-gradient-to-b from-indigo-900 to-accent-800 overflow-hidden flex items-center justify-center">
       <div className="text-2xl" style={{ animation: 'float 4s ease-in-out infinite' }}>
         🌙
       </div>
@@ -454,7 +454,7 @@ function NightAnimation() {
 /** 多云动效：太阳/月亮 + 飘动云朵 */
 function CloudyAnimation({ isDay }: { isDay: boolean }) {
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-sky-50 to-slate-50 overflow-hidden flex items-center">
+    <div className="absolute inset-0 bg-gradient-to-b from-sky-50 to-accent-50 overflow-hidden flex items-center">
       {isDay && (
         <div
           className="absolute left-4 w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 to-orange-300"
@@ -500,7 +500,7 @@ function OvercastAnimation() {
 /** 雨天动效：雨滴下落 */
 function RainAnimation() {
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-slate-200 to-slate-100 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-accent-200 to-accent-100 overflow-hidden">
       {[...Array(15)].map((_, i) => (
         <div
           key={i}
@@ -520,7 +520,7 @@ function RainAnimation() {
 /** 雷暴动效：闪电 + 雨滴 */
 function ThunderAnimation() {
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-slate-300 to-slate-200 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-accent-300 to-accent-200 overflow-hidden">
       {[...Array(15)].map((_, i) => (
         <div
           key={i}
@@ -541,7 +541,7 @@ function ThunderAnimation() {
 /** 雪天动效：雪花飘落 */
 function SnowAnimation() {
   return (
-    <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-slate-50 overflow-hidden">
+    <div className="absolute inset-0 bg-gradient-to-b from-blue-50 to-accent-50 overflow-hidden">
       {[...Array(12)].map((_, i) => (
         <div
           key={i}

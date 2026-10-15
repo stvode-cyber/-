@@ -67,17 +67,17 @@ export function getWeatherType(
 /** 天气背景渐变：根据 weatherCode 和昼夜返回 Tailwind 渐变色 */
 export function getWeatherBg(code: number, isDay: boolean): string {
   const type = getWeatherType(code)
-  if (!isDay && type === 'sunny') return 'from-indigo-700 via-blue-800 to-slate-900'
+  if (!isDay && type === 'sunny') return 'from-indigo-700 via-blue-800 to-accent-900'
   if (type === 'sunny') return 'from-sky-400 via-sky-500 to-blue-600'
   if (type === 'cloudy')
     return isDay
-      ? 'from-sky-300 via-blue-400 to-slate-500'
-      : 'from-slate-600 via-slate-700 to-slate-900'
-  if (type === 'overcast') return 'from-gray-400 via-gray-500 to-slate-600'
-  if (type === 'rainy') return 'from-slate-400 via-slate-500 to-slate-700'
-  if (type === 'thunder') return 'from-slate-600 via-slate-700 to-gray-900'
-  if (type === 'snowy') return 'from-blue-200 via-indigo-300 to-slate-400'
-  if (type === 'foggy') return 'from-gray-300 via-gray-400 to-slate-500'
+      ? 'from-sky-300 via-blue-400 to-accent-500'
+      : 'from-accent-600 via-accent-700 to-accent-900'
+  if (type === 'overcast') return 'from-gray-400 via-gray-500 to-accent-600'
+  if (type === 'rainy') return 'from-accent-400 via-accent-500 to-accent-700'
+  if (type === 'thunder') return 'from-accent-600 via-accent-700 to-gray-900'
+  if (type === 'snowy') return 'from-blue-200 via-indigo-300 to-accent-400'
+  if (type === 'foggy') return 'from-gray-300 via-gray-400 to-accent-500'
   return 'from-sky-400 to-blue-600'
 }
 

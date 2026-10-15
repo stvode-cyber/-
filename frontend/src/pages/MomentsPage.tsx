@@ -244,20 +244,20 @@ export default function MomentsPage() {
   return (
     <div className="app-shell pb-4">
       {/* 头部横幅（QQ 风白灰） */}
-      <div className="relative overflow-hidden text-slate-800 px-4 pt-5 pb-4 bg-white border-b border-slate-200/70">
-        <div className="absolute w-[160px] h-[160px] rounded-full bg-slate-100/80 -top-16 -right-10 pointer-events-none" />
-        <div className="absolute w-[100px] h-[100px] rounded-full bg-slate-50 -bottom-10 -left-6 pointer-events-none" />
+      <div className="relative overflow-hidden text-accent-800 px-4 pt-5 pb-4 bg-white border-b border-accent-200/70">
+        <div className="absolute w-[160px] h-[160px] rounded-full bg-accent-100/80 -top-16 -right-10 pointer-events-none" />
+        <div className="absolute w-[100px] h-[100px] rounded-full bg-accent-50 -bottom-10 -left-6 pointer-events-none" />
         <div className="relative flex items-center gap-2">
           <button
             onClick={() => navigate('/')}
-            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-95 transition-all"
+            className="w-8 h-8 rounded-full bg-accent-100 flex items-center justify-center text-accent-500 hover:bg-accent-200 active:scale-95 transition-all"
             title="返回主页"
           >
             <ArrowLeft size={16} />
           </button>
           <div>
             <h1 className="text-lg font-bold leading-tight">朋友圈</h1>
-            <p className="text-sm text-slate-400">记录此刻 · 分享生活</p>
+            <p className="text-sm text-accent-400">记录此刻 · 分享生活</p>
           </div>
         </div>
       </div>
@@ -314,8 +314,7 @@ export default function MomentsPage() {
             <button
               onClick={publish}
               disabled={publishing}
-              className="px-4 py-1.5 rounded-full text-white text-sm font-medium disabled:opacity-50 flex items-center gap-1"
-              style={{ background: 'linear-gradient(135deg, #334155, #1E293B)' }}
+              className="px-4 py-1.5 rounded-full text-white text-sm font-medium disabled:opacity-50 flex items-center gap-1 bg-gradient-accent"
             >
               {publishing ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} 发表
             </button>
@@ -425,8 +424,7 @@ export default function MomentsPage() {
                     <button
                       onClick={() => sendComment(m)}
                       disabled={commentSending || !commentDraft.trim()}
-                      className="w-7 h-7 rounded-full text-white flex items-center justify-center disabled:opacity-40 shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #334155, #1E293B)' }}
+                      className="w-7 h-7 rounded-full text-white flex items-center justify-center disabled:opacity-40 shrink-0 bg-gradient-accent"
                     >
                       {commentSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
                     </button>

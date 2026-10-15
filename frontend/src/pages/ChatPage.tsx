@@ -1392,8 +1392,7 @@ export default function ChatPage() {
           <button
             onClick={() => send()}
             disabled={!input.trim() || sending || recState !== 'idle'}
-            className="p-2.5 text-white rounded-2xl disabled:opacity-40 hover:shadow-lg hover:shadow-primary-300/40 transition-all active:scale-90"
-            style={{ background: !input.trim() || sending || recState !== 'idle' ? undefined : 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' }}
+            className={`p-2.5 text-white rounded-2xl disabled:opacity-40 hover:shadow-lg hover:shadow-primary-300/40 transition-all active:scale-90 ${!input.trim() || sending || recState !== 'idle' ? '' : 'bg-gradient-accent'}`}
           >
             <Send size={18} />
           </button>
@@ -1462,8 +1461,7 @@ function MessageBubble({
           <a
             href={message.mediaUrl}
             download={(metadata as { fileName?: string } | null)?.fileName || message.content}
-            className="flex items-center gap-2 px-4 py-3 text-white rounded-2xl rounded-tr-sm shadow-sm shadow-primary-200/40"
-            style={{ background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' }}
+            className="flex items-center gap-2 px-4 py-3 text-white rounded-2xl rounded-tr-sm shadow-sm shadow-primary-200/40 bg-gradient-accent"
           >
             <Paperclip size={18} />
             <div className="flex-1 min-w-0">
@@ -1478,8 +1476,7 @@ function MessageBubble({
         )}
         {isUser && message.messageType === 'location' && (
           <div
-            className="px-4 py-3 text-white rounded-2xl rounded-tr-sm shadow-sm shadow-primary-200/40"
-            style={{ background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' }}
+            className="px-4 py-3 text-white rounded-2xl rounded-tr-sm shadow-sm shadow-primary-200/40 bg-gradient-accent"
           >
             <div className="flex items-center gap-2">
               <MapPin size={16} />
@@ -1513,10 +1510,9 @@ function MessageBubble({
           <div
             className={`px-4 py-2.5 text-sm whitespace-pre-wrap break-words ${
               isUser
-                ? 'text-white rounded-[20px] rounded-br-md shadow-md shadow-primary-500/30'
+                ? 'text-white rounded-[20px] rounded-br-md shadow-md shadow-primary-500/30 bg-gradient-accent'
                 : 'bg-white text-gray-800 rounded-[20px] rounded-bl-md shadow-sm border-[1.5px] border-primary-100'
             }`}
-            style={isUser ? { background: 'linear-gradient(135deg, #334155 0%, #1e293b 100%)' } : undefined}
           >
             {message.content}
           </div>
