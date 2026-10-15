@@ -7,7 +7,7 @@
 | M-001 | Vite Dev Server 多 HTML 入口 + BUILD_MODE + Proxy | **P0** | 5 | ✅ fixed | 2026-09-30 |
 | M-002 | 后端全局错误处理漏接 ZodError | P0 | 1 | ✅ fixed | 2026-09-30 |
 | M-003 | 运维操作 / SSH / 数据库直接改 | P1 | 1 | ✅ fixed | 2026-09-30 |
-| M-004 | PowerShell 5 环境特定坑 | P1 | 4 | ⚠️ recurring | 2026-09-30 |
+| M-004 | PowerShell 5 环境特定坑 | P1 | 5 | ⚠️ recurring | 2026-10-15 |
 | M-005 | Git push / 编码 / 换行符 | P1 | 2 | ⚠️ recurring | 2026-09-30 |
 
 ---
@@ -118,6 +118,7 @@ if (err instanceof ZodError) {
 - `Out-File -Encoding UTF8` 带 BOM → Node JSON.parse 炸 `Unexpected token '﻿'` → `[IO.File]::WriteAllText($path, $content, [Text.UTF8Encoding]::new($false))`
 - ternary `? :` PS5 不支持 → 用 if/else
 - `npx.cmd` vs `npx.ps1` 调用差异 → 统一 `npx.cmd`
+- `$content -replace 'slate-', 'accent-'` 误伤 Tailwind `translate-x` → `tranaccent-x`。**根因**：PowerShell `-replace` 是正则子串匹配，不是单词边界。**预防**：批量替换用精确正则 `\bslate-\b` 或先 grep 确认没有包含子串的标识符，写完反向替换脚本修复残留
 
 ## [M-005] Git push / 编码 / 换行符 · P1
 
