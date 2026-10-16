@@ -58,6 +58,17 @@
     --color-panel-700: 160 164 174;
     --color-panel-800: 110 114 126;
     --color-panel-900: 78 82 94;
+
+    /* === 墨玉绿统一色板（Lujax Unified Palette）=== */
+    /* 写色铁律：1.只一种彩色#00856A 2.彩色占面≤8% 3.阴影带绿调 4.不新增彩色相 */
+    --brand: #00856A;         --brand-dark: #006E56;
+    --brand-mid: #2D7863;     --brand-mute: #7A958E;
+    --brand-pale: #8EC4B6;    --brand-highlight: #9CD8CC;
+    --canvas: #E9E9E9;        --surface: #F4F3F2;
+    --ink: #101010;           --lgray: #6C6C6C;  --lgray-light: #C5C5C5;
+    --on-brand: #FFFFFF;       --on-canvas: #101010;
+    --border-soft: #E9E9E9;   --border-hard: #C5C5C5;
+    --focus-ring: #9CD8CC;
   }
 
   /* === 深色模式：覆盖变量 === */

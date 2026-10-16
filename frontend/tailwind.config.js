@@ -64,6 +64,23 @@ export default {
         warning: '#F59E0B',
         success: '#10B981',
         info: '#6366F1',
+
+        // === 墨玉绿统一色板（Lujax Unified Palette）===
+        // 铁律：全项目只一种彩色 #00856A；彩色占面 ≤8%；阴影带绿调；不新增第二彩色相
+        brand: { DEFAULT: '#00856A', dark: '#006E56', mid: '#2D7863', mute: '#7A958E', pale: '#8EC4B6', highlight: '#9CD8CC' },
+        canvas: '#E9E9E9',       // 冷调白（页面底色，不用纯白）
+        surface: '#F4F3F2',      // 高光白（卡片/浮层）
+        ink: '#101010',          // 石墨黑（文字/细线）
+        lgray: { DEFAULT: '#6C6C6C', light: '#C5C5C5' },
+      },
+      fontFamily: {
+        display: "Georgia, 'Times New Roman', serif",
+        body: "'PingFang SC','Microsoft YaHei',-apple-system,sans-serif",
+      },
+      boxShadow: {
+        1: '0 2px 8px rgba(0, 69, 56, 0.06)',
+        2: '0 6px 20px rgba(0, 69, 56, 0.10)',
+        3: '0 14px 40px rgba(0, 69, 56, 0.14)',
       },
       animation: {
         'slide-up': 'slideUp 0.3s ease-out',
