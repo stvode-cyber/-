@@ -416,9 +416,7 @@ export default function HomePage() {
         <div className="absolute inset-x-0 top-0 h-36 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.45) 0%, rgba(15,23,42,0) 100%)' }} />
         {/* 底部白色渐变：MissionCard + 农历横条自然过渡 */}
         <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(0deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0) 100%)' }} />
-        {/* 气泡装饰层：白色半透明圆点（保留图1风格） */}
-        <div className="absolute w-[200px] h-[200px] rounded-full bg-white/15 -top-20 -right-12 pointer-events-none" />
-        <div className="absolute w-[120px] h-[120px] rounded-full bg-white/10 -bottom-12 -left-8 pointer-events-none" />
+        {/* 气泡装饰层：已删 */}
 
         {/* 顶部日常模式顶栏（搜索/刷新/铃铛） */}
         <div className="relative flex items-center justify-between h-11 px-4 text-sm">
@@ -451,7 +449,7 @@ export default function HomePage() {
 
         {/* GreetingHeader：文字改白色半透明（在深色渐晕上） */}
         <div className="relative">
-          <header className="flex items-center justify-between gap-4 px-5 pt-3 pb-2 mb-2">
+          <header className="flex items-center px-5 pt-3 pb-2 mb-2">
             <div className="min-w-0">
               <p className="text-[14px] leading-[1.4] text-white/70 mb-1">
                 {data?.sceneGreeting?.title
@@ -462,19 +460,6 @@ export default function HomePage() {
                 {user?.nickname || user?.username || '用户'}
               </h1>
             </div>
-            <button
-              type="button"
-              aria-label={`通知${(data?.events?.length || 0) > 0 ? `，${data?.events?.length}条未读` : ''}`}
-              onClick={() => navigate('/tasks?view=reminders')}
-              className="relative flex-none w-[42px] h-[42px] rounded-full bg-white/25 backdrop-blur-sm text-white grid place-items-center hover:bg-white/40 transition-colors active:scale-95"
-            >
-              <Bell size={18} strokeWidth={2} className="text-white" />
-              {(data?.events?.length || 0) > 0 && (
-                <span aria-hidden className="absolute -top-[2px] -right-[2px] min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-on-brand text-[9px] font-bold leading-[16px] text-center">
-                  {(data?.events?.length ?? 0) > 99 ? '99+' : (data?.events?.length ?? 0)}
-                </span>
-              )}
-            </button>
           </header>
         </div>
 
