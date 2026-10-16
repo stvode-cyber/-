@@ -480,13 +480,12 @@ export default function HomePage() {
 
         {/* MissionCard + 农历宜忌横条 */}
         <div className="relative pt-1 pb-4">
-          {/* MissionCard */}
+          {/* MissionCard（无插画位，全宽文字） */}
           {data?.todayTasks && data.todayTasks.length > 0 ? (
             <MissionCard
               label="今日重点"
               title={data.todayTasks[0].title}
               badgeText={data.todayTasks[0].priority ? `${data.todayTasks[0].priority}优先` : ''}
-              art={<span className="text-4xl">🎯</span>}
             />
           ) : (
             <MissionCard
@@ -495,7 +494,6 @@ export default function HomePage() {
               badgeText={data?.achievements?.todayProgress
                 ? `${data.achievements.todayProgress.done}/${data.achievements.todayProgress.total} 完成`
                 : '开始吧'}
-              art={<span className="text-4xl">✨</span>}
             />
           )}
 
