@@ -419,7 +419,7 @@ export default function HomePage() {
         {/* 气泡装饰层：已删 */}
 
         {/* 顶部日常模式顶栏（搜索/刷新/铃铛） */}
-        <div className="relative flex items-center justify-between h-11 px-4 text-sm">
+        <div className="relative flex items-center justify-between h-11 px-5 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-sm" />
             <span className="text-white/90 font-medium drop-shadow-sm">日常模式</span>
@@ -524,7 +524,7 @@ export default function HomePage() {
 
       {/* ★ 事件总汇（含倒计时）：新头部之后的第一张卡 */}
       {data && (data.events.length > 0 || countdownCards.length > 0) && (
-      <div className="relative mx-3 mt-3 p-4 rounded-3xl bg-white border border-primary-100" style={{ boxShadow: '0 10px 30px rgba(148,163,184,.14)' }}>
+      <div className="relative mx-5 mt-3 p-4 rounded-3xl bg-white border border-primary-100" style={{ boxShadow: '0 10px 30px rgba(148,163,184,.14)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <span className="w-[30px] h-[30px] rounded-[11px] flex items-center justify-center text-white text-sm bg-gradient-accent shadow-lg shadow-accent-900/30">📅</span>

@@ -47,7 +47,7 @@ export default function WeekCalendar({ recordedDays, onSelect }: Props) {
   }, [])
 
   return (
-    <div className="px-3 pb-2">
+    <div className="px-5 pb-2">
       <div
         ref={scrollerRef}
         role="group"
