@@ -29,6 +29,15 @@ import java.io.File;
 @CapacitorPlugin(name = "IntentInstaller")
 public class IntentInstallerPlugin extends Plugin {
 
+    static {
+        android.util.Log.d("IntentInstallerPlugin", "=== CLASS LOADED ===");
+    }
+
+    public IntentInstallerPlugin() {
+        super();
+        android.util.Log.d("IntentInstallerPlugin", "=== CONSTRUCTOR CALLED ===");
+    }
+
     private static final String FILEPROVIDER_AUTHORITY = "com.aie.assistant.fileprovider";
 
     @PluginMethod
@@ -68,6 +77,34 @@ public class IntentInstallerPlugin extends Plugin {
             call.resolve(ret);
         } catch (Exception e) {
             call.reject("启动安装器失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 用系统 Intent.ACTION_VIEW 打开 URL
+     *
+     * .apk 后缀会触发系统下载管理器下载，下载完自动弹安装器
+     * 绕开 WebView window.open / fetch 的所有拦截问题
+     *
+     * 前端调用：IntentInstaller.openUrl({ url: 'http://.../app.apk' })
+     */
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        String url = call.getString("url");
+        if (url == null || url.isEmpty()) {
+            call.reject("缺少 url 参数");
+            return;
+        }
+        try {
+            Context ctx = getContext();
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            ctx.startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("success", true);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("打开 URL 失败: " + e.getMessage());
         }
     }
 }

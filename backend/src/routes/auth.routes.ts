@@ -180,23 +180,23 @@ router.post('/send-sms', smsRateLimit, async (req, res, next) => {
     const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
 
     // 生产环境严格门禁：真实网关未配置 + 又没成功发出 → 拒绝，让管理员先配凭证
+    // TODO-SMS: 正式发版前恢复这两行门禁 + 删掉 mock 验证码回传（v1.1.0 内测临时放开）
     const isProd = process.env.NODE_ENV === 'production'
-    if (isProd && !isRealSmsConfigured) {
-      // 真实网关凭证缺失 → 生产环境禁止 mock 降级回传 code（等于裸奔）
-      throw new HttpError('短信服务暂不可用，请稍后重试', 503)
-    }
-    if (isProd && result.via === 'mock' && !isRealSmsConfigured) {
-      // 同上：降级 mock 但凭证没配 → 拒绝
-      throw new HttpError('短信服务暂不可用，请稍后重试', 503)
-    }
+    // if (isProd && !isRealSmsConfigured) {
+    //   throw new HttpError('短信服务暂不可用，请稍后重试', 503)
+    // }
+    // if (isProd && result.via === 'mock' && !isRealSmsConfigured) {
+    //   throw new HttpError('短信服务暂不可用，请稍后重试', 503)
+    // }
 
     const body: { expiresIn: number; code?: string; via: string } = {
       expiresIn: 300,
       via: result.via, // 'aliyun' | 'mock'
     }
 
-    // 仅开发环境回传 code（方便本地调试）；生产环境一律不回传，用户只能从短信里拿到
-    if (!isProd) {
+    // 内测临时：mock 模式也回传验证码（方便调试，不用真短信）；正式版前改回 if (!isProd)
+    // TODO-SMS: 正式发版前改回 if (!isProd) — 生产环境绝不回传验证码
+    if (!isRealSmsConfigured || !isProd) {
       body.code = code
     }
 

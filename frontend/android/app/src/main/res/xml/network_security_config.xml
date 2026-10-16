@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  仅用于内测阶段：信任 47.116.59.141 的自签名 HTTPS 证书
+  生产发版前必须删除此文件 + 移除 AndroidManifest.xml 里的 networkSecurityConfig 引用
+  根因：服务器 Nginx 用的是自签名证书，Android WebView 默认不信任
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">47.116.59.141</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

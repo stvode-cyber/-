@@ -14,6 +14,7 @@ export interface InstallResult {
 
 export interface IntentInstallerPlugin {
   install(options: { path: string }): Promise<InstallResult>
+  openUrl(options: { url: string }): Promise<InstallResult>
 }
 
 export const IntentInstaller = registerPlugin<IntentInstallerPlugin>('IntentInstaller')
