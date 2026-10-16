@@ -451,7 +451,7 @@ export default function HomePage() {
 
         {/* GreetingHeader：文字改白色半透明（在深色渐晕上） */}
         <div className="relative">
-          <header className="flex items-center justify-between gap-4 px-5 pt-2 pb-1">
+          <header className="flex items-center justify-between gap-4 px-5 pt-3 pb-2 mb-2">
             <div className="min-w-0">
               <p className="text-[14px] leading-[1.4] text-white/70 mb-1">
                 {data?.sceneGreeting?.title
@@ -498,7 +498,7 @@ export default function HomePage() {
           )}
 
           {/* 农历 + 生肖 + 星座 + 宜忌双 chip（从图1搬来） */}
-          <div className="mx-5 mt-3 flex items-center justify-between text-[13px] text-lgray">
+          <div className="mx-5 mt-4 flex items-center justify-between text-[13px] text-lgray">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-brand font-medium">{lunarInfo.lunarShort}</span>
               <span className="mx-0.5">·</span>
@@ -506,10 +506,10 @@ export default function HomePage() {
               {lunarInfo.festival && <span className="ml-1">🎉{lunarInfo.festival}</span>}
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="bg-brand-pale/40 text-brand text-[10px] px-2 py-0.5 rounded-full">
+              <span className="bg-brand-pale/40 text-brand text-[11px] px-2 py-0.5 rounded-full">
                 宜 {lunarInfo.yi.slice(0, 2).join(' ')}
               </span>
-              <span className="bg-red-50 text-red-600 text-[10px] px-2 py-0.5 rounded-full">
+              <span className="bg-red-50 text-red-600 text-[11px] px-2 py-0.5 rounded-full">
                 忌 {lunarInfo.ji.slice(0, 2).join(' ')}
               </span>
             </div>
@@ -517,7 +517,7 @@ export default function HomePage() {
 
           {/* 天气 icon+温度+描述+最高最低（从图1天气小卡压缩） */}
           {weather && !weatherLoading && (
-            <div className="mx-5 mt-2 flex items-center gap-2 text-[13px] text-lgray">
+            <div className="mx-5 mt-3 flex items-center gap-2 text-[13px] text-lgray">
               <span className="text-xl leading-none">{weather.current.weatherIcon}</span>
               <span className="text-[15px] font-semibold text-ink">{weather.current.tempC}°</span>
               <span>{weather.current.weatherDesc}</span>
