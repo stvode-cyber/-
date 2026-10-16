@@ -224,3 +224,16 @@ if (err instanceof ZodError) {
 - **解法**：`pm2 list` 查实际名字 → `pm2 restart backend` ✅；同时更新所有文档（AGENTS.md 3 处 + handover.md 4 处）
 - **预防**：任何远程操作前**必须**先 `pm2 list` / `systemctl status xxx` / `docker ps` 确认真实进程名，不能信文档
 - **关联**：AGENTS.md · handover.md · STATUS.md #pm2 #deploy #文档漂移
+
+---
+
+## [P0][2026-10-15] Capacitor v8 CapacitorHttp 原生插件拦截 WebView fetch
+
+- **现象**：UpdateNotice.tsx 里 `fetch('http://47.116.59.141/apk/...apk')` 报 "Failed to fetch"，但服务器 URL curl 正常返回 200
+- **根因**：Capacitor v8 的 `@capacitor/core` 内置 **CapacitorHttp 插件自动注册**，拦截了 WebView 所有 `fetch()` 和 `XMLHttpRequest`，用原生 OkHttp 执行请求。原生 OkHttp 对 HTTP cleartext 有额外限制（WebView 的 `usesCleartextTraffic=true` 只影响 WebView 自己，不影响 OkHttp）
+- **解法（3 选 1）**：
+  1. `capacitor.config.ts` 加 `plugins.CapacitorHttp.enabled = false`（禁原生拦截，让 WebView 自己处理 fetch）
+  2. 用 `Filesystem.downloadFile({ url, path, directory })` 原生下载（完全绕过 fetch，一步到位）
+  3. 用 `CapacitorHttp.get()` 原生 API（但大文件下载会挂住）
+- **预防**：任何 Capacitor 8 项目里涉及 HTTP cleartext 的 fetch，先确认是不是被 CapacitorHttp 拦截了
+- **关联**：UpdateNotice.tsx · capacitor.config.ts · @capacitor/core #capacitor #android #fetch拦截

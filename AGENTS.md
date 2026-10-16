@@ -279,6 +279,12 @@ APP-AIE/
 
 10. **Android APK 发版必须走 android-auto-update SKILL**：版本号 3 处对齐（UpdateNotice.tsx CURRENT_APK_VERSION / build.gradle versionName / seed 参数）→ vite build → cap sync → gradlew assembleDebug → SCP 到 nginx /usr/share/nginx/html/apk/ → seed-android-release.cjs 插 android_releases 表 → curl 回查 hasUpdate 正确。**SKILL 文件**：`.trae/skills/android-auto-update/SKILL.md`。铁律：APK URL 必须走 47.116.59.141 直连（SNI 封锁）；手机端应用分身必须先手动关掉。
 
+11. **动手前必须先宣告 + 等用户确认**（违反直接打回）：
+    - 任何实际操作（改文件 / 批量命令 / 提交 / push / 部署）之前，必须先明确说"接下来我要做 X、Y、Z"，等用户回复"好"、"执行"、"ok"之类确认后才能动手
+    - 如果有选项（比如改 A 还是改 B），先把选项列清楚让用户选，用户拍板后再动手
+    - 不要自作主张扩展范围（比如用户说改手机端布局，不要顺手改电脑端）
+    - 例外：紧急修 bug 或用户明确说"不用确认直接改"时可跳过，但事后必须立刻同步
+
 ## 质量基线
 
 - TypeScript strict 零错误

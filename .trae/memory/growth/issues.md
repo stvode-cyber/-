@@ -9,6 +9,7 @@
 | M-003 | 运维操作 / SSH / 数据库直接改 | P1 | 1 | ✅ fixed | 2026-09-30 |
 | M-004 | PowerShell 5 环境特定坑 | P1 | 5 | ⚠️ recurring | 2026-10-15 |
 | M-005 | Git push / 编码 / 换行符 | P1 | 2 | ⚠️ recurring | 2026-09-30 |
+| M-006 | Android 自动更新全链路 | **P0** | 3 | 🔧 fixing | 2026-10-15 |
 
 ---
 
@@ -124,6 +125,52 @@ if (err instanceof ZodError) {
 
 - Windows 下 LF/CRLF 自动转换会改 diff → `.gitattributes` 配 `* text=auto` + `*.{sh,py,ts,tsx} text eol=lf`
 - GitHub SSH key 失效 → `ssh -T git@github.com` 先验
+
+---
+
+## [M-006] Android 自动更新全链路 · P0
+
+### 背景
+
+2026-10-15 用户反馈 App 自动更新弹框点"立即更新"后报 "下载失败：Failed to fetch"，截图为证。
+
+### 子条目
+
+- **[IS-006] fetch() 被 CapacitorHttp 原生插件拦截 → "Failed to fetch"** 🔧 fixing
+  - 现象：fetch HTTP URL 失败，curl 服务器 URL 正常返回 200
+  - 根因：Capacitor v8 CapacitorHttp 自动注册拦截 WebView fetch，OkHttp 对 HTTP cleartext 有额外限制
+  - 修复：UpdateNotice.tsx 改 Filesystem.downloadFile 原生下载 + capacitor.config.ts 禁 CapacitorHttp
+  - 状态：代码已改，clean build + install 完成，等用户真机验
+
+- **[IS-007] IntentInstallerPlugin 注册方式不稳** ✅ fixed
+  - 现象：logcat 没看到 "Registering plugin instance: IntentInstaller"
+  - 根因：BridgeActivity.load() 里 registerPlugin() 可能在某些时序下不生效
+  - 修复：MainActivity 改 onCreate() 里 `initialPlugins.add(IntentInstallerPlugin.class)`
+
+- **[IS-008] 早期版本用 window.open 跳转浏览器** ✅ 废弃
+  - AppShareCard.tsx 里还留着 window.open('_system') 跳转浏览器下载的旧代码
+  - 但这个组件只在聊天里手动触发 app_share 消息时才用，不是自动更新链路
+  - 自动更新走 UpdateNotice → Filesystem.downloadFile → IntentInstaller.install
+
+### 修复代码
+
+```ts
+// UpdateNotice.tsx — 改前（被 CapacitorHttp 拦截）
+const resp = await fetch(info.apkUrl)
+const blob = await resp.blob()
+const base64 = await blobToBase64(blob)
+const writeResult = await Filesystem.writeFile({ path: fileName, data: base64, directory: Directory.Data })
+
+// UpdateNotice.tsx — 改后（原生下载，一步到位）
+const dlResult = await Filesystem.downloadFile({ url: info.apkUrl, path: fileName, directory: Directory.Data })
+await IntentInstaller.install({ path: dlResult.path })
+```
+
+### 预防规则
+
+1. Capacitor 8 项目涉及 HTTP cleartext fetch，先确认是不是被 CapacitorHttp 拦截了
+2. 自定义 Capacitor 插件注册用 `initialPlugins.add()` 比 `load()→registerPlugin()` 更稳
+3. APK 里搜不到 Kotlin 类名 → classes.dex 用 Mangled 格式存，UTF8 搜不准，换搜 Java 类或看 build/intermediates
 
 ---
 
