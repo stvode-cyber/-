@@ -87,7 +87,9 @@ export default function UpdateNotice() {
       setProgress(85)
 
       // 2. 调原生插件 → FileProvider + Intent.ACTION_VIEW → 系统安装器
-      let installPath = dlResult.path
+      const rawPath = dlResult.path
+      if (!rawPath) throw new Error('下载结果路径为空，无法安装')
+      let installPath: string = rawPath
       if (installPath.startsWith('file://')) {
         installPath = installPath.replace('file://', '')
       }

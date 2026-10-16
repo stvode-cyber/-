@@ -35,6 +35,10 @@ export default defineConfig({
   base: '/admin/',
   plugins: [react(), adminHtmlRewrite()],
   publicDir: false,
+  // admin 模式下显式定义 __BUILD_MODE__ — desktop/mobile 由 cross-env VITE_BUILD_MODE 驱动，admin 必须硬 define
+  define: {
+    __BUILD_MODE__: JSON.stringify('admin'),
+  },
   server: {
     port: 5175,
     strictPort: true,

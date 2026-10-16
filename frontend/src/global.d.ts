@@ -2,8 +2,8 @@
 export {}
 
 declare global {
-  /** Vite define 编译时常量：'desktop' | 'mobile' */
-  const __BUILD_MODE__: 'desktop' | 'mobile'
+  /** Vite define 编译时常量：三模式区分 */
+  const __BUILD_MODE__: 'desktop' | 'mobile' | 'admin'
 
   interface Window {
     /** Electron preload 注入：桌面端能力桥接 API */

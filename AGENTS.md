@@ -6,7 +6,7 @@
 
 **绿角犀（AIE）** —— 桌面端优先的全能个人助理。Electron 壳 + React 前端 + Express/Prisma 后端，本地 SQLite 数据库。云端（47.116.59.141）为可选 AI 网关和多用户身份签发方。
 
-- 版本：1.0.6（2026-09-19）
+- 版本：1.1.0（2026-10-10）
 - 主入口：`electron/release-v16/win-unpacked/绿角犀.exe`
 ### 产品面 × 端口（**总共 3 个前端端口 + 1 个后端端口**）
 
@@ -228,9 +228,9 @@ Electron 打包前先跑：`npm run build && npm run build:backend && node elect
 ```
 APP-AIE/
 ├─ backend/                  # Express + Prisma 后端
-│  ├─ src/routes/            # 39 路由文件（含 /api/v1/app/windows-version 桌面端更新检查）
+│  ├─ src/routes/            # 40+ 路由文件（含 /api/v1/app/windows-version 桌面端更新检查）
 │  ├─ src/services/          # llmService / agentCore / contextCollector
-│  ├─ prisma/schema.prisma   # User / Conversation / VaultNote / WindowsRelease 等 51 表
+│  ├─ prisma/schema.prisma   # User / Conversation / VaultNote / WindowsRelease 等 58 表
 │  └─ dist/                  # tsc 编译产物（打包进 resources/backend）
 ├─ frontend/                 # React 前端
 │  ├─ src/pages/             # 约 40 个页面
@@ -240,11 +240,11 @@ APP-AIE/
 ├─ electron/                 # Electron 主进程 + 打包
 │  ├─ main.js                # BrowserWindow + spawn 后端
 │  ├─ build-desktop.cjs          # 一键构建脚本
+│  ├─ resources/              # 打包输入（frontend/dist + backend/dist 复制到这里）
+│  └─ release-v16/           # 最新打包产物
 ├─ sync-dist.ps1              # FE/BE dist 一键同步（三层时间戳验证）
 ├─ gate-check.ps1             # 发版启动闸 7 项自动门禁
 ├─ seed-windows-release.ps1   # 发版后 SCP EXE + seed 后端 windows_releases 表 + 公网 API 回查
-│  ├─ resources/              # 打包输入（frontend/dist + backend/dist 复制到这里）
-│  └─ release-v16/           # 最新打包产物
 └─ .trae/
    ├─ agents/                # AI 员工（Subagent）
    ├─ skills/                # 员工操作手册（本地 Skill 需 workspace reload 才被 Skill tool 识别）
@@ -285,15 +285,24 @@ APP-AIE/
     - 不要自作主张扩展范围（比如用户说改手机端布局，不要顺手改电脑端）
     - 例外：紧急修 bug 或用户明确说"不用确认直接改"时可跳过，但事后必须立刻同步
 
+12. **三模式 `__BUILD_MODE__` 全覆盖**：
+    - desktop/mobile 用 `cross-env VITE_BUILD_MODE=xxx` 驱动（dev + build 都生效）
+    - **admin 配置必须硬 define：`define: { __BUILD_MODE__: JSON.stringify('admin') }`**（admin 不走 cross-env，也不读 VITE_BUILD_MODE）
+    - `global.d.ts` 类型联合必须含 `'admin'`
+    - 遗漏 → admin 页面 `ReferenceError: __BUILD_MODE__ is not defined` 白屏（2026-10-16 真 bug）
+
 ## 质量基线
 
-- TypeScript strict 零错误
-- 后端 `npm run build` 通过
-- 前端 `npm run build` 通过（无 ESLint error、无 TS error）
-- `prisma db push` 不破坏已有数据
-- 新增路由必须有 zod schema 校验（输入 + refine）
-- 新增页面必须注册三套路由（未登录 / 桌面端 / 移动端）
-- 涉及用户协议/隐私的改动必须同步更新 TermsPage / PrivacyPolicyPage
+- ✅ TypeScript strict 零错误（前后端 `npx tsc --noEmit` 必须过）
+- ✅ 后端 `npm run build` 通过（dist 启动 `/health` 200）
+- ✅ 前端三模式 `npm run build` 通过（desktop/mobile/admin）
+- ✅ Prisma schema validate 通过（`npx prisma validate`）
+- ✅ `node smoke-all.mjs` 65/65 全过（41 路由前缀 + CRUD + 边界用例）
+- ✅ `prisma db push` 不破坏已有数据
+- ✅ 新增路由必须有 zod schema 校验（输入 + refine）
+- ✅ 新增页面必须注册三套路由（未登录 / 桌面端 / 移动端）
+- ✅ 涉及用户协议/隐私的改动必须同步更新 TermsPage / PrivacyPolicyPage
+- ✅ CORS OPTIONS 预检 204 + ACAO 动态回显 Origin + ACAC: true
 
 ## 云端运维速查
 
