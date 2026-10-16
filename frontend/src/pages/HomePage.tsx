@@ -407,57 +407,24 @@ export default function HomePage() {
 
   return (
     <div className="app-shell pb-4">
-      {/* ========== 墨玉绿新头部 ========== */}
-      {/* 1. 问候头：小字灰问候 + 大号加粗用户名 + 圆形通知铃铛 */}
-      <GreetingHeader
-        greeting={data?.sceneGreeting?.title
-          ? `${data.sceneGreeting.title} 👋`
-          : (data?.greeting || '早上好')}
-        username={user?.nickname || user?.username || '用户'}
-        notifyCount={data?.events?.length || 0}
-      />
+      {/* ========== 合并：天气照片背景 + 墨玉绿新头部 ========== */}
+      <div
+        className="relative overflow-hidden rounded-b-[28px] shadow-lg shadow-accent-300/40"
+        style={{ backgroundImage: `url(${weatherImg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(1.05) saturate(1.05)' }}
+      >
+        {/* 顶部深色渐晕：保证顶栏 + 问候头白字可读 */}
+        <div className="absolute inset-x-0 top-0 h-36 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.45) 0%, rgba(15,23,42,0) 100%)' }} />
+        {/* 底部白色渐变：MissionCard + 农历横条自然过渡 */}
+        <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(0deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0) 100%)' }} />
+        {/* 气泡装饰层：白色半透明圆点（保留图1风格） */}
+        <div className="absolute w-[200px] h-[200px] rounded-full bg-white/15 -top-20 -right-12 pointer-events-none" />
+        <div className="absolute w-[120px] h-[120px] rounded-full bg-white/10 -bottom-12 -left-8 pointer-events-none" />
 
-      {/* 2. 周日历横条：7 等分 + 今日 pill + 有记录小点 */}
-      <WeekCalendar />
-
-      {/* 3. 今日任务卡：左 60% 文字 + 右 40% 插画位 */}
-      {data?.todayTasks && data.todayTasks.length > 0 ? (
-        <MissionCard
-          label="今日重点"
-          title={data.todayTasks[0].title}
-          badgeText={data.todayTasks[0].priority ? `${data.todayTasks[0].priority}优先` : ''}
-          art={<span className="text-4xl">🎯</span>}
-        />
-      ) : (
-        <MissionCard
-          label="今日重点"
-          title="开启新的一天"
-          badgeText={data?.achievements?.todayProgress
-            ? `${data.achievements.todayProgress.done}/${data.achievements.todayProgress.total} 完成`
-            : '开始吧'}
-          art={<span className="text-4xl">✨</span>}
-        />
-      )}
-
-      {/* ========== 恢复原完整头部：天气照片 + 大头像 + 问候 + 天气小卡 ========== */}
-      <div className="sticky top-0 z-30 text-accent-800 relative overflow-hidden rounded-b-[28px] shadow-lg shadow-accent-300/40" style={{ background: 'linear-gradient(160deg, #FFFFFF 0%, #F4F5F7 100%)' }}>
-        {/* 实时天气景图层：真实照片原色全幅显示，随天气/昼夜自动切换 */}
-        <div
-          className="absolute inset-0 bg-cover bg-center transition-all duration-700"
-          style={{ backgroundImage: `url(${weatherImg})`, filter: 'brightness(1.05) saturate(1.05)' }}
-        />
-        {/* 顶部深色渐晕：保证顶栏白字在照片上可读 */}
-        <div className="absolute inset-x-0 top-0 h-24 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.38) 0%, rgba(15,23,42,0) 100%)' }} />
-        {/* 底部白色渐变：照片自然过渡到白色内容区，深色文字可读 */}
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0) 26%, rgba(255,255,255,0.62) 52%, rgba(255,255,255,0.96) 100%)' }} />
-        {/* 气泡装饰层：白色半透明圆点 */}
-        <div className="absolute w-[200px] h-[200px] rounded-full bg-white/20 -top-20 -right-12 pointer-events-none" />
-        <div className="absolute w-[120px] h-[120px] rounded-full bg-white/15 -bottom-12 -left-8 pointer-events-none" />
-        <div className="absolute w-10 h-10 rounded-full bg-white/20 top-24 left-1/3 pointer-events-none" />
+        {/* 顶部日常模式顶栏（搜索/刷新/铃铛） */}
         <div className="relative flex items-center justify-between h-11 px-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-white animate-pulse shadow-sm" />
-            <span className="text-white font-medium drop-shadow-sm">日常模式</span>
+            <span className="text-white/90 font-medium drop-shadow-sm">日常模式</span>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/search')} aria-label="搜索" className="hover:bg-white/25 rounded-full p-1.5 transition-colors">
@@ -474,84 +441,103 @@ export default function HomePage() {
             <Link to="/tasks?view=reminders" className="relative hover:bg-white/25 rounded-full p-1.5 transition-colors">
               <Bell size={18} className="text-white drop-shadow-sm" />
               {data && data.events.length > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-0.5 -right-0.5 bg-brand text-on-brand text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {data.events.length}
                 </span>
               )}
             </Link>
           </div>
         </div>
-        <div className="relative px-4 pb-6">
-          <div className="flex items-center gap-3">
-            {/* 桌面端顶栏已有小头像+下拉菜单，此处大头像仅移动端显示，避免重复 */}
-            {!isDesktop() && (
-              <button
-                onClick={() => navigate('/profile')}
-                className="relative w-16 h-16 flex-shrink-0 active:scale-95 transition-transform"
-                title="我的"
-                aria-label="我的页面"
-              >
-                {/* 白底头像+白描边，磨砂玻璃感浮于天气照片上（IDLE 轻呼吸） */}
-                <span className="absolute inset-0 rounded-full overflow-hidden bg-white/65 backdrop-blur-sm border-[3px] border-white shadow-lg shadow-primary-500/25 flex items-center justify-center text-2xl animate-[heroBreathe_3.2s_ease-in-out_infinite]">
-                  {user?.avatar && (user.avatar.startsWith('data:image') || user.avatar.startsWith('http') || user.avatar.startsWith('/')) ? (
-                    <img src={user.avatar} alt="头像" className="w-full h-full object-cover" />
-                  ) : (
-                    <span>{user?.avatar || '👤'}</span>
-                  )}
-                </span>
-                {/* 在线状态脉冲点（薄荷绿+白描边） */}
-                <span className="absolute right-0.5 bottom-0.5 w-[15px] h-[15px] rounded-full bg-primary-400 border-[2.5px] border-white animate-[statusPulse_2.4s_infinite]" />
-              </button>
-            )}
-            <div className="flex-1 min-w-0 flex flex-col gap-1">
-              {/* DG-12 场景化问候：title 主问候 + subtitle 次级信息（不截断，完整显示） */}
-              <div className="font-bold leading-snug text-[17px] text-accent-900 drop-shadow-sm">
-                {data?.sceneGreeting?.title || data?.greeting || '你好'}，{user?.nickname || user?.username}
-                {user?.levelInfo && (
-                  <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] bg-white/80 text-accent-700 px-1.5 py-0.5 rounded-full font-normal align-middle">
-                    {user.levelInfo.icon} Lv{user.levelInfo.level}
-                  </span>
-                )}
-              </div>
-              {/* 副问候 + 日期农历生肖星座合并，自动换行完整显示 */}
-              <div className="text-[11px] leading-relaxed text-accent-700">
-                {data?.sceneGreeting?.subtitle && <>{data.sceneGreeting.subtitle} · </>}
-                {lunarInfo.gregorian} {lunarInfo.lunarShort} · {lunarInfo.zodiacYear} · {lunarInfo.constellation.emoji}{lunarInfo.constellation.name}
-                {lunarInfo.festival && <span className="ml-1">🎉{lunarInfo.festival}</span>}
-              </div>
-              {/* 宜忌双 chip（信息密度最高的放最后） */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] leading-none text-accent-700 bg-white/80 border border-accent-200/60 px-2 py-1 rounded-full">
-                  宜 {lunarInfo.yi.slice(0, 2).join(' ')}
-                </span>
-                <span className="text-[10px] leading-none text-red-600 bg-white/80 border border-red-200/60 px-2 py-1 rounded-full">
-                  忌 {lunarInfo.ji.slice(0, 2).join(' ')}
-                </span>
-              </div>
+
+        {/* GreetingHeader：文字改白色半透明（在深色渐晕上） */}
+        <div className="relative">
+          <header className="flex items-center justify-between gap-4 px-5 pt-2 pb-1">
+            <div className="min-w-0">
+              <p className="text-[12px] leading-[1.4] text-white/70 mb-1">
+                {data?.sceneGreeting?.title
+                  ? `${data.sceneGreeting.title} 👋`
+                  : (data?.greeting || '早上好')}
+              </p>
+              <h1 className="text-[24px] font-bold leading-[1.2] text-white drop-shadow-sm truncate">
+                {user?.nickname || user?.username || '用户'}
+              </h1>
             </div>
-            {/* 天气信息（右侧半透明小卡） */}
-            {weather && !weatherLoading && (
-              <div className="flex-shrink-0 self-center bg-white/70 backdrop-blur-md border border-white/90 rounded-2xl px-2.5 py-1.5 flex flex-col items-center gap-0.5">
-                <div className="text-xl leading-none">{weather.current.weatherIcon}</div>
-                <div className="flex items-baseline">
-                  <span className="text-lg font-thin tabular-nums leading-none text-accent-800">{weather.current.tempC}</span>
-                  <span className="text-[10px] font-thin text-accent-800">°</span>
-                </div>
-                <div className="text-[9px] text-accent-600 leading-none">{weather.current.weatherDesc}</div>
-                <div className="text-[9px] text-accent-500 leading-none tabular-nums">
-                  {weather.today.minTempC}°/{weather.today.maxTempC}°
-                </div>
-              </div>
-            )}
+            <button
+              type="button"
+              aria-label={`通知${(data?.events?.length || 0) > 0 ? `，${data?.events?.length}条未读` : ''}`}
+              onClick={() => navigate('/tasks?view=reminders')}
+              className="relative flex-none w-[38px] h-[38px] rounded-full bg-white/25 backdrop-blur-sm text-white grid place-items-center hover:bg-white/40 transition-colors active:scale-95"
+            >
+              <Bell size={16} strokeWidth={2} className="text-white" />
+              {(data?.events?.length || 0) > 0 && (
+                <span aria-hidden className="absolute -top-[2px] -right-[2px] min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-on-brand text-[9px] font-bold leading-[16px] text-center">
+                  {(data?.events?.length ?? 0) > 99 ? '99+' : (data?.events?.length ?? 0)}
+                </span>
+              )}
+            </button>
+          </header>
+        </div>
+
+        {/* MissionCard + 农历宜忌横条 */}
+        <div className="relative pt-1 pb-4">
+          {/* MissionCard */}
+          {data?.todayTasks && data.todayTasks.length > 0 ? (
+            <MissionCard
+              label="今日重点"
+              title={data.todayTasks[0].title}
+              badgeText={data.todayTasks[0].priority ? `${data.todayTasks[0].priority}优先` : ''}
+              art={<span className="text-4xl">🎯</span>}
+            />
+          ) : (
+            <MissionCard
+              label="今日重点"
+              title="开启新的一天"
+              badgeText={data?.achievements?.todayProgress
+                ? `${data.achievements.todayProgress.done}/${data.achievements.todayProgress.total} 完成`
+                : '开始吧'}
+              art={<span className="text-4xl">✨</span>}
+            />
+          )}
+
+          {/* 农历 + 生肖 + 星座 + 宜忌双 chip（从图1搬来） */}
+          <div className="mx-5 mt-3 flex items-center justify-between text-[11px] text-lgray">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-brand font-medium">{lunarInfo.lunarShort}</span>
+              <span className="mx-0.5">·</span>
+              <span>{lunarInfo.zodiacYear}{lunarInfo.constellation.emoji}{lunarInfo.constellation.name}</span>
+              {lunarInfo.festival && <span className="ml-1">🎉{lunarInfo.festival}</span>}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="bg-brand-pale/40 text-brand text-[10px] px-2 py-0.5 rounded-full">
+                宜 {lunarInfo.yi.slice(0, 2).join(' ')}
+              </span>
+              <span className="bg-red-50 text-red-600 text-[10px] px-2 py-0.5 rounded-full">
+                忌 {lunarInfo.ji.slice(0, 2).join(' ')}
+              </span>
+            </div>
           </div>
-          {/* DG-12 场景化问候：tip 场景化建议 */}
+
+          {/* 天气 icon+温度+描述+最高最低（从图1天气小卡压缩） */}
+          {weather && !weatherLoading && (
+            <div className="mx-5 mt-2 flex items-center gap-2 text-[11px] text-lgray">
+              <span className="text-lg leading-none">{weather.current.weatherIcon}</span>
+              <span className="text-[13px] font-semibold text-ink">{weather.current.tempC}°</span>
+              <span>{weather.current.weatherDesc}</span>
+              <span className="text-lgray-light tabular-nums">{weather.today.minTempC}°/{weather.today.maxTempC}°</span>
+            </div>
+          )}
+
+          {/* DG-12 tip 场景化建议 */}
           {data?.sceneGreeting?.tip && (
-            <div className="mt-3 bg-white/70 backdrop-blur rounded-2xl px-3 py-2 text-xs text-accent-700">
+            <div className="mx-5 mt-3 bg-white/80 backdrop-blur rounded-2xl px-3 py-2 text-xs text-accent-700 border border-lgray-light/40">
               💡 {data.sceneGreeting.tip}
             </div>
           )}
         </div>
       </div>
+
+      {/* ========== WeekCalendar 移到最下面 ========== */}
+      <WeekCalendar />
 
       {/* ★ 事件总汇（含倒计时）：新头部之后的第一张卡 */}
       {data && (data.events.length > 0 || countdownCards.length > 0) && (
