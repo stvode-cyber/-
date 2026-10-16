@@ -32,7 +32,7 @@ export default function MissionCard({
   return (
     <section className="px-5 pb-2">
       {/* 分区标签：全大写 + 字距放宽（非中文时才 uppercase） */}
-      <p className="mb-2.5 text-[10px] font-bold tracking-[0.08em] uppercase text-lgray">
+      <p className="mb-2.5 text-[11px] font-bold tracking-[0.08em] uppercase text-lgray">
         {label}
       </p>
 
@@ -43,13 +43,13 @@ export default function MissionCard({
       >
         {/* 文字区 */}
         <div className={`min-w-0 ${hasArt ? 'flex-1 pr-2' : 'w-full'}`}>
-          <h2 className="text-[22px] font-bold leading-[1.25] text-ink">
+          <h2 className="text-[26px] font-bold leading-[1.25] text-ink">
             {title}
           </h2>
 
           {/* 徽章 pill（brand 色） */}
           {badgeText && (
-            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-brand text-on-brand text-[11px] font-semibold">
+            <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-brand text-on-brand text-[12px] font-semibold">
               {BadgeIcon && <BadgeIcon size={10} strokeWidth={2.5} />}
               {badgeText}
             </span>

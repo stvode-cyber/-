@@ -453,12 +453,12 @@ export default function HomePage() {
         <div className="relative">
           <header className="flex items-center justify-between gap-4 px-5 pt-2 pb-1">
             <div className="min-w-0">
-              <p className="text-[12px] leading-[1.4] text-white/70 mb-1">
+              <p className="text-[14px] leading-[1.4] text-white/70 mb-1">
                 {data?.sceneGreeting?.title
                   ? `${data.sceneGreeting.title} 👋`
                   : (data?.greeting || '早上好')}
               </p>
-              <h1 className="text-[24px] font-bold leading-[1.2] text-white drop-shadow-sm truncate">
+              <h1 className="text-[30px] font-bold leading-[1.2] text-white drop-shadow-sm truncate">
                 {user?.nickname || user?.username || '用户'}
               </h1>
             </div>
@@ -466,9 +466,9 @@ export default function HomePage() {
               type="button"
               aria-label={`通知${(data?.events?.length || 0) > 0 ? `，${data?.events?.length}条未读` : ''}`}
               onClick={() => navigate('/tasks?view=reminders')}
-              className="relative flex-none w-[38px] h-[38px] rounded-full bg-white/25 backdrop-blur-sm text-white grid place-items-center hover:bg-white/40 transition-colors active:scale-95"
+              className="relative flex-none w-[42px] h-[42px] rounded-full bg-white/25 backdrop-blur-sm text-white grid place-items-center hover:bg-white/40 transition-colors active:scale-95"
             >
-              <Bell size={16} strokeWidth={2} className="text-white" />
+              <Bell size={18} strokeWidth={2} className="text-white" />
               {(data?.events?.length || 0) > 0 && (
                 <span aria-hidden className="absolute -top-[2px] -right-[2px] min-w-[16px] h-[16px] px-1 rounded-full bg-brand text-on-brand text-[9px] font-bold leading-[16px] text-center">
                   {(data?.events?.length ?? 0) > 99 ? '99+' : (data?.events?.length ?? 0)}
@@ -498,7 +498,7 @@ export default function HomePage() {
           )}
 
           {/* 农历 + 生肖 + 星座 + 宜忌双 chip（从图1搬来） */}
-          <div className="mx-5 mt-3 flex items-center justify-between text-[11px] text-lgray">
+          <div className="mx-5 mt-3 flex items-center justify-between text-[13px] text-lgray">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="text-brand font-medium">{lunarInfo.lunarShort}</span>
               <span className="mx-0.5">·</span>
@@ -517,9 +517,9 @@ export default function HomePage() {
 
           {/* 天气 icon+温度+描述+最高最低（从图1天气小卡压缩） */}
           {weather && !weatherLoading && (
-            <div className="mx-5 mt-2 flex items-center gap-2 text-[11px] text-lgray">
-              <span className="text-lg leading-none">{weather.current.weatherIcon}</span>
-              <span className="text-[13px] font-semibold text-ink">{weather.current.tempC}°</span>
+            <div className="mx-5 mt-2 flex items-center gap-2 text-[13px] text-lgray">
+              <span className="text-xl leading-none">{weather.current.weatherIcon}</span>
+              <span className="text-[15px] font-semibold text-ink">{weather.current.tempC}°</span>
               <span>{weather.current.weatherDesc}</span>
               <span className="text-lgray-light tabular-nums">{weather.today.minTempC}°/{weather.today.maxTempC}°</span>
             </div>
@@ -527,7 +527,7 @@ export default function HomePage() {
 
           {/* DG-12 tip 场景化建议 */}
           {data?.sceneGreeting?.tip && (
-            <div className="mx-5 mt-3 bg-white/80 backdrop-blur rounded-2xl px-3 py-2 text-xs text-accent-700 border border-lgray-light/40">
+            <div className="mx-5 mt-3 bg-white/80 backdrop-blur rounded-2xl px-3 py-2 text-[13px] text-accent-700 border border-lgray-light/40">
               💡 {data.sceneGreeting.tip}
             </div>
           )}

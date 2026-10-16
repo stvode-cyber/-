@@ -18,7 +18,7 @@ interface Props {
 }
 
 const WEEK_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-const DAY_WIDTH = 48 // 每个 pill 固定宽（px）
+const DAY_WIDTH = 52 // 每个 pill 固定宽（px），增大后更易点
 
 export default function WeekCalendar({ recordedDays, onSelect }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null)
@@ -68,7 +68,7 @@ export default function WeekCalendar({ recordedDays, onSelect }: Props) {
               aria-current={isToday ? 'date' : undefined}
               onClick={() => onSelect?.(d)}
               className={`
-                flex-none snap-center w-12 h-16 flex flex-col items-center justify-center
+                flex-none snap-center w-12 h-[68px] flex flex-col items-center justify-center
                 gap-0.5 rounded-full border-0 bg-transparent cursor-pointer
                 transition-colors flex-shrink-0
                 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand-highlight
@@ -80,13 +80,13 @@ export default function WeekCalendar({ recordedDays, onSelect }: Props) {
               style={{ width: DAY_WIDTH, flexShrink: 0 }}
             >
               <span
-                className={`text-[10px] leading-[1.2] ${
+                className={`text-[12px] leading-[1.2] ${
                   isToday ? 'text-on-brand/80' : 'text-lgray'
                 }`}
               >
                 {label}
               </span>
-              <span className="text-[15px] font-semibold leading-[1.2]">
+              <span className="text-[17px] font-semibold leading-[1.2]">
                 {dayOfMonth}
               </span>
               {/* 有记录小点 */}
