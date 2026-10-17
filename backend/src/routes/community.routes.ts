@@ -291,6 +291,31 @@ router.get('/posts/:id', async (req, res, next) => {
 })
 
 /**
+ * 删除帖子（仅作者可删，级联删 likes/favorites/comments）
+ */
+router.delete('/posts/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const userId = req.user!.userId
+
+    const post = await prisma.post.findUnique({ where: { id } })
+    if (!post) throw new HttpError('帖子不存在', 404)
+    if (post.userId !== userId) throw new HttpError('无权删除他人帖子', 403)
+
+    await prisma.$transaction([
+      prisma.postLike.deleteMany({ where: { postId: id } }),
+      prisma.postFavorite.deleteMany({ where: { postId: id } }),
+      prisma.comment.deleteMany({ where: { postId: id } }),
+      prisma.post.delete({ where: { id } }),
+    ])
+
+    res.json({ code: 0, data: null, message: '删除成功' })
+  } catch (err) {
+    next(err)
+  }
+})
+
+/**
  * 点赞（幂等：已点赞则不重复加）
  */
 router.post('/posts/:id/like', async (req, res, next) => {
