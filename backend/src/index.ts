@@ -59,7 +59,7 @@ import { startWeeklyAggregatorScheduler } from './utils/weeklyAggregator.js'
 import { startExecInstanceScheduler } from './utils/execInstanceScheduler.js'
 import { startFetchJobScheduler } from './utils/fetchJobScheduler.js'
 import { initAgentCore } from './services/agentCore.js'
-import { prismaReady } from './lib/prisma.js'
+import { prismaReady, ensureReleaseTables } from './lib/prisma.js'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -209,7 +209,9 @@ app.listen(PORT, HOST, () => {
   console.log(`   健康检查: http://${HOST}:${PORT}/health\n`)
   // 等待 Prisma journal_mode 设置完成（Electron 环境下避免 WAL 写入冲突）
   // 再启动调度器，防止 CountdownScheduler 首次扫描在 PRAGMA 执行前写入
-  prismaReady.finally(() => {
+  prismaReady.finally(async () => {
+    // 确保 release 表存在 + seed（Electron 首次启动时 SQLite 是空的）
+    await ensureReleaseTables()
     // 启动倒计时调度器（每分钟扫描 active 倒计时生成提醒）
     startCountdownScheduler()
     // 启动每日早安问候调度器（每天 9:00 向用户发送 AI 私信）

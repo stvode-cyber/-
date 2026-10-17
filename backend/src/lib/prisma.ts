@@ -44,3 +44,62 @@ export const prismaReady: Promise<void> =
           console.error('[Prisma] 设置 journal_mode=DELETE 失败:', (e as Error).message)
         })
     : Promise.resolve()
+
+/**
+ * 启动时确保 windows_releases / android_releases 表存在 + 有初始数据
+ * Electron 内嵌 backend 首次启动时 SQLite 是空文件，Prisma schema 不会自动建表
+ * 所以用 $executeRawUnsafe 手动 CREATE TABLE IF NOT EXISTS + seed 最新版本
+ */
+export async function ensureReleaseTables() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS windows_releases (
+        id TEXT PRIMARY KEY,
+        version TEXT UNIQUE NOT NULL,
+        isLatest INTEGER NOT NULL DEFAULT 0,
+        sizeMB REAL NOT NULL,
+        setupUrl TEXT NOT NULL,
+        portableUrl TEXT,
+        setupSha256 TEXT NOT NULL,
+        notes TEXT NOT NULL DEFAULT '',
+        forceUpdate INTEGER NOT NULL DEFAULT 0,
+        publishedAt TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `)
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS android_releases (
+        id TEXT PRIMARY KEY,
+        version TEXT UNIQUE NOT NULL,
+        isLatest INTEGER NOT NULL DEFAULT 0,
+        sizeMB REAL NOT NULL,
+        apkUrl TEXT NOT NULL,
+        apkSha256 TEXT NOT NULL,
+        notes TEXT NOT NULL DEFAULT '',
+        forceUpdate INTEGER NOT NULL DEFAULT 0,
+        publishedAt TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `)
+    // seed v1.1.0（只在空表时插入）
+    const cnt = await prisma.$queryRawUnsafe('SELECT count(*) as cnt FROM windows_releases') as { cnt: bigint }[]
+    if (cnt[0].cnt === 0n) {
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
+        VALUES (
+          'rel_v1_1_0',
+          '1.1.0',
+          1,
+          160.5,
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.1.0.exe',
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.1.0.exe',
+          '50F2EE763E3A97A267E96E243DFD074BB4EDF1D86044A3722D815829982FE6A8',
+          'v1.1.0: HomePage useHomeData hook, PetPage PetGames.tsx (-30%), vite manualChunks 拆包',
+          0
+        )
+      `)
+      console.log('[ensureReleaseTables] ✅ seeded v1.1.0')
+    }
+  } catch (e) {
+    // 表可能已存在（Prisma schema 同步过），忽略
+    console.warn('[ensureReleaseTables] 跳过（表可能已存在）:', (e as Error).message)
+  }
+}
