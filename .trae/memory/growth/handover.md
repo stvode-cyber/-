@@ -1,7 +1,7 @@
 # 🤝 绿角犀管家 (APP-AIE) — AI 交接总览
 
 > **新 AI 进门第一读。5 分钟内读懂项目状态，30 秒内能启动。**
-> 🔴 **入场顺序**：本文件 → pitfalls.md → INDEX.md → 今日 daily.md → git log --oneline -5
+> 🔴 **入场顺序**：本文件 → secrets.md → issues.md → INDEX.md → 今日 daily.md → git log --oneline -5
 > 🔴 **先验证**：`git status --short` + `Invoke-RestMethod http://localhost:3001/health`
 
 ---
@@ -145,6 +145,9 @@ APP-AIE/
 | **大白话回复** | 禁止套话废话技术术语堆砌，直接说事 |
 | **任务进度编号** | 每次宣告 "N 个动作"，完成的标记 ✅ 带编号 |
 | **新 AI 可立即接手** | 台账精简 + 索引清晰 + 每日流水 |
+| **前端简洁易懂** | UI 操作路径越短越好，按钮大白话，交互顺 |
+| **后端先想再写** | 每个路由/Service 先想"是不是一定要写"，选最高效办法 |
+| **联网学习借鉴** | 有问题先搜开源项目/最佳实践，不自己瞎造轮子 |
 
 ---
 

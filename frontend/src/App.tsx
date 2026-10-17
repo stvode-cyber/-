@@ -47,7 +47,19 @@ const CountdownDetailPage = lazy(() => import('./pages/CountdownDetailPage'))
 const PreviewSeparatorPage = lazy(() => import('./pages/PreviewSeparatorPage'))
 const LibraryPage = lazy(() => import('./pages/LibraryPage'))
 const NovelPage = lazy(() => import('./pages/NovelPage'))
-const NovelReaderPage = lazy(() => import('./pages/NovelReaderPage'))
+// 手机端砍掉阅读器（pdfjs+epubjs+mammoth 共 680KB），屏幕小用系统自带阅读器
+const NovelReaderPage = import.meta.env.VITE_BUILD_MODE === 'mobile'
+  ? () => (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+        <div className="text-4xl mb-4">📚</div>
+        <h2 className="text-lg font-semibold text-gray-800 mb-2">阅读器仅支持电脑端</h2>
+        <p className="text-sm text-gray-500 leading-relaxed">
+          手机屏幕小，小说/文档阅读器功能较重。<br />
+          请在电脑上使用绿角犀查看完整阅读功能。
+        </p>
+      </div>
+    )
+  : lazy(() => import('./pages/NovelReaderPage'))
 const PomodoroPage = lazy(() => import('./pages/PomodoroPage'))
 const HabitPage = lazy(() => import('./pages/HabitPage'))
 const ReviewPage = lazy(() => import('./pages/ReviewPage'))

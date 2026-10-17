@@ -34,8 +34,12 @@ export default defineConfig({
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom', 'scheduler'],
+        manualChunks(id) {
+          if (id.includes('pdfjs-dist')) return 'pdfjs-vendor'
+          if (id.includes('epubjs')) return 'epubjs-vendor'
+          if (id.includes('mammoth')) return 'mammoth-vendor'
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+          if (id.includes('node_modules')) return 'vendor'
         },
       },
     },

@@ -1,49 +1,61 @@
 # 🗂️ 台账索引（新 AI 入门 30 秒接住）
 
-> 本文是 `.trae/memory/growth/` 目录的**总索引**。按顺序读：handover → pitfalls → 本索引 → 今日 daily。
+> 本文是 `.trae/memory/growth/` 目录的**总索引**。
+> 🔴 **入场顺序**：AGENTS.md → handover.md → secrets.md → 本索引 → issues.md → 今日 daily.md
 
 ---
 
 ## 📂 文件清单
 
-| 文件 | 行数 | 用途 | 什么时候查 |
-|---|---|---|---|
-| **handover.md** | ~160 | 30 秒快照 + 启动命令 + 账号 + 服务器 + 活跃坑 Top 5 | 接手第一读 |
-| **pitfalls.md** | ~240 | 所有踩过的坑（永不归档）| 改代码前查有没有类似坑 |
-| **decisions.md** | ~40 | 为什么选 A 不选 B | 做选择前看之前同类决策 |
-| **issues.md** | ~180 | bug 工单（生命周期追踪）| 排查 bug 时看有没有同类 |
-| **daily/2026-10-16.md** | ~31 | 今日工作流水 | 看今天做了啥 |
-| **daily/2026-10-15.md** | ~27 | 昨日流水 | 接手上一个 AI 的活 |
-| **daily/2026-10-14.md** | ~37 | 前日流水 | — |
-| **archive/daily-2026-Q3.md** | ~500 | 9-23 ~ 10-12 旧 daily 合并归档 | 查历史（已过期） |
+| 文件 | 用途 | 什么时候查 |
+|---|---|---|
+| **handover.md** | 30 秒快照 + 启动命令 + 服务器 + 活跃坑 Top 5 | 接手第一读 |
+| **secrets.md** | 🔐 重要信息集中表（版本号/账号/服务器/密钥路径）| 版本 bump、服务器操作、发版时必查 |
+| **issues.md** | Master bug 工单 + 独立踩坑快查（P0/P1/P2）+ 杂项铁律 | 改代码前扫坑、排查 bug |
+| **decisions.md** | 为什么选 A 不选 B（20 条关键决策）| 做选择前看之前同类决策 |
+| **daily/2026-10-17.md** | 今日工作流水 | 看今天做了啥 |
+| **archive/daily-2026-Q3.md** | 9-23 ~ 10-12 旧 daily 合并归档 | 查历史（已过期）|
 
 ---
 
 ## 🔑 快速跳转锚点
 
-### pitfalls.md 关键条目
+### issues.md Master 结构（按类型）
 
-| 标签 | 条目 |
-|---|---|
-| [GS-002] | PowerShell 5.1 读 UTF-8 无 BOM 中文炸 |
-| [P0] | 用户说"做过了"实际没做 → 必须先验证再继续 |
-| [P0] | GitHub CDP 自动化被 bot 防护拦截 |
-| [P0] | Chrome user-data-dir 混用导致 CDP 连错窗口 |
-| [2026-10-10] | Capacitor v8 kotlin jvmToolchain(21) → afterEvaluate 覆盖 17 |
-| [2026-10-10] | Setup.exe /S 静默被 Defender 拦 → win-unpacked 直拷 |
-| [2026-10-14] | pm2 进程名实际是 backend 不是 aie-backend |
-| [2026-10-15] | CapacitorHttp 原生插件拦截 WebView fetch |
+| Master ID | 主题 | 最高 P 级 | 状态 |
+|---|---|---|---|
+| M-001 | Vite Dev Server 多 HTML + BUILD_MODE + Proxy | **P0** | ✅ fixed |
+| M-002 | 后端全局错误处理漏接 ZodError | P0 | ✅ fixed |
+| M-003 | 运维操作 / SSH / 数据库直接改 | P1 | ✅ fixed |
+| M-004 | PowerShell 5 环境特定坑 | P1 | ⚠️ recurring |
+| M-005 | Git push / 编码 / 换行符 | P1 | ⚠️ recurring |
+| M-006 | Android 自动更新全链路 | **P0** | 🔧 fixing |
 
-### decisions.md 关键条目
+### issues.md 独立踩坑快查（高频必看）
+
+| P 级 | 坑标签 | 预防一句话 |
+|---|---|---|
+| 🔴 P0 | 用户说做过了实际没做 | 远程操作前必须 pm2 list / git ls-remote 验证 |
+| 🔴 P0 | GitHub CDP bot 防护 | 仓库/设置类让用户手动点浏览器 |
+| 🔴 P0 | SFTP path.join 反斜杠 | 跨平台文件传输用 `/` 不用 path.join |
+| 🟠 P1 | SNI 被封 | 内测下载统一直连 `https://47.116.59.141/apk/` |
+| 🟠 P1 | NSIS vs InnoSetup 参数混淆 | 先搜 Nullsoft 确认 → NSIS 用 `/S /D=<path>` |
+| 🟠 P1 | Capacitor jvmToolchain(21) | afterEvaluate 覆盖成 JDK 17 |
+| 🟠 P1 | pm2 进程名漂移 | 实际叫 `backend`，文档写 aie-backend 是旧名 |
+| 🟡 P2 | 版本号漏更 | bump 时扫 secrets.md 检查清单 10 项 |
+| 🟡 P2 | dist 旧版鬼影 | 改源码必须 sync-dist.ps1 |
+| 🟡 P2 | PowerShell here-string 炸模板字符串 | 用 base64 中转 / Node.js 写文件 |
+
+### decisions.md 关键决策
 
 | 日期 | 决策 |
 |---|---|
-| 2026-09-23 | DEV 登录生产环境彻底屏蔽 |
+| 2026-09-14 | 注册功能统一为手机+验证码 |
+| 2026-09-18 | dist 同步铁律（sync-dist.ps1 固化）|
+| 2026-09-20 | nginx proxy_pass 端口同步铁律 |
 | 2026-09-23 | Skill 加防失忆双铁律 |
 | 2026-10-10 | 推翻 "Capacitor 硬要 JDK 21" — 17 够用 |
-| 2026-10-10 | 桌面版用 win-unpacked 直拷 |
-| 2026-10-10 | Android 自己写 IntentInstallerPlugin |
-| 2026-10-10 | CORS 后端动态回显 |
+| 2026-10-10 | Android 自动更新自己写 IntentInstallerPlugin |
 
 ---
 
@@ -51,24 +63,11 @@
 
 | 规则 | 说明 |
 |---|---|
-| daily 保留最近 3 天 | 超过 3 天自动移入 archive/ |
-| pitfalls 永不归档 | 踩过的坑必须能被后来者看到 |
-| decisions 只留当前有效 | 过期决策（如"推翻 X 规则"）删掉 |
-| handover 每次接手时更新 | commit hash + 版本号 + 服务器状态 |
+| daily 保留最近 3 天 | 超过自动移入 archive/ |
+| issues 永不全归档 | Master 工单 closed 移 archive，独立踩坑快查永不归档 |
+| secrets.md 三处同步 | 任何变更必须同步 AGENTS.md + handover.md（铁律 #14）|
 | INDEX.md 只在大改动后更新 | 不频繁改，避免成为负担 |
-
----
-
-## 👤 用户行为偏好（AI 必守）
-
-> 新 AI 进门先看这个！用户只负责"确认/同意/好的"，所有脏活全交给 AI。
-
-| 偏好 | 执行 |
-|---|---|
-| **AI 全权操作** | 跑命令、改代码、SSH 部署、浏览器自动化，用户只点头 |
-| **大白话回复** | 禁止套话"执行上述验证动作"、"经比对验证结果"这类，直接说事 |
-| **任务进度编号** | 每次宣告 "N 个动作"，完成的标记 ✅ 带编号，方便回顾 |
-| **新 AI 可立即接手** | 台账精简 + 索引清晰 + 每日流水 |
+| 新坑必注入 TODO | issues.md 新条目的预防规则必须注入关联文件 `// TODO: [坑标签]` 注释 |
 
 ---
 
@@ -77,8 +76,11 @@
 | 你想 | 去 |
 |---|---|
 | 启动开发环境 | handover.md → 启动命令 |
-| 改代码前查坑 | pitfalls.md |
+| 服务器操作 | secrets.md → 服务器清单 + 健康检查清单 |
+| 发版本 | secrets.md → 版本同步检查清单（10 项打勾）|
+| 改代码前扫坑 | issues.md |
 | 做选择前看之前决策 | decisions.md |
-| 排查 bug | issues.md + handover.md 活跃坑 Top 5 |
-| 看今天做了啥 | daily/2026-10-16.md |
-| 看项目身份和硬约束 | AGENTS.md |
+| 排查 bug | issues.md Master 工单 + 独立踩坑快查 |
+| 看今天做了啥 | daily/2026-10-17.md |
+| 看项目硬约束 | AGENTS.md → 15 条铁律 |
+| 想知道 pm2 叫啥 | secrets.md → pm2 进程名 `backend` |

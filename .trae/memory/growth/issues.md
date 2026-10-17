@@ -180,3 +180,76 @@ await IntentInstaller.install({ path: dlResult.path })
 2. 同类问题（根因相同）归到同一 Master，不单独开新 Master
 3. 每次踩坑先查 Master 索引表，有就 append 子条目，没有才开新 Master
 4. 每月归档：closed 的工单移到 issues-archive.md
+
+---
+
+## 独立踩坑快查（未达 Master 级但已踩过）
+
+### 🔴 P0 级（必看）
+
+| 标签 | 问题 | 预防 |
+|---|---|---|
+| 用户说做过了实际没做 | 必须先 `git ls-remote` / `pm2 list` / curl health 验证远程状态，不能信口头 | 关键远程操作前必验 |
+| GitHub CDP bot 防护 | Runtime.evaluate setter 被检测，关键操作让用户手动点浏览器 | 仓库/设置类用用户手动 |
+| Chrome user-data-dir 混用 | 启动 CDP Chrome 前 `Stop-Process chrome -Force` | 避免端口被其他 Chrome 抢 |
+| SFTP path.join 反斜杠 | Windows path.join 输出 \ 被 SFTP 当文件名，必须用 `/` 或 path.posix.join | 跨平台文件传输禁用 path.join |
+| VBS 中文乱码 | 改 .vbs 必须 PowerShell + GBK 读写 | 纯 GBK，不许 UTF-8 |
+| Server 备份丢失 | 每次 prod.db 备份必须 3 份（本地+服务器+归档） | 至少保留 3 份不同日期 |
+| auth 路由泄漏 | /register 保留但加 deprecated 标记 + 限流 | 废弃前端入口时后端同步处理 |
+
+### 🟠 P1 级
+
+| 标签 | 问题 | 预防 |
+|---|---|---|
+| 空 DB 假 hash | 初始化先校验 DB 非空 + 表存在，不只看 .db-version hash | 双校验：hash + 文件 |
+| koacontext 泄漏 | Express → Koa 迁移优先重写，不要 koa-connect wrapper | 直接写原生 Koa |
+| SNI 被封 | lujax.fun 封锁，必须用 `https://47.116.59.141/apk/` 直连 IP | 内测下载统一直连 IP |
+| nginx conf chattr +i | 改前 `lsattr` → `chattr -i`，改完 reload + `chattr +i` | 三步不能少 |
+| 多 listen 80 的 conf 归属 | 只有带 default_server 的才接直连 IP 流量 | 改前 grep 看归属 |
+| gh auth GH_TOKEN 覆盖 | Remove-Item Env:\GH_TOKEN 再登录 | 环境变量优先于凭据 |
+| gh auth device code 慢 | 让用户浏览器手动建仓库，AI 只负责 git push | device code 等 25s 超时 |
+| nginx heredoc $host 被 PS 展开 | 用反引号转义 `` `$host `` 或本地写文件再 scp | 别在 PowerShell heredoc 里写 nginx 变量 |
+| AUTH_MODE cloud-proxy 覆盖新端点 | 本地先加的新端点云端还没 → 强制 AUTH_MODE=local | 不能假设云端永远最新 |
+| NSIS vs InnoSetup 参数混淆 | 先二进制搜 `Nullsoft` 确认类型 → NSIS 用 `/S /D=<path>` | 不许默认 InnoSetup |
+| SQLite DATETIME 空字符串 | 手动 seed 用 Prisma Client，别 SQL 直接插空串 | Prisma 类型检查更严 |
+| Prisma DateTime 比较失效 | 必须 `CAST(col AS INTEGER)` raw SQL，不能 Client `lt: new Date()` | SQLite DateTime 存 INTEGER 毫秒 |
+| PM2 kill -9 无效 | 必须 `pm2 restart <name>`，kill 子进程 PM2 会自动拉起 | 查进程名 `pm2 list` 再操作 |
+| Capacitor jvmToolchain(21) | root build.gradle `subprojects afterEvaluate kotlin jvmToolchain(17)` 覆盖 | JDK 17 够用！ |
+| pm2 进程名漂移 | 文档写 aie-backend 实际叫 backend | 任何远程操作前先 pm2 list |
+| 打包版心跳 500 | electron-builder extraResources 漏 cloud-jwt-public.pem | build-desktop.cjs 有自动复制步骤 |
+| Vite manualChunks 对象式不匹配 | `'react-vendor': ['react','react-dom']` 只匹配精确路径，node_modules 子路径全漏掉 | 必须用函数式 `(id) => { if(id.includes('pdfjs-dist')) return 'pdfjs-vendor' }` |
+| React.lazy 静态声明删路由没用 | `const X = lazy(import(A))` 不管路由用不用都会被 Rollup 打包 | 用条件表达式让 lazy 变 dead code：`const X = BUILD_MODE==='mobile' ? () => null : lazy(import(A))` |
+
+### 🟡 P2 级
+
+| 标签 | 问题 | 预防 |
+|---|---|---|
+| electronBuilder 进程占用 | 打包前 Stop-Process 绿角犀 -Force | 文件锁没释放 |
+| Vite publicDir 位置错 | publicDir 必须和 root 同级，不能放 build 对象里 | Vite 3+ 硬约束 |
+| smsService 语法损坏 | 新建含模板字符串的 TS 后立刻 `npx tsc` 验 | 编码转换可能破坏 |
+| 版本号漏更 | 5 处同步：constants + package.json×2 + AGENTS + API 返回 | bump 时自动扫 5 落点 |
+| Glob 中文路径返空 | 中文路径先 LS 再直接 Read 绝对路径 | 别全量 Glob 中文根 |
+| res.json 双序列化 | response 工具函数已返回对象，别再 `res.json(success())` | 检查 helper 是否 wrap |
+| PowerShell here-string 破坏模板字符串 | 用 base64 中转 / Node.js 写文件 / 字符串拼接避 ${} | PS 和 JS 模板串同语法必炸 |
+| electron-builder publish repo 错 | 加 `--publish never` 跳过 GitHub push 尝试 | electron/package.json publish.repo 要对 |
+| Setup.exe /S 被 Defender 拦 | 开发者用 win-unpacked 直拷，不用静默安装 | 无签名 EXE /S 被 SmartScreen 拦 |
+| dist 旧版鬼影 | 改源码必须 sync-dist.ps1 → build → 同步 resources | Electron 跑 resources 下的 dist |
+| FRP 公网中继 | frpc 没启动 → 3900 超时；schtasks 开机自启 | 公网 3900 不通先查 frpc |
+| 后端子路径路由 404 不算 bug | chat.routes.ts 只注册 /chat/sessions 不注册 /chat 根路径，smoke-all 测根会 404 | smoke-all 只测子路径或在路由文件加 `router.get('/', (req,res)=>res.json({ok:true}))` |
+| phone 字段漏写 | /register 路由 username 像手机号时同步写 phone | PHONE_RE 正则防御 |
+| PowerShell curl 中文 ANSI | 禁止用 curl 发中文 JSON，前端 axios 自动 UTF-8 | PS5 默认 ANSI 编码 |
+| Vite timestamp 临时文件混 git | .gitignore 加 `*.timestamp-*.mjs` | Vite 调试时生成 |
+
+---
+
+## 杂项铁律（高频易错）
+
+1. **SQLite 不是 MySQL** — 服务器直接 `sqlite3 prod.db < update.sql`
+2. **SQL 带 BOM 头炸** — UTF8Encoding($false) 写无 BOM
+3. **表名漂移** — 本地 PascalCase，服务器小写复数，写 SQL 前先 `.tables`
+4. **LLM_API_KEY 不进安装包** — key 在服务器 .env，新电脑手动放 llm.env 到 userData/
+5. **内测两步走** — 本机验证 → 用户确认 → 传云端
+6. **CORS 严格拒绝 `*` + credentials** — 后端动态回显
+7. **Nginx 不追加 Access-Control-Allow-Origin** — 避免与后端动态头冲突
+8. **PowerShell heredoc 在 SSH 引号嵌套时必炸** — 写 .sh 文件 scp 上去
+9. **Electron 每次 build SHA256 变** — 打完包必须更新 prod.db windows_releases 表

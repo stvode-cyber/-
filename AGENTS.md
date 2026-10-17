@@ -34,9 +34,9 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 
 ---
 
-## ③ 硬约束 12 条（编号铁律）
+## ③ 硬约束 15 条（编号铁律）
 
-1. **版本号三落点同步**：改版本必须同时改 electron/package.json、backend/package.json、前端 5 处硬编码
+1. **版本号 5 落点同步**：改版本必须同时改 electron/backend/frontend/package.json + AGENTS.md + secrets.md + 云端 prod.db 两表（详见 secrets.md 检查清单）
 2. **打包路径不能动**：electron-builder `extraResources from` 必须指向实际产物
 3. **数据库初始化双校验**：`.db-version` hash **且** db 文件存在且非空
 4. **LLM_API_KEY 不随安装包分发**：key 在云端 .env，别的电脑靠独立交付的 `llm.env` 放 userData/
@@ -49,6 +49,8 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 11. **动手前必须宣告 + 等用户确认**：例外：紧急修 bug 或用户说"不用确认"时可跳过，事后必须同步
 12. **三模式 __BUILD_MODE__ 全覆盖**：desktop/mobile 用 cross-env；admin 必须硬 `define: { __BUILD_MODE__: JSON.stringify('admin') }`（2026-10-16 真 bug）
 13. **用户偏好：全交给 AI + 大白话回复 + 只需确认**：AI 全权操作所有动作（跑命令、改代码、SSH 部署），用户只负责"确认/同意/好的"；回复必须大白话，不许套话废话技术术语堆砌（2026-10-17 用户明确要求）
+14. **重要信息变更必须三处同步**：secrets.md + AGENTS.md + handover.md 任何一处变更，另外两处必须立刻跟上（pm2 进程名漂移就是反例）
+15. **关键远程操作前必须先验证**：用户说"做过了"不代表真做了——`pm2 list` 查进程、`git ls-remote` 查仓库、curl health 查服务，必验
 
 ---
 
@@ -60,6 +62,9 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 | 大白话回复 | 禁止"执行上述验证动作"、"经比对验证结果"这类套话 |
 | 任务进度编号 | 每次必须宣告 "N 个动作"，完成的标记 ✅ 带编号 |
 | 新 AI 可立即接手 | 台账要精简 + 索引清晰 + 每日流水 |
+| **前端简洁易懂** | UI 操作路径越短越好，按钮命名大白话，墨玉绿主题不变但交互要顺 |
+| **后端先想再写** | 每个路由/Service 先想"是不是一定要写"，选最高效办法；能用 Prisma 原生就别写 raw SQL；能缓存就别重复查 |
+| **联网学习借鉴** | 有问题先搜开源项目/最佳实践，不自己瞎造轮子 |
 
 ---
 
@@ -126,11 +131,47 @@ APP-AIE/
 
 ---
 
-## ⑧ 台账体系（精简）
+## ⑧ 台账体系（统一 growth/ 一套，无冗余）
 
-- **handover.md**：30 秒快照 + 启动命令 + 账号 + 服务器 + 活跃坑 Top 5 + 快速验证
-- **INDEX.md**：台账总索引（文件清单 + 快速跳转 + 维护规则）
-- **pitfalls.md**：所有踩过的坑（永不归档）
-- **decisions.md**：为什么选 A 不选 B
-- **daily/**：每日流水（只留最近 3 天，旧的进 archive/）
-- **issues.md**：bug 工单
+所有台账文件统一在 `APP-AIE/.trae/memory/growth/` 下，**不再有第二套**。
+
+| 文件 | 用途 | 什么时候查 |
+|---|---|---|
+| **handover.md** | 30 秒快照 + 启动命令 + 服务器 + 活跃坑 Top 5 | 接手第一读 |
+| **issues.md** | Master 结构 bug 工单 + 独立踩坑快查 + 杂项铁律 | 改代码前查有没有类似坑 |
+| **decisions.md** | 为什么选 A 不选 B | 做选择前看之前同类决策 |
+| **secrets.md** | 🔐 重要信息集中表（版本号/账号/服务器/密钥路径）| 任何版本 bump、服务器操作、发版时查 |
+| **INDEX.md** | 台账总索引（文件清单 + 快速跳转）| 想找东西时扫一眼 |
+| **daily/** | 每日工作流水（只留最近 3 天，旧的进 archive/）| 接手上一个 AI 的活 |
+
+### 台账维护铁律
+- daily 超过 3 天 → 自动移入 archive/
+- issues.md 的 Master 子条目 ≥ 3 条 → 自动升级 Master 级（P2→P1，P1→P0）
+- secrets.md 变更 → 必须同步更新 AGENTS.md + handover.md（铁律 #14）
+
+---
+
+## ⑨ 任务追踪铁律（每次工作必做）
+
+### 工作开始前
+1. **宣告**：用大白话脑图或清单格式宣告 "这次要做 N 个动作"，每个动作带编号
+2. **等确认**：用户点头后才能动手
+
+### 工作进行中
+3. **每完成一个动作**：标记 ✅ 带编号，大白话说 "X 号动作搞定了"
+4. **遇到问题**：立刻停下说 "遇到 X 问题，有 Y 个选项，你选"
+
+### 工作结束后
+5. **汇总结账**：完整列出 N 个动作 + 完成几个 + 遇到什么问题 + 改了哪些文件
+6. **自动写台账**：把工作总结追加到今日 daily.md
+
+**示例格式**：
+```
+这次要做 6 个动作：
+① 合并台账 ✅ → 搞定
+② 更新 secrets.md ✅ → 搞定
+③ 任务追踪机制 ✅ → 现在做
+④ 升级 AGENTS.md ⏳ → 下一个
+⑤ 更新 INDEX.md ⏳
+⑥ 新 AI 接手测试 ⏳
+```

@@ -79,10 +79,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        // 拆分 vendor：把 react 核心栈从 index 主 chunk 抽出，
-        // 使 index chunk 降到 500KB 推荐值以下（原 index ~520KB 触发 chunk size 警告）
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom', 'scheduler'],
+        // 显式拆分：大库独立 chunk，名字稳定不被 hash 打断，用户重复访问可走缓存
+        manualChunks(id) {
+          if (id.includes('pdfjs-dist')) return 'pdfjs-vendor'
+          if (id.includes('epubjs')) return 'epubjs-vendor'
+          if (id.includes('mammoth')) return 'mammoth-vendor'
+          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+          if (id.includes('node_modules')) return 'vendor'
         },
       },
     },
