@@ -8,6 +8,7 @@ import { LoadingState, ErrorState, EmptyState } from '../components/StateView'
 import { formatTime, priorityMeta, toneMeta } from '../lib/utils'
 import { BILL_QUICK_CATEGORIES, fragmentKindMeta } from '../lib/constants'
 import { isDesktop } from '../hooks/useIsDesktop'
+import { useVoiceRecording } from './chat/useVoiceRecording'
 
 /**
  * 单条消息（与后端 ChatMessage 模型对应）
@@ -410,15 +411,11 @@ export default function ChatPage() {
   const [slashActiveIdx, setSlashActiveIdx] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  // DG-10 录音状态：idle 空闲 / recording 录音中 / uploading 上传中
-  const [recState, setRecState] = useState<RecordingState>('idle')
-  // 录音已用时（秒），仅展示用
-  const [recElapsed, setRecElapsed] = useState(0)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
-  const recTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const recStartTsRef = useRef<number>(0)
-  const streamRef = useRef<MediaStream | null>(null)
+  // DG-10 录音状态：用 useVoiceRecording hook 统一管理（2026-10-17 抽离）
+  const { recState, recElapsed, toggleRecording } = useVoiceRecording(
+    (msg, type) => toast(msg, type as never),
+    (msg) => setMessages((prev) => [...prev, msg]),
+  )
   // DG-02 多模态附件菜单 + 隐藏文件输入
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [mediaUploading, setMediaUploading] = useState(false)
@@ -798,139 +795,6 @@ export default function ChatPage() {
 
   /**
    * DG-10 录音按钮：点击开始录音，再次点击停止并上传
-   *
-   * 流程：
-   * 1. idle 状态：点击请求麦克风权限，启动 MediaRecorder
-   * 2. recording 状态：点击停止，收集 Blob 转 base64，POST /voice-memos
-   * 3. uploading 状态：禁用按钮，等待后端返回（含转写+提取结果）
-   * 4. 成功：在对话中追加 AI 消息，展示纪要摘要 + 待办列表
-   * 5. 失败：toast 提示，回到 idle 状态
-   *
-   * 兼容性：MediaRecorder API 在 Chrome/Firefox/Safari 移动版均支持
-   */
-  const toggleRecording = async () => {
-    if (recState === 'uploading') return
-
-    // 录音中 → 停止并上传
-    if (recState === 'recording') {
-      stopRecording()
-      return
-    }
-
-    // 空闲 → 开始录音
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
-      audioChunksRef.current = []
-      const mr = new MediaRecorder(stream)
-      mr.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data)
-      }
-      mr.onstop = handleRecordingStop
-      mr.start()
-      mediaRecorderRef.current = mr
-      recStartTsRef.current = Date.now()
-      setRecElapsed(0)
-      setRecState('recording')
-      // 启动计时器，每秒更新 recElapsed
-      recTimerRef.current = setInterval(() => {
-        setRecElapsed(Math.floor((Date.now() - recStartTsRef.current) / 1000))
-      }, 1000)
-    } catch (err) {
-      toast(`无法访问麦克风：${(err as Error).message}`, 'error')
-      setRecState('idle')
-    }
-  }
-
-  /** 停止录音：关闭 MediaRecorder 与媒体流 */
-  const stopRecording = () => {
-    if (recTimerRef.current) {
-      clearInterval(recTimerRef.current)
-      recTimerRef.current = null
-    }
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop()
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
-  }
-
-  /** 录音停止后：将 Blob 转 base64 并上传到 /voice-memos */
-  const handleRecordingStop = async () => {
-    const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-    // 大小校验：5MB 上限（与后端 MAX_AUDIO_BASE64_SIZE 对齐）
-    if (blob.size > 5 * 1024 * 1024) {
-      toast('录音文件过大（上限 5MB），请缩短录音时长', 'error')
-      setRecState('idle')
-      return
-    }
-
-    setRecState('uploading')
-    try {
-      // Blob → base64（去掉 data:audio/webm;base64, 前缀）
-      const reader = new FileReader()
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          const result = reader.result
-          if (typeof result !== 'string') {
-            reject(new Error('转 base64 失败'))
-            return
-          }
-          const commaIdx = result.indexOf(',')
-          resolve(commaIdx >= 0 ? result.slice(commaIdx + 1) : result)
-        }
-        reader.onerror = () => reject(reader.error || new Error('读取失败'))
-        reader.readAsDataURL(blob)
-      })
-
-      const duration = Math.floor((Date.now() - recStartTsRef.current) / 1000)
-
-      // 上传到后端，后端会同步触发转写 + 提取
-      const memo = await unwrap<VoiceMemoDTO>(
-        api.post('/voice-memos', {
-          audioData: base64,
-          audioFormat: 'audio/webm',
-          duration,
-        }),
-      )
-
-      // 在对话中追加 AI 消息：展示纪要摘要 + 待办列表
-      const aiMsg: Message = {
-        id: 'voice-' + memo.id,
-        role: 'assistant',
-        content: `🎙️ 录音纪要已生成（${duration}秒）\n\n${memo.summary || '（暂无摘要）'}${memo.todoItems.length > 0 ? `\n\n待办 ${memo.todoItems.length} 项：\n${memo.todoItems.map((t, i) => `${i + 1}. ${t}`).join('\n')}` : ''}`,
-        messageType: 'text',
-        createdAt: new Date().toISOString(),
-      }
-      setMessages((prev) => [...prev, aiMsg])
-
-      if (memo.status === 'extracted') {
-        toast('录音纪要已生成', 'success')
-      } else if (memo.status === 'failed') {
-        toast(`转写/提取失败：${memo.errorMsg || '未知原因'}`, 'error')
-      } else {
-        toast('录音已上传', 'success')
-      }
-    } catch (err) {
-      toast((err as Error).message, 'error')
-    } finally {
-      setRecState('idle')
-      setRecElapsed(0)
-      audioChunksRef.current = []
-    }
-  }
-
-  /** 组件卸载时清理录音资源，避免媒体流泄漏 */
-  useEffect(() => {
-    return () => {
-      if (recTimerRef.current) clearInterval(recTimerRef.current)
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop())
-      }
-    }
-  }, [])
 
   /**
    * DG-02 多模态消息发送（图片/文件/位置）
