@@ -91,7 +91,7 @@ export async function ensureReleaseTables() {
           160.5,
           'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.1.0.exe',
           'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.1.0.exe',
-          '50F2EE763E3A97A267E96E243DFD074BB4EDF1D86044A3722D815829982FE6A8',
+          '',
           'v1.1.0: HomePage useHomeData hook, PetPage PetGames.tsx (-30%), vite manualChunks 拆包',
           0
         )

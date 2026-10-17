@@ -1,4 +1,4 @@
-﻿# AIE dev one-click sync
+# AIE dev one-click sync
 # ---------------------------------------------------------------------------
 # Electron 平铺架构铁律:
 #   frontend/dist  ->  electron/resources/frontend        (平铺, 与 build-desktop + electron-builder extraResources 对齐)
@@ -162,6 +162,26 @@ if (-not $FrontendOnly) { Invoke-Sync $BE_SRC $BE_DST 'Backend' }
 
 # --- Verify ---
 if (-not $SkipVerify) { Show-Verification }
+
+# --- Seed release SHA256 hint (only for dev DB, Electron embedded uses separate aie.db) ---
+# Electron embedded backend reads from %APPDATA%\aie-desktop\data\aie.db (created fresh each time).
+# ensureReleaseTables in prisma.ts seeds empty SHA256 - client doesn't verify anyway.
+# This step is dev-only: update prisma/dev.db SHA256 for local API testing.
+$SetupExe = Join-Path $ProjectRoot 'electron\release-v16\绿角犀-Setup-1.1.0.exe'
+if (Test-Path $SetupExe) {
+    $setupSha = (Get-FileHash $SetupExe -Algorithm SHA256).Hash.ToUpper()
+    $sql = "UPDATE windows_releases SET setupSha256 = '$setupSha' WHERE version = '1.1.0';"
+    foreach ($db in @(
+        (Join-Path $ProjectRoot 'backend\prisma\dev.db'),
+        (Join-Path $ProjectRoot 'backend\dev.db')
+    )) {
+        if (Test-Path $db) {
+            Set-Location (Split-Path $db)
+            $sql | & sqlite3 (Split-Path $db -Leaf) 2>&1 | Out-Null
+        }
+    }
+    Write-Host "  dev.db SHA256 updated: $setupSha" -ForegroundColor Gray
+}
 
 Write-Host ''
 OK 'Done.'
