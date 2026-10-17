@@ -1,331 +1,124 @@
 # AGENTS.md — 绿角犀项目全局规则
 
-> 所有 AI 员工共享。任何 agent 入场前必须先读。
+> 所有 AI 员工共享。入场前必须读。
 
-## 项目身份
+---
 
-**绿角犀（AIE）** —— 桌面端优先的全能个人助理。Electron 壳 + React 前端 + Express/Prisma 后端，本地 SQLite 数据库。云端（47.116.59.141）为可选 AI 网关和多用户身份签发方。
+## ① 项目身份
 
-- 版本：1.1.0（2026-10-10）
-- 主入口：`electron/release-v16/win-unpacked/绿角犀.exe`
-### 产品面 × 端口（**总共 3 个前端端口 + 1 个后端端口**）
+**绿角犀（AIE）** — 桌面端优先的全能个人助理。Electron 壳 + React 前端 + Express/Prisma 后端，本地 SQLite。云端 47.116.59.141 为 AI 网关和多用户身份签发方。
 
-**核心设计**：后端永远是 1 个端口（不管本地还是云端），前端有 3 个独立产品面各占 1 个 Vite dev server。
+- **版本**：v1.1.0（三落点对齐）
+- **仓库**：`git@github.com:stvode-cyber/-.git`（仓库名是 `-`）
+- **硬边界**：前端 3 产品面 × 后端 1 端口（3001 本地 / 3100 云端）
 
-#### 本地开发端口
-
-| 端口 | 产品面 | 谁用 | 双格式 | 配置 |
-|---|---|---|---|---|
-| **5173** | **电脑端** | 普通用户（桌面壳） | ✅ 网页 + Electron EXE | `vite.config.ts`（DesktopLayout 深色侧边栏） |
-| **5174** | **手机端** | 普通用户（手机 App） | ✅ 网页 + Capacitor APK | 应独立 `mobile-vite.config.ts`（Layout 底部 TabBar） |
-| **5175** | **运营管理** | 运营/开发团队 | ✅ 网页 + 内部链接 | `admin-vite.config.ts`（AdminLayout 绿色侧边栏） |
-| **3001** | **后端 API** | 上面三个都调 | — | `backend` Express + Prisma |
-
-#### 云端端口（47.116.59.141）
-
-| 端口 | 谁 | 说明 |
-|---|---|---|
-| **443** | Nginx HTTPS（用户唯一入口） | `/api/v1/*` → 3100；`/admin` → express.static；`/apk/*` → EXE 静态文件 |
-| **3100** | pm2 `backend`（后端 Node） | 只监听 `127.0.0.1`，Nginx 反代它 |
-| **80** | Nginx HTTP → 443 301 | — |
-
-#### 三个产品面的关系
-
-```
-        ┌──── 5173 电脑端 ────┐
-        │  普通用户 · 桌面壳    │
-        │  DesktopLayout        │
-        └────────┬──────────────┘
-                 │ HTTPS /api/v1/*
-        ┌────────▼──────────────┐
-        │   3001 后端 Express    │
-        │   Prisma + SQLite     │
-        └────────┬──────────────┘
-                 │ HTTPS /api/v1/*
-        ┌────────▼──────────────┐
-        │ 5174 手机端  │ 5175 运营管理 │
-        │ 普通用户     │ 运营/开发团队 │
-        │ Layout 底部   │ AdminLayout   │
-        │ Capacitor    │ 独立网页      │
-        └──────────────┘└────────────┘
-```
-
-#### 关键区别（电脑 vs 手机 vs 运营）
-
-| 维度 | 5173 电脑端 | 5174 手机端 | 5175 运营管理 |
+| 端口 | 产品 | Vite config | Build mode |
 |---|---|---|---|
-| 外壳组件 | DesktopLayout（深色侧边栏 w-56） | Layout（底部 TabBar 4 项） | AdminLayout（绿色侧边栏 w-56） |
-| 打包方式 | electron-builder → Setup.exe + Portable | Capacitor → APK | 不打包，静态 HTML/CSS/JS 托管 |
-| 访问 URL | http://localhost:5173 | http://localhost:5174 | http://localhost:5175 |
-| 云端挂载 | Electron 内置（`resources/frontend/dist`） | Capacitor 内置 | express.static `/root/backend/public/admin/` |
-| 路由前缀 | `/` | `/` | `/admin/`（admin-vite `base` 选项） |
+| 5173 | 电脑端（Electron） | vite.config.ts | desktop |
+| 5174 | 手机端（Capacitor APK） | mobile-vite.config.ts | mobile |
+| 5175 | 运营管理（AdminLayout） | admin-vite.config.ts | **必须硬 define** |
+| 3001 | 后端 API（Express+Prisma+SQLite） | — | — |
 
-#### Dev Server 启动四件套（后端 + 3 前端各占 1 端口）
+---
 
+## ② 新 AI 快速上手（5 步）
+
+```powershell
+cd D:\源码存档\助理项目\助理项目\APP-AIE
+git status --short; git log --oneline -5
+Invoke-RestMethod -Uri "http://localhost:3001/health"
+Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWriteTime
+```
+
+**入场顺序**：本文件 → `.trae/memory/growth/handover.md` → `.trae/memory/growth/INDEX.md` → 今日 daily.md
+
+---
+
+## ③ 硬约束 12 条（编号铁律）
+
+1. **版本号三落点同步**：改版本必须同时改 electron/package.json、backend/package.json、前端 5 处硬编码
+2. **打包路径不能动**：electron-builder `extraResources from` 必须指向实际产物
+3. **数据库初始化双校验**：`.db-version` hash **且** db 文件存在且非空
+4. **LLM_API_KEY 不随安装包分发**：key 在云端 .env，别的电脑靠独立交付的 `llm.env` 放 userData/
+5. **管理后台独立云端化**：`/admin/` 独立 HTML，express.static + SPA fallback
+6. **内测两步走**：本机验证 → 用户确认 → 传云端生产
+7. **远端下载走直连 IP**：`lujax.fun` SNI 封锁，必须 `https://47.116.59.141/...`
+8. **回复大白话 + 极致简洁**：禁止套话废话，能 3 字别写 10 字
+9. **Electron SHA256 必同步**：每次打包后 EXE SHA 会变，必须更新 SQLite `windows_releases` 表
+10. **Android 发版走 android-auto-update SKILL**：版本号 3 处对齐 → vite build → cap sync → gradlew → SCP → seed
+11. **动手前必须宣告 + 等用户确认**：例外：紧急修 bug 或用户说"不用确认"时可跳过，事后必须同步
+12. **三模式 __BUILD_MODE__ 全覆盖**：desktop/mobile 用 cross-env；admin 必须硬 `define: { __BUILD_MODE__: JSON.stringify('admin') }`（2026-10-16 真 bug）
+
+---
+
+## ④ 质量基线 10 条
+
+- ✅ TS strict 零错（前后端 `npx tsc --noEmit` 必须过）
+- ✅ 后端 `npm run build` 通过（dist 启动 `/health` 200）
+- ✅ 前端三模式 build 通过（desktop/mobile/admin）
+- ✅ Prisma schema validate 通过
+- ✅ `node smoke-all.mjs` 全过（41 路由前缀 + CRUD + 边界）
+- ✅ Zod schema 校验全覆盖（输入 + refine）
+- ✅ 新增页面注册三套路由（未登录/桌面端/移动端）
+- ✅ 涉及协议隐私必须同步 TermsPage/PrivacyPolicyPage
+- ✅ CORS OPTIONS 204 + ACAO 动态回显 + ACAC: true
+- ✅ 不新增彩色（墨玉绿主题 brand #00856A，彩色占面 < 8%）
+
+---
+
+## ⑤ 云端运维速查
+
+| 项 | 值 |
+|---|---|
+| SSH | `root@47.116.59.141` |
+| 后端目录 | `/root/backend/` |
+| 生产库 | `/root/backend/prisma/prod.db`（**SQLite！** 不是 MySQL）|
+| pm2 | `backend`（端口 3100，仅监听 127.0.0.1）|
+| nginx SSL | greenrhino-cloud-ssl.conf（443 default_server）|
+| nginx HTTP | erp-web.conf（80，手机端必须走 HTTP 绕过证书问题）|
+| 托管目录 | `/usr/share/nginx/html/apk/`（EXE + APK）|
+| Admin 静态 | `/root/backend/public/admin/` |
+| 更新路径 | `GET /api/v1/app/windows-version?current=X.Y.Z` |
+
+**必跑命令**：
 ```bash
-# 后端（先跑这个，三个前端都调它）
-cd backend && npm run dev              # → http://127.0.0.1:3001
-
-# 电脑端（桌面壳开发调试 · 深色侧边栏 DesktopLayout）
-cd frontend && npm run dev             # → http://localhost:5173
-
-# 手机端（Capacitor APK 开发 · 底部 TabBar Layout）
-cd frontend && npm run dev:mobile      # → http://localhost:5174
-
-# 运营管理（独立网页 · 绿色侧边栏 AdminLayout）
-cd frontend && npm run dev:admin       # → http://localhost:5175/admin/
+# 查 pm2
+pm2 list; pm2 restart backend; pm2 logs backend --lines 100
+# SQLite 操作
+sqlite3 /root/backend/prisma/prod.db ".tables"          # 先看表名！
+sqlite3 /root/backend/prisma/prod.db "SELECT username, role FROM users"
+# CORS 验
+curl -sv -X OPTIONS -H "Origin: http://localhost" -H "Access-Control-Request-Method: POST" http://47.116.59.141/api/v1/auth/login
 ```
 
-#### 三个产品面的构建 & 打包
+---
 
-| 产品面 | Vite config | Dev 端口 | build 产物 | 打包工具 | 目标格式 |
-|---|---|---|---|---|---|
-| **电脑端** | `vite.config.ts` | 5173 | `dist/` | electron-builder | Setup.exe + Portable |
-| **手机端** | `mobile-vite.config.ts` | 5174 | `mobile-dist/` | Capacitor | APK |
-| **运营管理** | `admin-vite.config.ts` | 5175 | `admin-dist/` | 不打包（静态托管） | 网页 |
-
-**编译常量 `VITE_BUILD_MODE`**：npm script 里用 `cross-env VITE_BUILD_MODE=desktop/mobile` 设进程环境变量。App.tsx 里用 `import.meta.env.VITE_BUILD_MODE === 'desktop'` 条件渲染路由块——**编译时剪枝**（Vite build 替换为字面量）+ **dev 运行时也生效**（Vite dev server 自动注入 `import.meta.env` 对象）。桌面产物不包含 Layout 底部 TabBar 路由代码，手机产物不包含 DesktopLayout 侧边栏代码。
-
-> **为什么不用 `define`？** Vite 的 `define` 只在 Rollup build 时替换常量为字面量，dev server 用 esbuild transform 不碰它，dev 模式下 `__BUILD_MODE__` 原样留着会 ReferenceError。`cross-env` + `import.meta.env` 方案 dev 和 build 都生效。
->
-> **废弃方案**：试过 `envFile: '.env.desktop'` + `.env.mobile` 配在 vite.config.ts——Windows + PowerShell 环境下 Vite `loadEnv` 返回空数组（原因不明）。废弃不用。
->
-> **废弃方案 2**：PowerShell `Out-File -Encoding UTF8` 写 env/JSON 文件会加 BOM（EF BB BF），Node JSON.parse 报 `Unexpected token '﻿'`。统一用 `[System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))` 写无 BOM UTF8。
-
-Capacitor 打包前先跑：`npm run build:mobile && npx cap sync android && npx cap build android`
-
-Electron 打包前先跑：`npm run build && npm run build:backend && node electron/build-desktop.cjs`
-
-## 对话收尾铁律（用户说"好的，执行吧"或显式结束对话前必做）
-
-### 收尾三动作（强制执行，缺一不可）
-
-**1. 回复贴本轮总汇**：在回复末尾追加一个简洁的完成清单，格式如下：
-```
-## 📋 本轮完成清单
-
-✅ 做了什么（1-5 条，大白话）
-❌ 发现什么（如果有 bug 发现，附根因）
-🔧 修了什么（附 commit SHA，如果有）
-📁 改了哪些文件（路径列表）
-```
-- 大白话，不用专业术语堆砌
-- 做了啥就说啥，别虚报
-
-**2. 台账同步（不等对话结束，改完立刻写）**：
-- daily 流水追加一行：`[HH:MM] 动作简述 · 结果 · 文件/commit SHA`
-- 新踩坑 → pitfalls.md 追加新条目（含路径 + 现象 + 根因 + 解法）
-- 修复 bug → daily + pitfalls 都记（daily 写结果，pitfalls 写坑细节）
-
-**3. Git 状态确认 + commit（如果有改动未提交）**：
-- `git status --short` 看脏文件
-- 分 1-2 个 commit（代码一个，文档/台账一个）
-- commit message 格式：`<type>(<scope>): <中文或英文简述>`
-
-### 台账格式（daily.md 每条）
-
-```
-[14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
-[14:35] 服务器 scp dist + pm2 restart backend · online · https 401 ✅
-[15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
-[15:30] 🐛 真 Bug: ZodError 全局 handler 没接 → 加 instanceof 判断返回 422 · commit de8b142
-```
-
-## 台账铁律（每次新对话第一动作，强制执行）
-
-### 入场动作（必做）
-
-**入场后必须先 Invoke work-growth-logger Skill**（位于 `.trae/skills/work-growth-logger/SKILL.md`），并行 Read 以下台账文件：
-
-1. `.trae/memory/growth/handover.md`      ← 当前状态 + 远程资源 + 铁律（30 秒接手）
-2. `.trae/memory/growth/pitfalls.md`      ← 踩过的坑（持续积累）
-3. `.trae/memory/growth/issues.md`        ← 问题工单（bug/issue 生命周期追踪）
-4. `.trae/memory/growth/decisions.md`     ← 关键决策
-5. `.trae/memory/growth/daily/YYYY-MM-DD.md` ← 当日流水（改了啥 + 踩了啥坑）
-6. `%USERPROFILE%/.trae-cn/memory/shared-issues.md`    ← 跨项目通用坑
-7. `%USERPROFILE%/.trae-cn/memory/shared-decisions.md` ← 跨项目通用决策
-
-读完后**主动用 3-6 条 bullet 贴出提醒**：当前版本 + 进行中任务 + P0/P1 历史坑 + 硬性规则摘要。等用户反馈后再开始处理新需求。
-
-### 每个动作前的台账前置（强制执行）
-
-**任何实际操作前必须先 Grep/Read 对应台账**，命中历史坑就用 🚨 格式提醒后再动手：
-
-| 动作类型 | 前置检查 | 台账 |
-|---|---|---|
-| **读/改源码** | Grep pitfalls.md 里的文件路径匹配 | pitfalls.md + decisions.md |
-| **跑后端命令** (`npm run build` / `pm2`) | Grep pitfalls.md + handover.md 的运维章节 | pitfalls.md (GS-001~010) |
-| **Prisma 操作** (`db push` / `generate`) | Grep pitfalls.md 里的 "prisma" / "schema" 条目 | pitfalls.md |
-| **SSH 远程操作** | Read handover.md 完整远程章节（端口/路径/命令） | handover.md |
-| **API 调远端** | Grep decisions.md 里的 "baseURL" / "代理" / "auth" 条目 | decisions.md |
-| **部署/发版** | 读 STATUS.md 当前版本 + 查 github 上最新 commit SHA | STATUS.md + pitfalls.md |
-| **新增路由/API** | Grep decisions.md 里的 "路由前缀" / "admin 独立" 条目 | decisions.md |
-| **修改 schema** | 查当日 daily.md 是否已记录过 schema 变更（避免重复 ALTER） | daily/YYYY-MM-DD.md |
-
-**台账没写、找不到、不知道在哪 → 先查 git log / 文件搜索 → 查完再动手，不能跳过。**
-
-### 每个动作后的台账同步
-
-**任何涉及文件改动、远程操作、数据库变更的动作，完成后立刻**（不等对话结束）：
-
-1. 追加 `.trae/memory/growth/daily/YYYY-MM-DD.md` 一行：`[HH:MM] 动作简述 · 结果 · 文件/commit SHA`
-2. 远程操作（SSH / pm2 / SCP / GitHub push）额外更新 handover.md 里的"远程资源"章节
-3. 新踩坑 → 追加 pitfalls.md 新条目（含路径 + 现象 + 根因 + 解决方案）
-4. **修了真 bug / 用户反馈线上问题 → 追加 issues.md 新工单**（含问题描述 · 影响范围 · 根因 · 解决方案 · 验证方式 · commit SHA）
-
-### 台账格式（daily.md 每条）
-
-```
-[14:30] 后端 pm.routes.ts 加 admin 旁路 · tsc 零错 · commit abc123
-[14:35] 服务器 scp dist + pm2 restart backend · online · https 401 ✅
-[15:02] 🚨 pitfall: PowerShell heredoc 在 SSH 引号嵌套必炸 → 改用 .sh 文件 scp 上去
-```
-
-### 问题工单格式（issues.md 每条）
-
-```markdown
-## [P0][IS-001] ZodError 全局 handler 漏接
-
-- **发现**：YYYY-MM-DD HH:mm · 场景描述
-- **状态**：✅ fixed / 🐛 open / 🔧 fixing
-- **问题**：一句话说清楚出了什么问题
-- **影响范围**：哪些路由/页面/用户会中招
-- **根因**：为什么会出这个问题
-- **解决方案**：具体改了什么
-- **验证**：怎么证明修好的（curl 命令 / HTTP 码 / 对比截图）
-- **commit**：sha · message
-- **关联台账**：daily 日期 + pitfalls 条目号
-```
-
-**什么时候记 issues.md**：
-- 修了真 bug（不是临时 workaround）→ daily 写结果 + pitfalls 写坑细节 + **issues 写工单**
-- 用户反馈的线上问题复现并修复 → issues 必记
-- 一次操作踩 2 个以上坑 → issues 合并记录（避免 daily 太碎）
-- 纯代码重构/优化（无 bug）→ 不用记 issues，daily 提一行就行
-
-### 防失忆双铁律（work-growth-logger 核心规则）
-
-1. **关键操作前先查记录**：`git ls-remote` / API 查 / `pm2 list`，查到才算做过
-2. **关键操作后立刻同步**：别等对话结束，改完远程资源（服务器/仓库/数据库）立刻追加 handover.md + daily
-
-## 技术栈速查
-
-| 层 | 技术 | 版本 |
-|---|---|---|
-| 桌面壳 | Electron | 43 |
-| 前端 | React + TypeScript + Vite | React 18 / Vite 5 |
-| 状态管理 | Zustand | 4 |
-| 路由 | React Router | 6 |
-| 后端 | Express + TypeScript | Node 22 |
-| ORM | Prisma | 5 |
-| 数据库 | SQLite | - |
-| 安全 | JWT (RS256) + CSP + sandbox | - |
-| LLM | SiliconFlow (DeepSeek-V3) | - |
-| 打包 | electron-builder | - |
-
-## 目录约定
+## ⑥ 目录约定（关键）
 
 ```
 APP-AIE/
-├─ backend/                  # Express + Prisma 后端
-│  ├─ src/routes/            # 40+ 路由文件（含 /api/v1/app/windows-version 桌面端更新检查）
-│  ├─ src/services/          # llmService / agentCore / contextCollector
-│  ├─ prisma/schema.prisma   # User / Conversation / VaultNote / WindowsRelease 等 58 表
-│  └─ dist/                  # tsc 编译产物（打包进 resources/backend）
-├─ frontend/                 # React 前端
-│  ├─ src/pages/             # 约 40 个页面
-│  ├─ src/pages/settings/    # 10 个设置子页
-│  ├─ src/stores/            # auth / chat / task 等 zustand stores
-│  └─ dist/                  # vite build 产物（打包进 resources/frontend）
-├─ electron/                 # Electron 主进程 + 打包
-│  ├─ main.js                # BrowserWindow + spawn 后端
-│  ├─ build-desktop.cjs          # 一键构建脚本
-│  ├─ resources/              # 打包输入（frontend/dist + backend/dist 复制到这里）
-│  └─ release-v16/           # 最新打包产物
-├─ sync-dist.ps1              # FE/BE dist 一键同步（三层时间戳验证）
-├─ gate-check.ps1             # 发版启动闸 7 项自动门禁
-├─ seed-windows-release.ps1   # 发版后 SCP EXE + seed 后端 windows_releases 表 + 公网 API 回查
-└─ .trae/
-   ├─ agents/                # AI 员工（Subagent）
-   ├─ skills/                # 员工操作手册（本地 Skill 需 workspace reload 才被 Skill tool 识别）
-   └─ documents/             # 历史方案文档
+├─ backend/              # Express + Prisma
+│  ├─ src/routes/        # 40+ 路由文件
+│  ├─ prisma/schema.prisma  # 58 表
+│  └─ dist/              # tsc 编译产物
+├─ frontend/             # React 前端
+│  ├─ src/pages/         # ~40 页面
+│  ├─ src/components/home/  # HomePage 子组件（墨玉绿主题）
+│  ├─ tailwind.config.js # brand/canvas/ink/surface 墨玉绿主题
+│  └─ android/           # Capacitor 原生工程
+├─ electron/             # Electron 壳
+├─ sync-dist.ps1          # FE/BE dist 一键同步
+├─ AGENTS.md             # ← 你正在读
+└─ .trae/memory/growth/  # 台账（见 INDEX.md）
 ```
 
-## 硬约束（所有 agent 必须遵守）
+---
 
-1. **版本号三落点同步**：改版本必须同时改 `electron/package.json`、`backend/package.json`、前端 5 处硬编码显示字符串。
+## ⑦ 台账体系（精简）
 
-2. **打包路径不能动**：electron-builder `extraResources` 的 `from` 路径必须指向**实际产物所在目录**。历史 bug：写了 `resources/frontend/dist` 但 build-desktop.cjs 把前端直接复制到 `resources/frontend/` → 白屏。
-
-3. **数据库初始化必须双校验**：全新首启从 `resources/backend/prisma/dev.db` 复制模板 → 校验 `.db-version` hash **且** db 文件存在且非空 → 不能只校验 hash。
-
-4. **LLM_API_KEY 不随安装包分发**：打包版用 `AUTH_MODE=cloud-proxy`，key 在云端 .env。别的电脑启用 AI 靠独立交付的 `llm.env` 放 `userData/` 目录。
-
-5. **管理后台独立云端化**：`/admin/` 路由已从主 APP 剥离为独立 HTML，后端托管用 `express.static + SPA fallback`，不能吞 `/api/v1/*`。
-
-6. **内测两步走**：任何功能改动先本机验证通过，再等用户确认后才能上传云端生产环境。
-
-7. **远端下载走直连 IP**：`lujax.fun` 域名因 SNI 封锁不可用，安装包分发必须用 `https://47.116.59.141/apk/`。
-
-8. **回复大白话 + 极致简洁**（违反直接不合格）：
-   - 禁止套话：不说"该方案已验证完毕"、"综上所述"、"经过仔细分析"、"值得一提的是"
-   - 直接说事："搞定了"、"这里踩了个坑"、"下一步你拍板"、"有个问题要确认"
-   - 能用 3 字别写 10 字："OK" > "好的已经成功完成了"；"要改" > "这里需要进行修改"
-   - 表格/代码块保留原样，**只有解释性文字砍到最短**
-   - 禁止"感谢您的提问"、"希望这个回答对你有帮助"这类结尾废话
-   - AI 自己加的 emoji 也别乱塞，除非确实需要
-
-9. **Electron SHA256 必同步**：每次 electron-builder 重新打包后，EXE 的 SHA256 会变（Electron 每次打包产物 SHA 不固定），必须立刻 `sha256sum /usr/share/nginx/html/apk/*.exe` + 更新 SQLite `windows_releases` 表。否则客户端校验 SHA 对不上。
-
-10. **Android APK 发版必须走 android-auto-update SKILL**：版本号 3 处对齐（UpdateNotice.tsx CURRENT_APK_VERSION / build.gradle versionName / seed 参数）→ vite build → cap sync → gradlew assembleDebug → SCP 到 nginx /usr/share/nginx/html/apk/ → seed-android-release.cjs 插 android_releases 表 → curl 回查 hasUpdate 正确。**SKILL 文件**：`.trae/skills/android-auto-update/SKILL.md`。铁律：APK URL 必须走 47.116.59.141 直连（SNI 封锁）；手机端应用分身必须先手动关掉。
-
-11. **动手前必须先宣告 + 等用户确认**（违反直接打回）：
-    - 任何实际操作（改文件 / 批量命令 / 提交 / push / 部署）之前，必须先明确说"接下来我要做 X、Y、Z"，等用户回复"好"、"执行"、"ok"之类确认后才能动手
-    - 如果有选项（比如改 A 还是改 B），先把选项列清楚让用户选，用户拍板后再动手
-    - 不要自作主张扩展范围（比如用户说改手机端布局，不要顺手改电脑端）
-    - 例外：紧急修 bug 或用户明确说"不用确认直接改"时可跳过，但事后必须立刻同步
-
-12. **三模式 `__BUILD_MODE__` 全覆盖**：
-    - desktop/mobile 用 `cross-env VITE_BUILD_MODE=xxx` 驱动（dev + build 都生效）
-    - **admin 配置必须硬 define：`define: { __BUILD_MODE__: JSON.stringify('admin') }`**（admin 不走 cross-env，也不读 VITE_BUILD_MODE）
-    - `global.d.ts` 类型联合必须含 `'admin'`
-    - 遗漏 → admin 页面 `ReferenceError: __BUILD_MODE__ is not defined` 白屏（2026-10-16 真 bug）
-
-## 质量基线
-
-- ✅ TypeScript strict 零错误（前后端 `npx tsc --noEmit` 必须过）
-- ✅ 后端 `npm run build` 通过（dist 启动 `/health` 200）
-- ✅ 前端三模式 `npm run build` 通过（desktop/mobile/admin）
-- ✅ Prisma schema validate 通过（`npx prisma validate`）
-- ✅ `node smoke-all.mjs` 65/65 全过（41 路由前缀 + CRUD + 边界用例）
-- ✅ `prisma db push` 不破坏已有数据
-- ✅ 新增路由必须有 zod schema 校验（输入 + refine）
-- ✅ 新增页面必须注册三套路由（未登录 / 桌面端 / 移动端）
-- ✅ 涉及用户协议/隐私的改动必须同步更新 TermsPage / PrivacyPolicyPage
-- ✅ CORS OPTIONS 预检 204 + ACAO 动态回显 Origin + ACAC: true
-
-## 云端运维速查
-
-- SSH：`root@47.116.59.141`
-- 后端目录：`/root/backend/`
-- 生产库：`/root/backend/prisma/prod.db`（**SQLite**，不是 MySQL！更新用 `sqlite3 prod.db < update.sql`）
-- GitHub：`git@github.com:stvode-cyber/-.git`（仓库名是短横线，SSH key 在 C:\Users\Administrator\.ssh\id_rsa）
-- PM2：`pm2 backend`（restart / logs，Node 监听 127.0.0.1:3100）
-- 后端在线更新 API：`GET /api/v1/app/windows-version?current=X.Y.Z`（Prisma WindowsRelease model 数据源）
-- Nginx：`/etc/nginx/conf.d/greenrhino-cloud-ssl.conf`（443 location /apk/ 托管安装包 → `root /usr/share/nginx/html`，实际路径 `/usr/share/nginx/html/apk/`；location / proxy_pass 3100 API）
-- EXE 托管目录：`/usr/share/nginx/html/apk/`（两个中文文件名 + 两个软链接：`lvjiaoxi-setup-1.0.6.exe` → `绿角犀-Setup-1.0.6.exe`）
-- EXE 传服务器：本地 `scp "electron/release-v*/绿角犀-*.exe" root@47.116.59.141:/usr/share/nginx/html/apk/`
-- 更新 SHA256：服务器 `sha256sum /usr/share/nginx/html/apk/绿角犀-Setup-1.0.6.exe` → 写临时 SQL → `sqlite3 prod.db < update.sql`
-- 公网 API：`https://47.116.59.141/api/v1/app/windows-version?current=X.Y.Z`（返回最新桌面版本 + 下载链接 + SHA256）
-- 备份：本地 `D:\源码存档\助理项目\服务器存档\prod-db-备份\`
-
-## 交接文档（AI 接手必读，从这里开始）
-
-> **任何新 AI 入场，读完 AGENTS.md 立即 Read 下面这份。** 接手即懂，覆盖项目结构、发版流水线、服务器状态、踩过的坑、命令速查。
-
-- 🌟 **AI 交接工作明细（v1.0.6）**：`06_审查与交接/AI交接工作明细-v1.0.6.md` ← **先读这个**（12 章节，接手即懂）
-- 工程全量记录：`06_审查与交接/交接记录.md`
-- 变更日志：`CHANGELOG.md`
-- 状态汇总：`STATUS.md`
-- 方案存档：`.trae/documents/`
-
+- **handover.md**：30 秒快照 + 启动命令 + 账号 + 服务器 + 活跃坑 Top 5 + 快速验证
+- **INDEX.md**：台账总索引（文件清单 + 快速跳转 + 维护规则）
+- **pitfalls.md**：所有踩过的坑（永不归档）
+- **decisions.md**：为什么选 A 不选 B
+- **daily/**：每日流水（只留最近 3 天，旧的进 archive/）
+- **issues.md**：bug 工单

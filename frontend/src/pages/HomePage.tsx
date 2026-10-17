@@ -409,13 +409,13 @@ export default function HomePage() {
     <div className="app-shell pb-4">
       {/* ========== 合并：天气照片背景 + 墨玉绿新头部 ========== */}
       <div
-        className="relative overflow-hidden rounded-b-[28px] shadow-lg shadow-accent-300/40"
+        className="relative overflow-hidden"
         style={{ backgroundImage: `url(${weatherImg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(1.05) saturate(1.05)' }}
       >
         {/* 顶部深色渐晕：保证顶栏 + 问候头白字可读 */}
         <div className="absolute inset-x-0 top-0 h-36 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.45) 0%, rgba(15,23,42,0) 100%)' }} />
         {/* 底部白色渐变：MissionCard + 农历横条自然过渡 */}
-        <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(0deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0) 100%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-40 pointer-events-none" style={{ background: 'linear-gradient(0deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0) 100%)' }} />
         {/* 气泡装饰层：已删 */}
 
         {/* 顶部日常模式顶栏（搜索/刷新/铃铛） */}
