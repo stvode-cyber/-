@@ -26,6 +26,7 @@ import {
 import GreetingHeader from '../components/home/GreetingHeader'
 import WeekCalendar from '../components/home/WeekCalendar'
 import MissionCard from '../components/home/MissionCard'
+import { useHomeData } from './home/useHomeData'
 
 interface HomeTaskItem {
   id: string
@@ -136,31 +137,20 @@ export default function HomePage() {
   const navigate = useNavigate()
   const toast = useToast((s) => s.show)
   const confirm = useConfirm()
-  const [data, setData] = useState<HomeData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  // 数据获取相关 state 全部用 useHomeData hook（2026-10-17 抽离）
+  const {
+    data: _data, loading, error, hidingId, detailEvent,
+    dailyQuestion, dailyQuestionLoading,
+    wellness, wellnessDismissed, setWellnessDismissed,
+    confusion, confusionDismissed, setConfusionDismissed,
+    countdownCards,
+    load, refreshDailyQuestion, hideEvent, openDetail, setDetailEvent,
+  } = useHomeData(toast, confirm)
+  const data = _data as HomeData | null
   // EV-05 情境视角切换：all | work | life | finance
   const [scope, setScope] = useState<'all' | 'work' | 'life' | 'finance'>('all')
   // EV-06 添加事件弹层
   const [showAddEvent, setShowAddEvent] = useState(false)
-  // EV-06 隐藏事件中的操作中事件 id（防止重复点击）
-  const [hidingId, setHidingId] = useState<string | null>(null)
-  // EV-03 事件详情弹层（null=关闭；非 null=当前查看的事件）
-  const [detailEvent, setDetailEvent] = useState<HomeData['events'][number] | null>(null)
-  // DG-05 每日一问
-  const [dailyQuestion, setDailyQuestion] = useState<{ question: string; topic: string; hint: string | null; date: string } | null>(null)
-  const [dailyQuestionLoading, setDailyQuestionLoading] = useState(false)
-  // DG-13 状态感知互动（疲劳/压力关怀）
-  const [wellness, setWellness] = useState<{
-    needCare: boolean
-    level: 'gentle' | 'suggest' | 'urgent'
-    title: string
-    message: string
-    suggestions: Array<{ label: string; desc: string; to?: string; emoji: string }>
-    signals: string[]
-  } | null>(null)
-  // DG-13 用户已关闭关怀卡片（本次会话内不再显示）
-  const [wellnessDismissed, setWellnessDismissed] = useState(false)
   // 随手记快速输入（AI 自动分类）
   const [quickNote, setQuickNote] = useState('')
   const [quickSubmitting, setQuickSubmitting] = useState(false)
@@ -187,32 +177,6 @@ export default function HomePage() {
       return () => clearTimeout(timer)
     }
   }, [])
-  // DG-15 迷茫期引导
-  const [confusion, setConfusion] = useState<{
-    needGuide: boolean
-    level: 'light' | 'moderate' | 'deep'
-    title: string
-    message: string
-    guideActions: Array<{ label: string; desc: string; to?: string; emoji: string }>
-    signals: string[]
-  } | null>(null)
-  // DG-15 用户已关闭引导卡片（本次会话内不再显示）
-  const [confusionDismissed, setConfusionDismissed] = useState(false)
-  // 倒计时卡片（独立加载，失败不阻塞主页；展示最多 3 条，按优先级排序）
-  const [countdownCards, setCountdownCards] = useState<{
-    id: string
-    type: string
-    title: string
-    targetDate: string | null
-    recurringConfig: { nextTrigger?: string; pattern?: string; countdownStartAt?: string } | null
-    remainingDays: number | null
-    remainingHours: number | null
-    isPinned: boolean
-    isImportant: boolean
-    progress: number
-    status: string
-  }[]>([])
-
   /** 随手记提交：调用后端 /fragment/quick，AI 自动分类 */
   const submitQuickNote = async () => {
     const content = quickNote.trim()
@@ -240,160 +204,6 @@ export default function HomePage() {
     }
   }
 
-  const load = async () => {
-    setLoading(true)
-    setError(false)
-    try {
-      // DG-05/DG-13/DG-15 与 home/today 并行加载（不阻塞主数据）
-      const [res] = await Promise.all([
-        unwrap<HomeData>(api.get('/home/today')),
-        // 每日一问失败不阻塞主页加载
-        (async () => {
-          try {
-            const dq = await unwrap<{ question: string; topic: string; hint: string | null; date: string }>(
-              api.get('/home/daily-question')
-            )
-            setDailyQuestion(dq)
-          } catch {
-            // 静默失败：每日一问不是核心功能
-          }
-        })(),
-        // DG-13 状态感知：失败不阻塞主页
-        (async () => {
-          try {
-            const w = await unwrap<{
-              needCare: boolean
-              level: 'gentle' | 'suggest' | 'urgent'
-              title: string
-              message: string
-              suggestions: Array<{ label: string; desc: string; to?: string; emoji: string }>
-              signals: string[]
-            }>(api.get('/home/wellness-check'))
-            setWellness(w)
-            setWellnessDismissed(false)
-          } catch {
-            // 静默失败
-          }
-        })(),
-        // DG-15 迷茫期引导：失败不阻塞主页
-        (async () => {
-          try {
-            const c = await unwrap<{
-              needGuide: boolean
-              level: 'light' | 'moderate' | 'deep'
-              title: string
-              message: string
-              guideActions: Array<{ label: string; desc: string; to?: string; emoji: string }>
-              signals: string[]
-            }>(api.get('/home/confusion-check'))
-            setConfusion(c)
-            setConfusionDismissed(false)
-          } catch {
-            // 静默失败
-          }
-        })(),
-        // 倒计时卡片：失败不阻塞主页
-        (async () => {
-          try {
-            const cd = await unwrap<{ items: Array<{
-              id: string
-              type: string
-              title: string
-              targetDate: string | null
-              recurringConfig: { nextTrigger?: string; pattern?: string; countdownStartAt?: string } | null
-              remainingDays: number | null
-              remainingHours: number | null
-              isPinned: boolean
-              isImportant: boolean
-              progress: number
-              status: string
-            }> }>(api.get('/countdowns?status=active'))
-            // 优先级排序：重要 > 置顶 > 截止日期近 > 创建时间（后端已按此排序，前端再保险）
-            const getTargetTime = (c: { targetDate: string | null; recurringConfig: { nextTrigger?: string; countdownStartAt?: string } | null }) =>
-              c.targetDate || c.recurringConfig?.nextTrigger
-            const sorted = [...(cd.items || [])].sort((a, b) => {
-              if (a.isImportant !== b.isImportant) return a.isImportant ? -1 : 1
-              if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
-              const aTime = getTargetTime(a) ? new Date(getTargetTime(a)!).getTime() : Number.MAX_SAFE_INTEGER
-              const bTime = getTargetTime(b) ? new Date(getTargetTime(b)!).getTime() : Number.MAX_SAFE_INTEGER
-              return aTime - bTime
-            })
-            setCountdownCards(sorted.slice(0, 3))
-          } catch {
-            // 静默失败
-          }
-        })(),
-      ])
-      setData(res)
-    } catch (err) {
-      setError(true)
-      toast((err as Error).message, 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  /**
-   * DG-05 单独刷新每日一问（用户点击"换一题"时）
-   * 注意：因问题由日期决定，"换一题"实际是从问题池中随机抽一道同主题的备选问题
-   */
-  const refreshDailyQuestion = async () => {
-    setDailyQuestionLoading(true)
-    try {
-      const res = await unwrap<{ question: string; topic: string; hint: string | null; date: string }>(
-        api.get('/home/daily-question')
-      )
-      setDailyQuestion(res)
-    } catch (err) {
-      toast((err as Error).message, 'error')
-    } finally {
-      setDailyQuestionLoading(false)
-    }
-  }
-
-  /**
-   * EV-06 隐藏事件
-   * - 手动事件（type=manual）：PATCH /manual-events/:id 设置 hidden=true
-   * - 自动事件（type=task/reminder 等）：POST /manual-events/hidden-auto 记录到 HiddenEvent
-   */
-  const hideEvent = async (ev: HomeData['events'][number]) => {
-    const ok = await confirm({
-      title: '隐藏事件',
-      message: `将从事件总览中隐藏「${ev.title}」，可在事件管理页恢复。`,
-      confirmText: '隐藏',
-      danger: true,
-    })
-    if (!ok) return
-    setHidingId(`${ev.type}-${ev.id}`)
-    try {
-      if (ev.type === 'manual') {
-        await unwrap(api.patch(`/manual-events/${ev.id}`, { hidden: true }))
-      } else {
-        await unwrap(api.post('/manual-events/hidden-auto', {
-          sourceType: ev.type,
-          sourceId: ev.id,
-        }))
-      }
-      toast('已隐藏', 'success')
-      await load()
-    } catch (err) {
-      toast((err as Error).message, 'error')
-    } finally {
-      setHidingId(null)
-    }
-  }
-
-  /**
-   * EV-03 打开事件详情弹层
-   * 由事件项点击触发，查询 GET /manual-events/:id/detail?type=...
-   */
-  const openDetail = (ev: HomeData['events'][number]) => {
-    setDetailEvent(ev)
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
 
   const today = new Date()
   const weekDay = ['日', '一', '二', '三', '四', '五', '六'][today.getDay()]
