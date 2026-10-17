@@ -85,27 +85,32 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 
 ## ⑥ 云端运维速查
 
+> 服务器 47.116.59.141 有**两套后端**：
+> - **绿角犀 ERP**（pm2: `erp-backend`, MySQL `zhiyun_erp`, 端口 3000）
+> - **绿角犀 APP**（Electron 内嵌，本地 SQLite，用户机器运行）
+
 | 项 | 值 |
 |---|---|
 | SSH | `root@47.116.59.141` |
-| 后端目录 | `/root/backend/` |
-| 生产库 | `/root/backend/prisma/prod.db`（**SQLite！** 不是 MySQL）|
-| pm2 | `backend`（端口 3100，仅监听 127.0.0.1）|
-| nginx SSL | greenrhino-cloud-ssl.conf（443 default_server）|
-| nginx HTTP | erp-web.conf（80，手机端必须走 HTTP 绕过证书问题）|
+| 服务器后端目录 | `/root/erp/backend/`（有源码 + MySQL）|
+| 服务器 ERP DB | MySQL `zhiyun_erp`（`releases` 表，appType=windows/android）|
+| pm2 进程名 | `erp-backend`（**不是 backend！**） |
+| pm2 端口 | **3000**（NestJS 监听，不是 3100！）|
+| Electron 内嵌 DB | `%APPDATA%/aie-desktop/data/aie.db`（SQLite，首次启动空）|
+| 本地开发 DB | `backend/prisma/dev.db`（Prisma 连接的实际路径，不是 backend/dev.db！）|
 | 托管目录 | `/usr/share/nginx/html/apk/`（EXE + APK）|
-| Admin 静态 | `/root/backend/public/admin/` |
-| 更新路径 | `GET /api/v1/app/windows-version?current=X.Y.Z` |
+| 更新 API | `GET /api/v1/app/windows-version?current=X.Y.Z` |
 
 **必跑命令**：
 ```bash
-# 查 pm2
-pm2 list; pm2 restart backend; pm2 logs backend --lines 100
-# SQLite 操作
-sqlite3 /root/backend/prisma/prod.db ".tables"          # 先看表名！
-sqlite3 /root/backend/prisma/prod.db "SELECT username, role FROM users"
-# CORS 验
-curl -sv -X OPTIONS -H "Origin: http://localhost" -H "Access-Control-Request-Method: POST" http://47.116.59.141/api/v1/auth/login
+# pm2 查/重启
+pm2 list; pm2 restart erp-backend; pm2 logs erp-backend --lines 50
+# MySQL 操作
+mysql -uroot -p"ErpRoot2026@Sec" zhiyun_erp -e "SHOW TABLES LIKE '%release%'; SELECT * FROM releases ORDER BY id DESC LIMIT 5;"
+# 公网验 EXE
+curl -sI "http://47.116.59.141/apk/绿角犀-Setup-1.1.0.exe"
+# Prisma 相对路径坑：prisma/dev.db 才是对的
+sqlite3 backend/prisma/dev.db "SELECT version, setupSha256 FROM windows_releases"
 ```
 
 ---
@@ -120,7 +125,9 @@ APP-AIE/
 │  └─ dist/              # tsc 编译产物
 ├─ frontend/             # React 前端
 │  ├─ src/pages/         # ~40 页面
-│  ├─ src/components/home/  # HomePage 子组件（墨玉绿主题）
+│  ├─ src/components/home/  # HomePage 子组件
+│  ├─ src/components/pet/   # PetPage 子组件（PetGames.tsx）
+│  ├─ src/components/library/ # LibraryPage 子组件（LibraryWidgets.tsx）
 │  ├─ tailwind.config.js # brand/canvas/ink/surface 墨玉绿主题
 │  └─ android/           # Capacitor 原生工程
 ├─ electron/             # Electron 壳
