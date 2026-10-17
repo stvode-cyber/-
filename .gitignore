@@ -20,6 +20,8 @@ electron/resources/
 # 台账：只忽略临时文件和归档区，4 个核心文件要入库（团队知识积累）
 .trae/memory/归档/
 .session-memory.md
+# 敏感信息集中表（版本号/密码/密钥/服务器），绝对不入库
+.trae/memory/growth/secrets.md
 # 临时产物（截图、打包 tar、一次性脚本）
 screenshots/
 *.tar.gz
