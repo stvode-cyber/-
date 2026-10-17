@@ -48,10 +48,22 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 10. **Android 发版走 android-auto-update SKILL**：版本号 3 处对齐 → vite build → cap sync → gradlew → SCP → seed
 11. **动手前必须宣告 + 等用户确认**：例外：紧急修 bug 或用户说"不用确认"时可跳过，事后必须同步
 12. **三模式 __BUILD_MODE__ 全覆盖**：desktop/mobile 用 cross-env；admin 必须硬 `define: { __BUILD_MODE__: JSON.stringify('admin') }`（2026-10-16 真 bug）
+13. **用户偏好：全交给 AI + 大白话回复 + 只需确认**：AI 全权操作所有动作（跑命令、改代码、SSH 部署），用户只负责"确认/同意/好的"；回复必须大白话，不许套话废话技术术语堆砌（2026-10-17 用户明确要求）
 
 ---
 
-## ④ 质量基线 10 条
+## ④ 用户行为偏好（AI 必须遵守）
+
+| 偏好 | 执行 |
+|---|---|
+| AI 全权操作 | 所有命令/代码/SSH/浏览器 AI 自己干，用户只确认 |
+| 大白话回复 | 禁止"执行上述验证动作"、"经比对验证结果"这类套话 |
+| 任务进度编号 | 每次必须宣告 "N 个动作"，完成的标记 ✅ 带编号 |
+| 新 AI 可立即接手 | 台账要精简 + 索引清晰 + 每日流水 |
+
+---
+
+## ⑤ 质量基线 10 条
 
 - ✅ TS strict 零错（前后端 `npx tsc --noEmit` 必须过）
 - ✅ 后端 `npm run build` 通过（dist 启动 `/health` 200）
@@ -66,7 +78,7 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 
 ---
 
-## ⑤ 云端运维速查
+## ⑥ 云端运维速查
 
 | 项 | 值 |
 |---|---|
@@ -93,7 +105,7 @@ curl -sv -X OPTIONS -H "Origin: http://localhost" -H "Access-Control-Request-Met
 
 ---
 
-## ⑥ 目录约定（关键）
+## ⑦ 目录约定（关键）
 
 ```
 APP-AIE/
@@ -114,7 +126,7 @@ APP-AIE/
 
 ---
 
-## ⑦ 台账体系（精简）
+## ⑧ 台账体系（精简）
 
 - **handover.md**：30 秒快照 + 启动命令 + 账号 + 服务器 + 活跃坑 Top 5 + 快速验证
 - **INDEX.md**：台账总索引（文件清单 + 快速跳转 + 维护规则）
