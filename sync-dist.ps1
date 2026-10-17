@@ -163,14 +163,21 @@ if (-not $FrontendOnly) { Invoke-Sync $BE_SRC $BE_DST 'Backend' }
 # --- Verify ---
 if (-not $SkipVerify) { Show-Verification }
 
-# --- Seed release SHA256 hint (only for dev DB, Electron embedded uses separate aie.db) ---
-# Electron embedded backend reads from %APPDATA%\aie-desktop\data\aie.db (created fresh each time).
-# ensureReleaseTables in prisma.ts seeds empty SHA256 - client doesn't verify anyway.
-# This step is dev-only: update prisma/dev.db SHA256 for local API testing.
-$SetupExe = Join-Path $ProjectRoot 'electron\release-v16\绿角犀-Setup-1.1.0.exe'
+# --- Seed release SHA256 hint (dev-only) ---
+$SetupExe = Join-Path $ProjectRoot 'electron\release-v16\绿角犀-Setup-1.2.0.exe'
 if (Test-Path $SetupExe) {
     $setupSha = (Get-FileHash $SetupExe -Algorithm SHA256).Hash.ToUpper()
-    $sql = "UPDATE windows_releases SET setupSha256 = '$setupSha' WHERE version = '1.1.0';"
+    $sql = @"
+INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate, publishedAt)
+VALUES ('rel_v1_2_0', '1.2.0', 1, 160.5,
+  'http://47.116.59.141/apk/绿角犀-Setup-1.2.0.exe',
+  'http://47.116.59.141/apk/绿角犀-Portable-1.2.0.exe',
+  '$setupSha',
+  'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
+  0, CURRENT_TIMESTAMP)
+ON CONFLICT(id) DO UPDATE SET setupSha256=excluded.setupSha256, notes=excluded.notes;
+UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0';
+"@
     foreach ($db in @(
         (Join-Path $ProjectRoot 'backend\prisma\dev.db'),
         (Join-Path $ProjectRoot 'backend\dev.db')
@@ -180,7 +187,7 @@ if (Test-Path $SetupExe) {
             $sql | & sqlite3 (Split-Path $db -Leaf) 2>&1 | Out-Null
         }
     }
-    Write-Host "  dev.db SHA256 updated: $setupSha" -ForegroundColor Gray
+    Write-Host "  v1.2.0 seed OK: SHA256=$setupSha" -ForegroundColor Green
 }
 
 Write-Host ''

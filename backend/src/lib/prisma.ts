@@ -79,24 +79,47 @@ export async function ensureReleaseTables() {
         publishedAt TEXT NOT NULL DEFAULT (datetime('now'))
       )
     `)
-    // seed v1.1.0（只在空表时插入）
+    // seed 最新版本（空表时插入 + 有旧版本时 upsert 最新）
     const cnt = await prisma.$queryRawUnsafe('SELECT count(*) as cnt FROM windows_releases') as { cnt: bigint }[]
+    const hasV12 = await prisma.$queryRawUnsafe("SELECT count(*) as cnt FROM windows_releases WHERE version='1.2.0'") as { cnt: bigint }[]
     if (cnt[0].cnt === 0n) {
       await prisma.$executeRawUnsafe(`
         INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
         VALUES (
-          'rel_v1_1_0',
-          '1.1.0',
+          'rel_v1_2_0',
+          '1.2.0',
           1,
           160.5,
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.1.0.exe',
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.1.0.exe',
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
           '',
-          'v1.1.0: HomePage useHomeData hook, PetPage PetGames.tsx (-30%), vite manualChunks 拆包',
+          'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
           0
         )
       `)
-      console.log('[ensureReleaseTables] ✅ seeded v1.1.0')
+      console.log('[ensureReleaseTables] ✅ seeded v1.2.0')
+    } else if (hasV12[0].cnt === 0n) {
+      // 有旧版本但没 v1.2.0 → upsert
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
+        VALUES (
+          'rel_v1_2_0',
+          '1.2.0',
+          1,
+          160.5,
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
+          '',
+          'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
+          0
+        )
+        ON CONFLICT(id) DO UPDATE SET isLatest=1, notes=excluded.notes
+      `)
+      await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
+      console.log('[ensureReleaseTables] ✅ upserted v1.2.0')
+    } else {
+      // 已有 v1.2.0 → 确保 isLatest=1
+      await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=1 WHERE version='1.2.0'; UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
     }
   } catch (e) {
     // 表可能已存在（Prisma schema 同步过），忽略

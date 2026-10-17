@@ -1,6 +1,6 @@
 {
     "name":  "aie-desktop",
-    "version":  "1.1.0",
+    "version":  "1.2.0",
     "description":  "绿角犀 - Windows 桌面版",
     "main":  "main.cjs",
     "author":  "绿角犀 Team",
@@ -10,7 +10,7 @@
                     "start":  "electron .",
                     "pack":  "electron-builder --dir",
                     "dist":  "electron-builder",
-                    "dist:win":  "electron-builder --win --x64"
+                    "dist:win":  "electron-builder --win --x64 --publish never"
                 },
     "devDependencies":  {
                             "electron":  "^43.4.0",
@@ -78,10 +78,19 @@
                                                         ]
                                          }
                                      ],
+  "portable": {
+    "artifactName": "绿角犀-Portable-${version}.${ext}"
+  },
                   "win":  {
                               "target":  [
                                              {
                                                  "target":  "nsis",
+                                                 "arch":  [
+                                                              "x64"
+                                                          ]
+                                             },
+                                             {
+                                                 "target":  "portable",
                                                  "arch":  [
                                                               "x64"
                                                           ]
