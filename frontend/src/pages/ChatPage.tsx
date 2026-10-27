@@ -1034,6 +1034,12 @@ function ChatPageInner() {
               {matrix.status === 'connected' && matrix.messages.length === 0 && (
                 <EmptyState text="群聊暂无消息" hint="说点什么吧..." />
               )}
+              {/* Day 8-9：E2EE 加密能力状态提示 */}
+              {matrix.connected && !matrix.encryptionReady && (
+                <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-center">
+                  ⚠️ 端到端加密未启用（Rust crypto 初始化失败），当前为明文消息
+                </div>
+              )}
               {matrix.status === 'connected' && matrix.messages.map((m) => (
                 <div key={m.id} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
@@ -1042,7 +1048,15 @@ function ChatPageInner() {
                       : 'bg-primary-50 border border-primary-100 text-gray-800 rounded-bl-sm'
                   }`}>
                     {!m.isSelf && <div className="text-[10px] text-primary-600 font-medium mb-0.5">{m.senderId}</div>}
-                    <div className="break-words">{m.body}</div>
+                    <div className="break-words flex items-start gap-1">
+                      {m.isEncrypted && (
+                        <span title="端到端加密" className="inline-block text-[10px] leading-none mt-0.5">🔒</span>
+                      )}
+                      {!m.isDecrypted && (
+                        <span title="解密失败" className="inline-block text-[10px] leading-none mt-0.5">🔐</span>
+                      )}
+                      <span>{m.body}</span>
+                    </div>
                     <div className="text-[9px] opacity-60 mt-1 text-right">{formatTime(new Date(m.timestamp).toISOString())}</div>
                   </div>
                 </div>
@@ -1087,8 +1101,11 @@ function ChatPageInner() {
                 <Send size={18} />
               </button>
             </div>
-            <div className="text-[10px] text-gray-300 mt-1 px-2">
-              Matrix 群聊 · {matrix.status === 'connected' ? '已连接' : matrix.status === 'connecting' ? '连接中...' : '未连接'}
+            <div className="text-[10px] text-gray-300 mt-1 px-2 flex items-center gap-2">
+              <span>Matrix 群聊 · {matrix.status === 'connected' ? '已连接' : matrix.status === 'connecting' ? '连接中...' : '未连接'}</span>
+              {matrix.encryptionReady && (
+                <span className="inline-flex items-center gap-0.5 text-emerald-600">🔒 E2EE</span>
+              )}
             </div>
           </div>
         </>

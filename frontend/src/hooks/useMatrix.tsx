@@ -33,6 +33,8 @@ export interface MatrixState {
   error: string | null
   /** 是否已完成 connect（避免重复调） */
   connected: boolean
+  /** Day 8-9：Rust crypto 初始化是否成功（E2EE 可用前提） */
+  encryptionReady: boolean
 }
 
 export interface MatrixActions {
@@ -59,6 +61,7 @@ const initialState: MatrixState = {
   messages: [],
   error: null,
   connected: false,
+  encryptionReady: false,
 }
 
 /** Provider — 整个应用或 ChatPage 级别包裹一次 */
@@ -107,7 +110,11 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
         deviceId: auth.deviceId,
       })
 
-      setState((s) => ({ ...s, userId: auth.userId }))
+      setState((s) => ({
+        ...s,
+        userId: auth.userId,
+        encryptionReady: matrixManager.isEncryptionEnabled(),
+      }))
 
       // 3. join 默认房间
       const targetRoom = roomId || DEFAULT_ROOM_ID

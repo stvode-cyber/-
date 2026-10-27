@@ -1,11 +1,11 @@
 /**
- * Matrix IM 底层客户端封装
+ * Matrix IM 底层客户端封装 · Day 8-9 E2EE 升级
  * - 单例模式：整个应用共享一个 MatrixClient 实例
- * - 封装 SDK 初始化 / 登录 / 收消息 / 发消息 / 房间操作
+ * - SDK v44 Rust crypto：initRustCrypto({ useIndexedDB: true }) 自动 WASM + IndexedDB 持久化
  * - 与绿角犀 Express 后端 SSO 对接：前端先调 /api/v1/matrix/auth 拿 token
  * - baseUrl 用 Vite proxy 路径 '/_matrix'（开发环境）
  *
- * Day 5-6 MVP：只做明文消息（无 E2EE），硬编码 admin room
+ * Day 8-9 E2EE MVP：只做 Rust crypto + 房间级加密开关，无跨设备备份
  */
 
 import * as sdk from 'matrix-js-sdk'
@@ -27,11 +27,14 @@ export interface MatrixInitParams {
   accessToken: string
   /** device_id 可选，不传则 SDK 自动生成 */
   deviceId?: string
+  /** 是否开启 E2EE（默认 true · Day 8-9 核心） */
+  enableE2EE?: boolean
 }
 
 class MatrixClientManager {
   private client: sdk.MatrixClient | null = null
   private status: MatrixConnectionStatus = 'disconnected'
+  private encryptionEnabled = false  // Day 8-9：Rust crypto 初始化状态
   private listeners = new Set<(status: MatrixConnectionStatus) => void>()
   private messageListeners = new Set<(msg: MatrixRoomMessage) => void>()
 
@@ -69,7 +72,8 @@ class MatrixClientManager {
     }
 
     this.setStatus('connecting')
-    console.log('[Matrix] creating client', { userId: params.userId, baseUrl: BASE_URL })
+    const enableE2EE = params.enableE2EE !== false  // 默认 true
+    console.log('[Matrix] creating client', { userId: params.userId, baseUrl: BASE_URL, enableE2EE })
 
     try {
       this.client = sdk.createClient({
@@ -78,6 +82,23 @@ class MatrixClientManager {
         accessToken: params.accessToken,
         deviceId: params.deviceId,
       })
+
+      // ⭐ Day 8-9：E2EE Rust crypto 初始化（SDK v44 推荐路径）
+      if (enableE2EE) {
+        console.log('[Matrix] initRustCrypto({ useIndexedDB: true })...')
+        try {
+          await this.client.initRustCrypto({
+            useIndexedDB: true,
+            cryptoDatabasePrefix: 'greenrhino_matrix_',
+          })
+          this.encryptionEnabled = true
+          console.log('[Matrix] ✅ Rust crypto ready, crypto API available')
+        } catch (cryptoErr) {
+          console.warn('[Matrix] ⚠️ initRustCrypto FAILED, falling back to plaintext:', cryptoErr)
+          this.encryptionEnabled = false
+          // E2EE 初始化失败不阻断连接 —— 先让用户能发明文
+        }
+      }
 
       // 监听 /sync 到达事件
       this.client.on(sdk.ClientEvent.Sync, (state) => {
@@ -89,11 +110,32 @@ class MatrixClientManager {
         }
       })
 
-      // 监听 Timeline 事件（新消息）
+      // 监听 Timeline 事件（新消息 · Day 8-9：区分加密/明文）
       this.client.on(sdk.RoomEvent.Timeline, (event, room) => {
         if (event.getType() !== 'm.room.message') return
+
+        // Day 8-9：E2EE 消息 SDK 自动解密，但我们标记 isEncrypted 给 UI
+        const isEncrypted = event.isEncrypted()
+
         const msg = event.getContent()
         if (!msg) return
+
+        // SDK 可能解密失败 —— 显示 fallback
+        if (!msg.body && msg.msgtype === 'm.bad.encrypted') {
+          const parsed: MatrixRoomMessage = {
+            id: event.getId() || '',
+            roomId: room?.roomId || event.getRoomId() || '',
+            senderId: event.getSender() || '',
+            body: '🔐 加密消息（解密失败，请确认设备 key）',
+            msgtype: 'm.bad.encrypted',
+            timestamp: event.getTs(),
+            isSelf: event.getSender() === params.userId,
+            isEncrypted: true,
+            isDecrypted: false,
+          }
+          this.messageListeners.forEach(fn => fn(parsed))
+          return
+        }
 
         const senderId = event.getSender()
         const body = msg.body || ''
@@ -109,10 +151,13 @@ class MatrixClientManager {
           msgtype,
           timestamp,
           isSelf: senderId === params.userId,
+          isEncrypted,
+          // SDK v44 无 isDecrypted() 方法，用 msgtype 判断：m.bad.encrypted = 解密失败
+          isDecrypted: !isEncrypted || msgtype !== 'm.bad.encrypted',
         }
 
-        // 只处理 text 消息（Day 5-6 MVP 范围）
-        if (msgtype === 'm.text') {
+        // 只处理 text 消息（Day 5-6 MVP 范围 + Day 8-9 加密消息）
+        if (msgtype === 'm.text' || msgtype === 'm.bad.encrypted') {
           this.messageListeners.forEach(fn => fn(parsed))
         }
       })
@@ -161,11 +206,63 @@ class MatrixClientManager {
     return this.client.joinRoom(roomId)
   }
 
-  /** 发一条 text 消息 */
+  /** 加/取 E2EE 加密状态 */
+  isEncryptionEnabled() {
+    return this.encryptionEnabled
+  }
+
+  /**
+   * 给房间开启 E2EE（发 m.room.encryption state event）
+   * Matrix 协议：加密是房间级开关，一旦开启不能关闭
+   */
+  async enableRoomEncryption(roomId: string): Promise<void> {
+    if (!this.client) throw new Error('Matrix not initialized')
+    if (!this.encryptionEnabled) throw new Error('E2EE not initialized — call init() first with enableE2EE: true')
+    const room = this.client.getRoom(roomId)
+    if (!room) throw new Error(`Room ${roomId} not found`)
+    const existing = room.hasEncryptionStateEvent()
+    if (existing) {
+      console.log(`[Matrix] Room ${roomId} already encrypted, skip`)
+      return
+    }
+    console.log(`[Matrix] Enabling E2EE on room ${roomId}...`)
+    // sendStateEvent 参数顺序：(roomId, eventType, content, stateKey?)
+    await this.client.sendStateEvent(
+      roomId,
+      sdk.EventType.RoomEncryption,
+      {
+        algorithm: 'm.megolm.v1.aes-sha2',
+        rotation_period_msgs: 100,
+      },
+      '', // stateKey 空字符串（房间加密 state event 无 stateKey）
+    )
+    console.log(`[Matrix] ✅ Room ${roomId} encrypted`)
+  }
+
+  /**
+   * 发一条 text 消息 · Day 8-9：自动感知房间加密
+   * - 房间开了 E2EE → SDK 自动加密发送（msgtype: m.room.encrypted）
+   * - 房间没开 → 明文发送（msgtype: m.text，走 Matrix 协议标准）
+   */
   async sendText(roomId: string, text: string): Promise<string | null> {
     if (!this.client) throw new Error('Matrix not initialized')
+
+    // Day 8-9：自动给房间开加密（首次发送时）
+    if (this.encryptionEnabled) {
+      const room = this.client.getRoom(roomId)
+      if (room && !room.hasEncryptionStateEvent()) {
+        console.log(`[Matrix] Auto-enabling E2EE for room ${roomId}...`)
+        try {
+          await this.enableRoomEncryption(roomId)
+          // 加密房间后首次发消息可能需要等 SDK setup 完设备 key，给个小延迟
+          await new Promise(r => setTimeout(r, 500))
+        } catch (encErr) {
+          console.warn('[Matrix] enableRoomEncryption failed, will send plaintext:', encErr)
+        }
+      }
+    }
+
     const res = await this.client.sendTextMessage(roomId, text)
-    // sendTextMessage 返回 { event_id: string }
     return (res as { event_id?: string })?.event_id ?? null
   }
 
@@ -189,6 +286,9 @@ class MatrixClientManager {
       const content = event.getContent()
       if (!content || content.msgtype !== 'm.text') continue
 
+      const isEncrypted = event.isEncrypted()
+      // getRoomMessages 已过滤 content.msgtype !== 'm.text'（L281 continue），
+      // 能进到这里的都是明文或加密成功解密后的 m.text，解密一定成功
       messages.push({
         id: event.getId() || `fallback_${messages.length}`,
         roomId,
@@ -197,6 +297,8 @@ class MatrixClientManager {
         msgtype: content.msgtype,
         timestamp: event.getTs(),
         isSelf: event.getSender() === this.client.getUserId(),
+        isEncrypted,
+        isDecrypted: true,
       })
     }
 
@@ -230,6 +332,10 @@ export interface MatrixRoomMessage {
   msgtype: string
   timestamp: number
   isSelf: boolean
+  /** Day 8-9：原消息是否加密发送（来自 event.isEncrypted()） */
+  isEncrypted?: boolean
+  /** Day 8-9：SDK 是否成功解密（m.bad.encrypted 时为 false） */
+  isDecrypted?: boolean
 }
 
 /** 全局单例 */
