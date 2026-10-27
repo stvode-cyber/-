@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绿角犀 → Matrix 一键登录</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+         min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         padding: 20px; color: #e2e8f0; }
+  .card { background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(10px);
+          border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 16px;
+          padding: 40px; max-width: 480px; width: 100%; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+  h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; color: #f1f5f9; }
+  .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 28px; }
+  .mode-toggle { display: flex; gap: 8px; margin-bottom: 24px; }
+  .mode-btn { flex: 1; padding: 10px; border: 1px solid rgba(148,163,184,0.3);
+              background: transparent; color: #94a3b8; border-radius: 8px;
+              cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+  .mode-btn.active { background: #3b82f6; border-color: #3b82f6; color: white; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 6px;
+          text-transform: uppercase; letter-spacing: 0.05em; }
+  input { width: 100%; padding: 12px 14px; background: rgba(15, 23, 42, 0.6);
+          border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px;
+          color: #f1f5f9; font-size: 0.9rem; outline: none; transition: border 0.2s; }
+  input:focus { border-color: #3b82f6; }
+  .login-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+               border: none; border-radius: 10px; color: white; font-size: 1rem; font-weight: 600;
+               cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+  .login-btn:hover { transform: translateY(-1px); }
+  .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .result { margin-top: 24px; padding: 20px; background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 10px; display: none; }
+  .result.error { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.3); }
+  .result.show { display: block; }
+  .result-row { display: flex; justify-content: space-between; align-items: center;
+                margin-bottom: 10px; font-size: 0.85rem; }
+  .result-label { color: #94a3b8; }
+  .result-val { color: #f1f5f9; font-family: monospace; word-break: break-all;
+                max-width: 60%; text-align: right; }
+  .action-btn { margin-top: 16px; padding: 10px 20px; background: #6366f1;
+                border: none; border-radius: 8px; color: white; font-size: 0.85rem;
+                cursor: pointer; text-decoration: none; display: inline-block; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+             border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .divider { text-align: center; color: #475569; font-size: 0.75rem; margin: 20px 0; }
+  .api-url { background: rgba(15,23,42,0.6); padding: 10px; border-radius: 8px;
+             font-family: monospace; font-size: 0.75rem; color: #64748b; word-break: break-all; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🔐 绿角犀 → Matrix 一键登录</h1>
+  <p class="subtitle">Express Matrix SSO Auth Proxy · 方案 B 验证 Demo</p>
+
+  <div class="mode-toggle">
+    <button class="mode-btn active" onclick="setMode('jwt')">🔑 JWT 模式</button>
+    <button class="mode-btn" onclick="setMode('cookie')">🍪 Cookie 模式</button>
+  </div>
+
+  <!-- JWT 模式：手动粘绿角犀 JWT -->
+  <div id="mode-jwt">
+    <div class="field">
+      <label>绿角犀 JWT (Bearer token)</label>
+      <input id="jwt-input" type="text" placeholder="eyJhbGciOiAiSFMyNTYi..." autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <!-- Cookie 模式：需要用户已登录绿角犀（同域 cookie） -->
+  <div id="mode-cookie" style="display:none">
+    <div class="field">
+      <label>绿角犀 用户名 / 密码</label>
+      <input id="rh-username" type="text" placeholder="admin" autocomplete="username">
+      <input id="rh-password" type="password" placeholder="••••••••" autocomplete="current-password"
+             style="margin-top: 10px;">
+    </div>
+  </div>
+
+  <button id="login-btn" class="login-btn" onclick="doLogin()">一键登录 Matrix</button>
+
+  <div class="divider">API 端点</div>
+  <div class="api-url" id="api-url">POST https://lujax.fun/api/v1/matrix/auth</div>
+
+  <div id="result" class="result">
+    <div class="result-row"><span class="result-label">✅ Matrix 用户</span><span class="result-val" id="r-user">-</span></div>
+    <div class="result-row"><span class="result-label">🔒 Access Token</span><span class="result-val" id="r-token" onclick="copy(this)" title="点击复制">-</span></div>
+    <div class="result-row"><span class="result-label">🏠 Homeserver</span><span class="result-val" id="r-hs">-</span></div>
+    <div class="result-row"><span class="result-label">📱 Device</span><span class="result-val" id="r-device">-</span></div>
+    <div style="text-align:center;margin-top:16px;">
+      <button class="action-btn" onclick="openElement()">🚀 在 Element Web 打开</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;  // 同域，无 CORS 问题
+let currentResult = null;
+
+function setMode(mode) {
+  document.getElementById('mode-jwt').style.display = mode === 'jwt' ? 'block' : 'none';
+  document.getElementById('mode-cookie').style.display = mode === 'cookie' ? 'block' : 'none';
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.classList.toggle('active', 
+      (mode === 'jwt' && i === 0) || (mode === 'cookie' && i === 1));
+  });
+}
+
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const result = document.getElementById('result');
+  result.className = 'result';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 登录中...';
+
+  try {
+    let headers = { 'Content-Type': 'application/json' };
+    let useCookie = false;
+
+    // JWT mode
+    const jwt = document.getElementById('jwt-input').value.trim();
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    } else {
+      // Cookie mode: 先登录绿角犀拿 cookie
+      const username = document.getElementById('rh-username').value.trim();
+      const password = document.getElementById('rh-password').value.trim();
+      if (!username || !password) {
+        throw new Error('请输入 JWT 或绿角犀 用户名/密码');
+      }
+      const loginResp = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
+      if (!loginResp.ok) {
+        const err = await loginResp.json();
+        throw new Error('绿角犀登录失败: ' + (err.message || loginResp.status));
+      }
+      useCookie = true;  // cookie 自动带上
+    }
+
+    // Call Matrix auth proxy
+    const resp = await fetch(`${API_BASE}/api/v1/matrix/auth`, {
+      method: 'POST',
+      headers,
+      credentials: useCookie ? 'include' : 'omit',
+      body: '{}'
+    });
+
+    const body = await resp.json();
+
+    if (!resp.ok || !body.ok) {
+      throw new Error(body.message || JSON.stringify(body).slice(0, 200));
+    }
+
+    // Show result
+    currentResult = body;
+    document.getElementById('r-user').textContent = body.user_id;
+    document.getElementById('r-token').textContent = body.access_token.slice(0, 25) + '...';
+    document.getElementById('r-token').dataset.full = body.access_token;
+    document.getElementById('r-hs').textContent = body.homeserver;
+    document.getElementById('r-device').textContent = body.device_id;
+    result.className = 'result show';
+
+  } catch (e) {
+    result.className = 'result error show';
+    result.innerHTML = `<div class="result-row"><span class="result-label">❌ 错误</span><span class="result-val">${e.message}</span></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '一键登录 Matrix';
+  }
+}
+
+function copy(el) {
+  const token = el.dataset.full;
+  if (!token) return;
+  navigator.clipboard.writeText(token).then(() => {
+    const old = el.textContent;
+    el.textContent = '✅ 已复制';
+    setTimeout(() => el.textContent = old, 1500);
+  });
+}
+
+function openElement() {
+  if (!currentResult) return;
+  // Matrix 自定义 URL scheme 或 Element Web 链接
+  // 方案 1: 直接用 Matrix scheme（支持 Element、Nheko、FluffyChat 等）
+  const scheme = `matrix://login?token=${encodeURIComponent(currentResult.access_token)}&homeserver=${encodeURIComponent(currentResult.homeserver)}`;
+  // 方案 2: Element Web
+  const elementUrl = `https://app.element.io/#/login?token=${encodeURIComponent(currentResult.access_token)}&homeserver=${encodeURIComponent(currentResult.homeserver)}`;
+  if (confirm(`打开 Matrix 客户端？\n\nOK = Matrix URL scheme (支持 Nheko/FluffyChat/Element)\nCancel = Element Web 网页版`)) {
+    window.open(scheme, '_blank');
+  } else {
+    window.open(elementUrl, '_blank');
+  }
+}
+</script>
+</body>
+</html>

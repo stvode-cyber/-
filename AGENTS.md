@@ -8,7 +8,7 @@
 
 **绿角犀（AIE）** — 桌面端优先的全能个人助理。Electron 壳 + React 前端 + Express/Prisma 后端，本地 SQLite。云端 47.116.59.141 为 AI 网关和多用户身份签发方。
 
-- **版本**：v1.1.0（三落点对齐）
+- **版本**：v1.2.0（三落点对齐）
 - **仓库**：`git@github.com:stvode-cyber/-.git`（仓库名是 `-`）
 - **硬边界**：前端 3 产品面 × 后端 1 端口（3001 本地 / 3100 云端）
 
@@ -49,8 +49,9 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 11. **动手前必须宣告 + 等用户确认**：例外：紧急修 bug 或用户说"不用确认"时可跳过，事后必须同步
 12. **三模式 __BUILD_MODE__ 全覆盖**：desktop/mobile 用 cross-env；admin 必须硬 `define: { __BUILD_MODE__: JSON.stringify('admin') }`（2026-10-16 真 bug）
 13. **用户偏好：全交给 AI + 大白话回复 + 只需确认**：AI 全权操作所有动作（跑命令、改代码、SSH 部署），用户只负责"确认/同意/好的"；回复必须大白话，不许套话废话技术术语堆砌（2026-10-17 用户明确要求）
-14. **重要信息变更必须三处同步**：secrets.md + AGENTS.md + handover.md 任何一处变更，另外两处必须立刻跟上（pm2 进程名漂移就是反例）
+14. **重要信息变更必须三处同步**：secrets.md + AGENTS.md + handover.md 任何一处变更，另外两处必须立刻跟上（pm2 进程名漂移就是反例）→ **执行前跑 secrets-sync-checklist SKILL 的 Grep 验证**
 15. **关键远程操作前必须先验证**：用户说"做过了"不代表真做了——`pm2 list` 查进程、`git ls-remote` 查仓库、curl health 查服务，必验
+16. **后端生产禁止 console.log**：Express 官方推荐 **Pino**（异步+脱敏+比 Winston 快 5-10x），用 `pino({ level: 'info', redact: ['password','token'] })` 替换全部 console.error/warn
 
 ---
 
@@ -68,7 +69,7 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 
 ---
 
-## ⑤ 质量基线 10 条
+## ⑤ 质量基线 10 条（实际 11 条，第 11 条 Pino）
 
 - ✅ TS strict 零错（前后端 `npx tsc --noEmit` 必须过）
 - ✅ 后端 `npm run build` 通过（dist 启动 `/health` 200）
@@ -77,6 +78,7 @@ Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select Length, LastWrite
 - ✅ `node smoke-all.mjs` 全过（41 路由前缀 + CRUD + 边界）
 - ✅ Zod schema 校验全覆盖（输入 + refine）
 - ✅ 新增页面注册三套路由（未登录/桌面端/移动端）
+- ✅ **后端生产用 Pino**（Express 官方推荐，比 Winston 快 5-10x），禁止 console.log 做生产日志
 - ✅ 涉及协议隐私必须同步 TermsPage/PrivacyPolicyPage
 - ✅ CORS OPTIONS 204 + ACAO 动态回显 + ACAC: true
 - ✅ 不新增彩色（墨玉绿主题 brand #00856A，彩色占面 < 8%）
@@ -180,5 +182,86 @@ APP-AIE/
 ③ 任务追踪机制 ✅ → 现在做
 ④ 升级 AGENTS.md ⏳ → 下一个
 ⑤ 更新 INDEX.md ⏳
-⑥ 新 AI 接手测试 ⏳
+
+---
+
+## ⑩ 协作协议（25 条铁律）
+
+> 🔴 **新 AI 进场必须读**，读完再读本文其他章节。
+> 本文是**项目技术约束**（版本号/路径/数据库/端口等底层事），25 条铁律是**AI 行为模式**（推演/分档/RCA/成长栈等上层事）。
+> **冲突优先级**：25 条铁律管 AI 怎么干活，本文管项目硬边界，各管各的不打架。如果真冲突 → 停下报"越界"让用户拍板。
+
+### 强制入口文件
+
+| 文件 | 位置 | 用途 |
+|---|---|---|
+| 《项目进程.md》 | `APP-AIE/` 根 | 只记"现在做到哪"和"哪些改动影响了进程"，进程版本号 v主.次 |
+| 《项目对话卡.md》 | `APP-AIE/` 根 | 每次对话结束倒序追加 DC-xx，换方向先存 PLAN-xx 快照 |
+
+### 25 条铁律速查（完整版在对话历史，核心骨架）
+
+| 编号 | 核心规则 | 一句话 |
+|---|---|---|
+| F1-F6 | 回复格式 | 已读设定开头 / 四件套结尾 / 状态盘+模板 / 5 状态符号 / 全中文 |
+| T1-T5 | 推演流程 | A/B/C 三套等回字母 / 逻辑图回"过"才动 / 正推+反推 / 随机出错点 |
+| T6-T8 | 分档尺子 | Z/Z+/A/B 四档 / 接口数据权限必升档 / 任一项踩红线最高档 |
+| P1-P4 | 项目管理 | 进程.md / 对话卡.md / 两段式 / RICE 打分 |
+| E1-E2 | 出错闭环 | RCA 五步 / REG-xx + RT-xx 回归用例 |
+| Q1-Q3 | 质量+成长 | 规矩下沉钩子 / 五类成长栈捕获→路由→落地→验证→度量 |
+
+### 旧规则仍有效
+
+- 本文 ①~⑨ 节所有内容（16 条硬约束 / 质量基线 / 台账体系等）**完全保留不删**，是项目技术硬边界
+- 25 条铁律是新增的 AI 行为模式，**不替代**本文已有规则
+
+---
+
+## ⑪ 全项目主线：Continuwuity IM 升级
+
+> ⚠️ **AGENTS.md 只放索引和状态，完整方案全在《Continuwuity-IM项目文本》里**，别在 AGENTS.md 里重复写硬规矩表或实施步骤。
+
+### 一句话
+
+放弃自造 IM → 用 **Matrix 协议 + Continuwuity**（Rust 轻量服务端）全量替换。Tuwunel（Matrix Construct 官方继任者）作备选迁移路径（RocksDB 兼容，换镜像自动迁移）。
+
+### 当前状态
+
+- **Day 1 ✅ 已验收通过**：Continuwuity 0.5.10 在 `lujax.fun` 跑起来了，Matrix API 外网可达
+- **Day 2 进行中**：OIDC 对接 + 批量迁移用户 + admin 用户创建
+- **硬规矩数量**：26 条（H1-H26，v1.4 十轮联网扫描）
+- **选型锁定**：Continuwuity
+
+### 所有内容在哪（索引）
+
+| 文件 | 内容 |
+|---|---|
+| 🟢 **`Continuwuity-IM项目文本.md`** | **全项目唯一真源**：26 条硬规矩 + 30 章完整方案 + config.toml/nginx.conf/docker-compose.yml + Tuwunel 备选 + 故障速查 + admin 命令速查 |
+| `05_功能特性/Continuwuity-IM升级方案.md` | 详细实施步骤 + 风险预案（8 章）|
+| `.trae/memory/growth/daily/2026-10-26.md` | 十轮联网扫描完整记录 + 决策回溯 |
+
+### AI 进场顺序
+
 ```
+Step 1: 读 AGENTS.md ⑪ → 知道"在搞 Continuwuity IM 升级，当前 Day 1"
+Step 2: 读 Continuwuity-IM项目文本.md → 读完前 30 章（架构/选型/硬规矩/配置参考）→ 翻到最末尾 🎯 Day 1 作战卡
+Step 3: 作战卡第 0 步前置检查 → 4 条全过 → 第 1-6 步按顺序敲命令
+Step 4: daily/2026-10-26.md → 十轮扫描决策记录（卡壳时回查）
+```
+
+### Day 1 开干前必看
+
+**直接读《Continuwuity-IM项目文本》末尾的 🎯 Day 1 作战卡**——所有配置块（config.toml/nginx.conf/docker-compose.yml）都摘好了在卡上，改 1 处域名就能敲。不用翻第八章。
+
+### 执行参数在哪找（Day 1 必须知道的 3 件事）
+
+| 参数 | 实际值 |
+|---|---|
+| 服务器 IP | AGENTS ⑥ 运维速查 → `47.116.59.141` |
+| SSH root 密码 | AGENTS ⑥ 运维速查 |
+| 实际域名 | **`lujax.fun`**（greenrhino.cn 指向福建 CDN 不是阿里云）|
+| Continuwuity 注册 token | `F3LIFWye4C4w6Dsd`（首次启动自动生成，容器日志里能看到）|
+
+### 下一步
+
+**Day 2 开干**：OIDC 对接绿角犀 Express → 批量迁移用户。
+⚠️ Day 1 踩的坑（config.toml 路径用 `-O` 参数 + 字符串带引号 + command 写 `/sbin/conduwuit`）→ 已更新进项目文本末尾 🎯 作战卡踩坑区。

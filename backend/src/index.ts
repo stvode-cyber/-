@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan'
 import helmet from 'helmet'
+import logger from './lib/logger.js'
 
 import { requestId, notFound, errorHandler } from './middleware/error.js'
 import { timing } from './middleware/timing.js'
@@ -51,6 +52,8 @@ import aiRoutes from './routes/ai.routes.js'
 import taskTeamRoutes from './routes/task-team.routes.js'
 import teamRoutes from './routes/team.routes.js'
 import pmRoutes from './routes/pm.routes.js'
+import oidcRoutes from './routes/oidc.routes.js'
+import matrixRoutes from './routes/matrix.routes.js'
 import { initRemoteFileServer } from './services/remoteFileServer.js'
 import { startCountdownScheduler } from './utils/countdown.lib.js'
 import { startMorningGreetingScheduler } from './utils/morningGreeting.lib.js'
@@ -84,10 +87,12 @@ app.use(cors({
     ])
     if (exactAllowed.has(origin)) return callback(null, origin)
 
-    // 生产环境：Nginx 反代的直连 IP + 自定义 CORS_ORIGIN env
+    // 生产环境：Nginx 反代的直连 IP + lujax.fun 域名
     if (origin.startsWith('https://47.116.59.141')) return callback(null, origin)
+    if (origin.startsWith('https://lujax.fun')) return callback(null, origin)
+    // CORS_ORIGIN 支持逗号分隔多值
     const envOrigin = process.env.CORS_ORIGIN
-    if (envOrigin && origin === envOrigin) return callback(null, origin)
+    if (envOrigin && envOrigin.split(',').some((o) => o.trim() === origin)) return callback(null, origin)
 
     // 已知协议后缀：Android WebView / 自定义 scheme
     if (/^(capacitor|greenrhino|ionic):\/\//.test(origin)) return callback(null, origin)
@@ -96,7 +101,7 @@ app.use(cors({
     if (origin.startsWith('http://localhost:')) return callback(null, origin)
 
     // 其他一律拒绝（原来的 callback(null, origin) 是安全漏洞）
-    console.warn(`[CORS] 拒绝未知 origin: ${origin}`)
+    logger.warn({ origin }, '[CORS] 拒绝未知 origin')
     // 返回 false 让 Express cors 中间件自动处理（不带 ACAO 头 → 浏览器拦截）
     // 用 callback(new Error) 会走全局 errorHandler 返回 500，不是最佳实践
     return callback(null, false)
@@ -131,6 +136,14 @@ app.use(requestContextMiddleware)
 
 // 健康检查
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: Date.now() }))
+
+// OIDC OAuth2 Provider（给 Continuwuity delegated auth 用）
+// 路径必须是 /api/oidc — Continuwuity discovery_url 要能直接访问
+app.use('/api/oidc', oidcRoutes)
+
+// Matrix SSO Auth Proxy（方案 B：Express 管 Matrix 用户 + token）
+// Continuwuity OIDC delegation 未合入 Docker 镜像，Express 直接调 Matrix Client API
+app.use('/api/v1/matrix', matrixRoutes)
 
 // 路由挂载
 // 上架激活：AUTH_MODE=cloud-proxy 时，/auth 走云端认证代理（本地后端将登录转发到云端身份源），
@@ -182,6 +195,12 @@ app.use('/api/v1/ai', aiRoutes)
 app.use('/api/v1/task-team', taskTeamRoutes)
 app.use('/api/v1/team', teamRoutes)
 app.use('/api/v1/pm', pmRoutes)
+
+// Matrix SSO 前端 Demo（云端浏览器一键登录验证）
+// - 纯静态 HTML，原生 fetch，零依赖
+// - 路径：/matrix-demo.html
+const demoPublicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public')
+app.use(express.static(demoPublicDir))
 
 // 独立管理后台网页（云端浏览器访问）：后端静态托管 /admin
 // - 管理页构建产物由 admin-vite.config.ts 输出到 frontend/admin-dist，

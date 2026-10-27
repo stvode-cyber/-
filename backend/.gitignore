@@ -11,3 +11,12 @@ dev.db-journal
 dev.db.bak*
 *.db.bak*
 prisma/migrations/
+# RSA 密钥对（OIDC 签名）+ 临时运维脚本（不入库）
+keys/
+*.apk
+tmp-*.cjs
+tmp-*.js
+tmp-check*
+tmp-register*
+backend-deploy.sh
+backend-nginx.sh
