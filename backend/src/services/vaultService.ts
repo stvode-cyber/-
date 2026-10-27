@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 用户资料库（AI 记忆 / Obsidian 式）服务
  *
@@ -63,7 +64,7 @@ export async function searchVaultNotes(userId: string, message: string, limit = 
     })
   } catch (e: any) {
     // 兜底：DB 有损坏行（如 DATETIME 空字符串）时 Prisma 会抛 Inconsistent column data
-    console.warn('[vault] searchVaultNotes 查询失败（DB 可能有坏数据），返回空:', e.message?.substring(0, 120))
+    logger.warn({ err: e }, '')
     return []
   }
   if (notes.length === 0) return []
@@ -108,7 +109,7 @@ export async function getVaultNotesForProactive(userId: string, limit = 8): Prom
       take: limit,
     })
   } catch (e: any) {
-    console.warn('[vault] getVaultNotesForProactive 查询失败（DB 可能有坏数据），返回空:', e.message?.substring(0, 120))
+    logger.warn({ err: e }, '')
     return []
   }
   return notes.map(toDTO)
@@ -206,7 +207,7 @@ export async function extractVaultMemory(userId: string, userContent: string, ai
       })
     }
   } catch (err) {
-    console.error('[Vault] Memory extraction failed:', err instanceof Error ? err.message : err)
+    logger.error({ err }, '[Vault] Memory extraction failed')
   }
 }
 
@@ -229,7 +230,7 @@ export async function listVaultNotes(userId: string, opts?: { category?: string;
       take: 500,
     })
   } catch (e: any) {
-    console.warn('[vault] listVaultNotes 查询失败（DB 可能有坏数据），返回空:', e.message?.substring(0, 120))
+    logger.warn({ err: e }, '')
     return []
   }
   return notes.map(toDTO)
@@ -273,7 +274,7 @@ export async function getVaultStats(userId: string): Promise<{ total: number; by
   try {
     notes = await prisma.vaultNote.findMany({ where: { userId }, select: { category: true } })
   } catch (e: any) {
-    console.warn('[vault] getVaultStats 查询失败（DB 可能有坏数据），返回空:', e.message?.substring(0, 120))
+    logger.warn({ err: e }, '')
     return { total: 0, byCategory: {} }
   }
   const byCategory: Record<string, number> = {}

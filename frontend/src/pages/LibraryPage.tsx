@@ -21,8 +21,8 @@ import {
 
 import {
   TYPE_META, CATEGORY_META, CATEGORIES, PAGE_SIZE, TYPES, fmtSize,
-  FolderNode, UploadModal, FolderModal, TagModal, DetailDrawer, TrendChart,
-  ModalShell, Field, Info, CopyRow,
+  FolderNode, UploadModal, FolderModal, TagModal, DetailDrawer,
+  CategoryStatsPanel, CategoryRuleModal,
   type Folder, type TagItem, type Asset, type Space,
 } from '../components/library/LibraryWidgets'
 
@@ -447,58 +447,14 @@ export default function LibraryPage() {
                 })}
               </div>
 
-              {/* 分类统计看板（按智能归纳的 10 类汇总，DAM 归纳概览） */}
-              <div className="card p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium text-accent-700">
-                    分类统计{stats ? ` · 共 ${stats.total} 项` : ''}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={openRuleModal}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-panel-300 text-accent-700 text-xs border border-accent-200 hover:border-primary-400"
-                    ><Pencil size={13} /> 分类规则</button>
-                    <button
-                      onClick={runReclassify}
-                      disabled={reclassifying}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-panel-300 text-accent-700 text-xs border border-accent-200 hover:border-primary-400 disabled:opacity-40"
-                    ><RefreshCw size={13} className={reclassifying ? 'animate-spin' : ''} /> 重新分类</button>
-                  </div>
-                </div>
-                {stats && stats.total > 0 ? (
-                  <div className="space-y-1.5">
-                    {CATEGORIES.filter((c) => (stats.byCategory[c] || 0) > 0).map((c) => {
-                      const cnt = stats.byCategory[c] || 0
-                      const pct = Math.round((cnt / stats.total) * 100)
-                      const meta = CATEGORY_META[c] || CATEGORY_META['其他']
-                      return (
-                        <button
-                          key={c}
-                          onClick={() => { setCategoryFilter((categoryFilter === c ? '' : c)); setPage(1) }}
-                          className="w-full flex items-center gap-2 group"
-                          title={`筛选「${c}」`}
-                        >
-                          <span className={`w-12 text-right text-xs ${meta.color}`}>{c}</span>
-                          <span className="flex-1 h-3 rounded-full bg-panel-200 overflow-hidden">
-                            <span className={`block h-full ${meta.bg} ${meta.color}`} style={{ width: `${pct}%` }} />
-                          </span>
-                          <span className="w-14 text-right text-xs text-accent-400">{cnt} 项 · {pct}%</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-xs text-accent-400 py-2">暂无资产数据</div>
-                )}
-
-                {/* 近 30 天新增趋势 */}
-                {stats && stats.trend && stats.trend.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-accent-100">
-                    <div className="text-xs text-accent-500 mb-1">近 30 天新增趋势</div>
-                    <TrendChart data={stats.trend} />
-                  </div>
-                )}
-              </div>
+              {/* 分类统计看板 */}
+              <CategoryStatsPanel
+                stats={stats} categoryFilter={categoryFilter}
+                onFilterCategory={(c) => { setCategoryFilter(c); setPage(1) }}
+                onOpenRules={openRuleModal}
+                onReclassify={runReclassify}
+                reclassifying={reclassifying}
+              />
 
               {/* 批量选择与下载（分开下载一部分） */}
               <div className="flex items-center gap-2">
@@ -629,113 +585,16 @@ export default function LibraryPage() {
       )}
 
       {/* 分类自定义映射规则 */}
-      {ruleModal && (
-        <div className="fixed inset-0 z-50 bg-black/30 flex items-center justify-center p-4" onClick={() => setRuleModal(false)}>
-          <div className="w-full max-w-lg bg-panel-200 rounded-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-accent-200">
-              <h2 className="text-base font-semibold text-accent-800">分类规则（自定义映射）</h2>
-              <button onClick={() => setRuleModal(false)} className="p-1 text-accent-500"><X size={20} /></button>
-            </div>
-            <div className="p-4 space-y-3">
-              <p className="text-xs text-accent-400">
-                规则优先级高于内置分类引擎；命中即采用其目标分类。修改后点击「重新分类」对本空间全部资产生效。
-              </p>
-
-              {/* 导出 / 导入（备份 / 迁移） */}
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-gray-500 whitespace-nowrap">导入方式</span>
-                <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 text-xs flex-1">
-                  <button
-                    onClick={() => setImportMode('cover')}
-                    className={`flex-1 px-2 py-1 rounded-md transition-colors ${importMode === 'cover' ? 'bg-white text-primary-600 shadow-sm font-medium' : 'text-gray-500'}`}
-                  >覆盖（替换全部）</button>
-                  <button
-                    onClick={() => setImportMode('merge')}
-                    className={`flex-1 px-2 py-1 rounded-md transition-colors ${importMode === 'merge' ? 'bg-white text-primary-600 shadow-sm font-medium' : 'text-gray-500'}`}
-                  >合并（增量去重）</button>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleExportRules}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-panel-300 text-accent-700 text-sm border border-accent-200 hover:border-primary-400"
-                >⬇ 导出规则</button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-panel-300 text-accent-700 text-sm border border-accent-200 hover:border-primary-400"
-                >⬆ 导入规则</button>
-                <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImportFile} />
-              </div>
-
-              {/* 新建表单 */}
-              <div className="grid grid-cols-2 gap-2">
-                <select
-                  value={ruleForm.matchType}
-                  onChange={(e) => setRuleForm((f) => ({ ...f, matchType: e.target.value as CategoryRuleMatchType }))}
-                  className="px-2 py-2 rounded-xl bg-panel-300 text-sm border border-accent-200 outline-none"
-                >
-                  <option value="extension">扩展名 =</option>
-                  <option value="nameContains">文件名包含</option>
-                  <option value="mimeStartsWith">MIME 前缀</option>
-                </select>
-                <input
-                  value={ruleForm.pattern}
-                  onChange={(e) => setRuleForm((f) => ({ ...f, pattern: e.target.value }))}
-                  placeholder={ruleForm.matchType === 'extension' ? '例如 pdf' : ruleForm.matchType === 'nameContains' ? '例如 发票' : '例如 image/'}
-                  className="px-2 py-2 rounded-xl bg-panel-300 text-sm border border-accent-200 outline-none"
-                />
-                <select
-                  value={ruleForm.targetCategory}
-                  onChange={(e) => setRuleForm((f) => ({ ...f, targetCategory: e.target.value }))}
-                  className="px-2 py-2 rounded-xl bg-panel-300 text-sm border border-accent-200 outline-none"
-                >
-                  {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number" min={0} max={999}
-                    value={ruleForm.priority}
-                    onChange={(e) => setRuleForm((f) => ({ ...f, priority: Number(e.target.value) }))}
-                    className="w-20 px-2 py-2 rounded-xl bg-panel-300 text-sm border border-accent-200 outline-none"
-                    title="优先级（越大越优先）"
-                  />
-                  <button
-                    onClick={createRule}
-                    className="flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-primary-500 text-white text-sm"
-                  ><Check size={15} /> 添加规则</button>
-                </div>
-              </div>
-
-              {/* 规则列表 */}
-              <div className="space-y-2">
-                {rules.length === 0 && <div className="text-xs text-accent-400 py-2">暂无自定义规则，将使用内置分类口径。</div>}
-                {rules.map((r) => {
-                  const meta = CATEGORY_META[r.targetCategory] || CATEGORY_META['其他']
-                  return (
-                    <div key={r.id} className="flex items-center gap-2 bg-panel-300 rounded-xl p-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-panel-200 text-accent-500">
-                        {r.matchType === 'extension' ? '扩展名' : r.matchType === 'nameContains' ? '含' : 'MIME'}
-                      </span>
-                      <code className="text-xs text-accent-700">{r.pattern}</code>
-                      <span className="text-accent-400">→</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${meta.bg} ${meta.color}`}>{r.targetCategory}</span>
-                      {!r.enabled && <span className="text-[10px] text-accent-300">已停用</span>}
-                      <span className="text-[10px] text-accent-300 ml-1">P{r.priority}</span>
-                      <button onClick={() => removeRule(r.id)} className="ml-auto text-accent-300 hover:text-red-500"><Trash2 size={14} /></button>
-                    </div>
-                  )
-                })}
-              </div>
-
-              <button
-                onClick={runReclassify}
-                disabled={reclassifying}
-                className="w-full flex items-center justify-center gap-1 px-3 py-2 rounded-xl bg-panel-300 text-accent-700 text-sm border border-accent-200 disabled:opacity-40"
-              ><RefreshCw size={15} className={reclassifying ? 'animate-spin' : ''} /> 重新分类（应用全部规则）</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CategoryRuleModal
+        open={ruleModal} onClose={() => setRuleModal(false)}
+        rules={rules} ruleForm={ruleForm} importMode={importMode}
+        reclassifying={reclassifying}
+        setRuleForm={setRuleForm} setImportMode={setImportMode}
+        onExport={handleExportRules} onImportFile={handleImportFile}
+        onCreateRule={createRule} onRemoveRule={removeRule}
+        onRunReclassify={runReclassify}
+        fileInputRef={fileInputRef}
+      />
     </div>
   )
 }

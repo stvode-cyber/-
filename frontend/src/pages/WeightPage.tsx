@@ -286,7 +286,7 @@ export default function WeightPage() {
         )}
 
         {/* 近 30 天趋势 */}
-        {stat.trend.length >= 2 && (
+        {stat.trend.length >= 2 ? (
           <div className="card p-5 mb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">近 30 天趋势</span>
@@ -296,10 +296,15 @@ export default function WeightPage() {
             </div>
             <WeightTrendChart entries={stat.trend} goalKg={settings.goalKg} />
           </div>
+        ) : (
+          <div className="card p-5 mb-4 text-center">
+            <div className="text-2xl mb-1">📈</div>
+            <p className="text-xs text-gray-400">再记录 {Math.max(0, 2 - stat.trend.length)} 次体重就能看到趋势图啦</p>
+          </div>
         )}
 
         {/* 记录列表 */}
-        {history.length > 0 && (
+        {history.length > 0 ? (
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-700">记录列表</span>
@@ -336,6 +341,11 @@ export default function WeightPage() {
                 )
               })}
             </div>
+          </div>
+        ) : (
+          <div className="card p-5 text-center">
+            <div className="text-2xl mb-1">⚖️</div>
+            <p className="text-xs text-gray-400">还没有体重记录，上面称一次就好啦</p>
           </div>
         )}
       </div>
@@ -443,9 +453,9 @@ function SettingsModal({ initial, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/40 animate-overlay-fade" />
       <div
-        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl"
+        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">

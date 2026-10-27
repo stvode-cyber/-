@@ -1,11 +1,20 @@
 # 🗂️ 台账索引（新 AI 入门 30 秒接住）
 
 > 本文是 `.trae/memory/growth/` 目录的**总索引**。
-> 🔴 **入场顺序**：AGENTS.md → handover.md → secrets.md → 本索引 → issues.md → 今日 daily.md
+> 🔴 **入场顺序**：AGENTS.md → 项目进程.md → 项目对话卡.md → handover.md → secrets.md → 本索引 → issues.md → 今日 daily.md
 
 ---
 
 ## 📂 文件清单
+
+### 项目根目录新文件（2026-10-20 新增，25 条铁律落地）
+
+| 文件 | 用途 | 什么时候查 |
+|---|---|---|
+| **项目进程.md** | 只记"现在做到哪"和"哪些改动影响了进程"，进程版本 v主.次 | 新 AI 进场第一读，改完大动作更新 |
+| **项目对话卡.md** | 每次对话结束倒序追加 DC-xx，换方向先存 PLAN-xx 快照 | 对话收尾必写，跨会话接手上一个 AI 时先读 |
+
+### growth/ 台账目录
 
 | 文件 | 用途 | 什么时候查 |
 |---|---|---|
@@ -13,8 +22,32 @@
 | **secrets.md** | 🔐 重要信息集中表（版本号/账号/服务器/密钥路径）| 版本 bump、服务器操作、发版时必查 |
 | **issues.md** | Master bug 工单 + 独立踩坑快查（P0/P1/P2）+ 杂项铁律 | 改代码前扫坑、排查 bug |
 | **decisions.md** | 为什么选 A 不选 B（20 条关键决策）| 做选择前看之前同类决策 |
-| **daily/2026-10-17.md** | 今日工作流水 | 看今天做了啥 |
-| **archive/daily-2026-Q3.md** | 9-23 ~ 10-12 旧 daily 合并归档 | 查历史（已过期）|
+| **daily/2026-10-18.md** | 今日工作流水 | 看今天做了啥 |
+| **archive/daily-2026-Q3.md** | 9-23 ~ 10-15 旧 daily 合并归档 | 查历史（已过期）|
+
+---
+
+## 🧰 项目 SKILL 索引（.trae/skills/ 15 个，2026-10-20 +1 collab-protocol-bootstrap）
+
+> SKILL 是可执行 SOP，遇到对应场景主动调。**secrets-sync-checklist 是铁律级必跑**。
+
+| SKILL | 什么时候跑 |
+|---|---|
+| **collab-protocol-bootstrap** 🆕 | 用户给新协作规范+说「执行吧/按这个来/回过我就动」时触发——五步落地流程（读→复述→方向段→执行段→闭环） |
+| **collab-25-rules** 🆕 | 每次对话开头——已读设定/推演/A/B/C/分档/RCA/成长栈，25 条 AI 行为模式总手册 |
+| **secrets-sync-checklist** | 改完 secrets.md / pm2 名 / 版本号 bump → Grep 扫残留 |
+| **work-growth-logger** | 新对话启动 / 解决问题 / 改完代码 → 写台账 |
+| **android-auto-update** | Android 发版全链路（版本对齐→build→SCP→seed）|
+| **aie-electron-release** | Electron 发版（version→build→nsis→sha256）|
+| **docker-deploy-guide** | 后端 Docker/SSH 部署（Nginx 反代 + pm2）|
+| **code-review-checklist** | PR review 前自查 / 他人 PR 审 |
+| **security-audit-guide** | 发布前安全审计 |
+| **unit-test-spec** | 写新 selftest / 审查现有测试 |
+| **evolution-algorithms** | 自我进化巡检（扫描→修复→报告）|
+| **ux-test-playbook** | UX 黑盒测试（尼尔森启发式）|
+| **usability-heuristics** | 可用性快速评估 |
+| **frontend-component-spec** | 前端组件规范（配色/字体/卡片）|
+| **competitive-features** | 竞品功能对比调研 |
 
 ---
 

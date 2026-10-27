@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import logger from './logger.js'
 
 /**
  * Prisma 客户端单例
@@ -38,10 +39,10 @@ export const prismaReady: Promise<void> =
           const mode = Array.isArray(result) && result[0]?.journal_mode
             ? result[0].journal_mode
             : 'delete'
-          console.log(`[Prisma] journal_mode 已设置为: ${mode}`)
+          logger.info(`[Prisma] journal_mode 已设置为: ${mode}`)
         })
         .catch((e) => {
-          console.error('[Prisma] 设置 journal_mode=DELETE 失败:', (e as Error).message)
+          logger.error({ err: e }, '[Prisma] 设置 journal_mode=DELETE 失败: %s', (e as Error).message)
         })
     : Promise.resolve()
 
@@ -97,7 +98,7 @@ export async function ensureReleaseTables() {
           0
         )
       `)
-      console.log('[ensureReleaseTables] ✅ seeded v1.2.0')
+      logger.info('[ensureReleaseTables] ✅ seeded v1.2.0')
     } else if (hasV12[0].cnt === 0n) {
       // 有旧版本但没 v1.2.0 → upsert
       await prisma.$executeRawUnsafe(`
@@ -116,13 +117,13 @@ export async function ensureReleaseTables() {
         ON CONFLICT(id) DO UPDATE SET isLatest=1, notes=excluded.notes
       `)
       await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
-      console.log('[ensureReleaseTables] ✅ upserted v1.2.0')
+      logger.info('[ensureReleaseTables] ✅ upserted v1.2.0')
     } else {
       // 已有 v1.2.0 → 确保 isLatest=1
       await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=1 WHERE version='1.2.0'; UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
     }
   } catch (e) {
     // 表可能已存在（Prisma schema 同步过），忽略
-    console.warn('[ensureReleaseTables] 跳过（表可能已存在）:', (e as Error).message)
+    logger.warn({ err: e }, '[ensureReleaseTables] 跳过（表可能已存在）: %s', (e as Error).message)
   }
 }

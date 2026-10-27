@@ -1,4 +1,5 @@
-﻿/**
+import logger from '../lib/logger.js'
+/**
  * AI 主动聊天调度器
  *
  * 设计要点：
@@ -70,15 +71,15 @@ export function startProactiveScheduler(intervalMs: number = SCAN_INTERVAL_MS): 
   schedulerHandle = setInterval(() => {
     // ① 早晨窗口主动问候（8-10 点）
     runProactiveScan().catch((err) => {
-      console.error('[ProactiveScheduler] 扫描失败:', err)
+      logger.error({ err }, '')
     })
     // ② 宠物状态主动冒泡（独立于时间窗口，任何时段 pet 状态差且空闲超时都触发）
     scanPetIdle().catch((err) => {
-      console.error('[ProactiveScheduler] PetIdle 扫描失败:', err)
+      logger.error({ err }, '')
     })
   }, intervalMs)
   schedulerHandle.unref?.() // 不阻塞进程退出
-  console.log(`[ProactiveScheduler] 已启动，间隔 ${Math.floor(intervalMs / 1000)}s`)
+  logger.info(`[ProactiveScheduler] 已启动，间隔 ${Math.floor(intervalMs / 1000)}s`)
 }
 
 export function stopProactiveScheduler(): void {
@@ -121,11 +122,11 @@ export async function runProactiveScan(now: Date = new Date()): Promise<void> {
       const ok = await pushIfDue(user.id, user.nickname || user.username, user.preferredTone || 'gentle', now, todayStart, todayEnd)
       if (ok) pushedCount++
     } catch (err) {
-      console.error(`[ProactiveScheduler] 用户 ${user.id} 推送失败:`, err)
+      logger.error({ err, userId: user.id }, '[ProactiveScheduler] 用户 %s 推送失败', user.id)
     }
   }
   if (pushedCount > 0) {
-    console.log(`[ProactiveScheduler] 本次推送 ${pushedCount} 条主动消息`)
+    logger.info(`[ProactiveScheduler] 本次推送 ${pushedCount} 条主动消息`)
   }
 }
 
@@ -283,9 +284,9 @@ export async function buildPersonalizedGreeting(
     ])
     const text = result?.text?.trim() ?? ''
     if (text.length > 1 && text.length <= 200) return text
-    console.warn('[ProactiveScheduler] LLM 问候输出异常，回退模板:', JSON.stringify(text).slice(0, 80))
+    logger.warn({ text: text.slice(0, 80) }, '[ProactiveScheduler] LLM 问候输出异常，回退模板')
   } catch (err) {
-    console.error('[ProactiveScheduler] LLM 问候生成失败，回退模板:', err instanceof Error ? err.message : err)
+    logger.error({ err }, '[ProactiveScheduler] LLM 问候生成失败，回退模板')
   }
   return buildMorningGreeting(displayName, tone, now, todayTasks)
 }
@@ -466,10 +467,10 @@ export async function scanPetIdle() {
       const ok = await pushPetProactive(u.id, u.nickname || u.username, pet.name, decayed, reason)
       if (ok) petPushed++
     } catch (err) {
-      console.error('[ProactiveScheduler] PetIdle 推送失败:', err)
+      logger.error({ err }, '[ProactiveScheduler] PetIdle 推送失败')
     }
   }
-  if (petPushed > 0) console.log('[ProactiveScheduler] PetIdle push:', petPushed)
+  if (petPushed > 0) logger.info({ count: petPushed }, '[ProactiveScheduler] PetIdle push')
 }
 
 async function pushPetProactive(userId: string, displayName: string, petName: string, decayed: any, reason: string) {

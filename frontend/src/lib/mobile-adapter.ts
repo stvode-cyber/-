@@ -63,6 +63,4 @@ export function initMobileAdapter() {
     watchStop: (_watchId: string) => Promise.resolve(null),
     onFileChanged: (_cb: Function) => {},
   }
-
-  console.log('[Mobile Adapter] desktopAPI mock injected for Capacitor')
 }

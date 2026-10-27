@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * FetchJob 超时清理调度器
  *
@@ -19,7 +20,7 @@ let schedulerHandle: NodeJS.Timeout | null = null
 
 export function startFetchJobScheduler(intervalMs: number = SCAN_INTERVAL_MS): void {
   if (schedulerHandle) return
-  console.log(
+  logger.info(
     `[FetchJobScheduler] 超时清理启动（pending>${PENDING_TIMEOUT_MIN}min→rejected, dispatched>${DISPATCHED_TIMEOUT_MIN}min→failed，扫描 60s）`,
   )
   schedulerHandle = setInterval(async () => {
@@ -29,7 +30,7 @@ export function startFetchJobScheduler(intervalMs: number = SCAN_INTERVAL_MS): v
         `UPDATE fetch_jobs SET status='rejected', finishedAt=datetime('now'), errorMsg='任务超时：Worker 未在 ${PENDING_TIMEOUT_MIN}min 内确认' WHERE status='pending' AND requestedAt < datetime('now','-${PENDING_TIMEOUT_MIN} minutes')`,
       )
       if (typeof r1 === 'number' && r1 > 0) {
-        console.log(`[FetchJobScheduler] 清理 ${r1} 个 pending 超时任务`)
+        logger.info(`[FetchJobScheduler] 清理 ${r1} 个 pending 超时任务`)
       }
 
       // 2. dispatched 超时 → failed
@@ -37,10 +38,10 @@ export function startFetchJobScheduler(intervalMs: number = SCAN_INTERVAL_MS): v
         `UPDATE fetch_jobs SET status='failed', finishedAt=datetime('now'), errorMsg='任务超时：Worker 拿了任务但 ${DISPATCHED_TIMEOUT_MIN}min 内未完成' WHERE status='dispatched' AND dispatchedAt < datetime('now','-${DISPATCHED_TIMEOUT_MIN} minutes')`,
       )
       if (typeof r2 === 'number' && r2 > 0) {
-        console.log(`[FetchJobScheduler] 清理 ${r2} 个 dispatched 超时任务`)
+        logger.info(`[FetchJobScheduler] 清理 ${r2} 个 dispatched 超时任务`)
       }
     } catch (err) {
-      console.error('[FetchJobScheduler] 扫描失败:', err instanceof Error ? err.message : err)
+      logger.error({ err }, '[FetchJobScheduler] 扫描失败')
     }
   }, intervalMs)
   schedulerHandle.unref?.()
@@ -50,6 +51,6 @@ export function stopFetchJobScheduler(): void {
   if (schedulerHandle) {
     clearInterval(schedulerHandle)
     schedulerHandle = null
-    console.log('[FetchJobScheduler] 已停止')
+    logger.info('[FetchJobScheduler] 已停止')
   }
 }

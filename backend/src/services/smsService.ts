@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 短信发送服务 — 阿里云 DYSMSAPI 封装 + Mock 降级
  *
@@ -32,7 +33,7 @@ export async function sendVerificationCode(phone: string, code: string) {
   // 注意：code 是 6 位验证码，绝对不能打日志，生产环境会泄露到 pm2 logs
   if (!isRealSmsConfigured) {
     const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
-    console.log(`[SMS/MOCK] phone=${masked}（Aliyun not configured, mock send, code 不打日志）`)
+    logger.info(`[SMS/MOCK] phone=${masked}（Aliyun not configured, mock send, code 不打日志）`)
     return { sent: true, via: 'mock' as const }
   }
 
@@ -65,18 +66,18 @@ export async function sendVerificationCode(phone: string, code: string) {
 
     if (response.body?.code === 'OK') {
       const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
-      console.log(`[SMS/ALIYUN] OK phone=${masked}`)
+      logger.info(`[SMS/ALIYUN] OK phone=${masked}`)
       return { sent: true, via: 'aliyun' as const }
     } else {
       const msg = response.body?.message || response.body?.code || 'unknown'
-      console.error(`[SMS/ALIYUN] error: ${msg}`)
+      logger.error(`[SMS/ALIYUN] error: ${msg}`)
       throw new Error(`SMS gateway error: ${msg}`)
     }
   } catch (err: any) {
     // 网络错误 / SDK 错误 → 降级 mock + 打日志（不阻塞用户注册）
-    console.error(`[SMS/ALIYUN] send failed, fallback mock: ${err?.message || err}`)
+    logger.error(`[SMS/ALIYUN] send failed, fallback mock: ${err?.message || err}`)
     const masked = phone.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
-    console.log(`[SMS/MOCK] phone=${masked}（Aliyun failed, fallback mock, code 不打日志）`)
+    logger.info(`[SMS/MOCK] phone=${masked}（Aliyun failed, fallback mock, code 不打日志）`)
     return { sent: true, via: 'mock' as const, message: 'Real SMS send failed, fallback mock' }
   }
 }

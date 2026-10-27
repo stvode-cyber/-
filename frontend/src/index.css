@@ -331,6 +331,15 @@
     100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
   }
 
+  /* 遮罩层纯淡入（弹窗 overlay 用，不带位移） */
+  @keyframes overlayFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .animate-overlay-fade {
+    animation: overlayFade 0.2s ease-out forwards;
+  }
+
   /* 滑入动画（弹窗用）：纯纵向位移，不破坏 mx-auto 居中
      注意：translate(-50%) 会把 mx-auto 居中的弹窗向左推半个宽度，
      导致弹窗超出屏幕左侧。这里只做 Y 轴位移。 */

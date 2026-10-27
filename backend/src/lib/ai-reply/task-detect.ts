@@ -69,7 +69,6 @@ export async function detectTaskCreation(
   // v5: 先排除不确定性表达
   // "不知道做什么好"、"无聊"、"有什么推荐的"等 → 走 LLM 闲聊，先确认意图
   if (isUncertaintyExpression(text)) {
-    console.log('[TaskCreation] 跳过：检测到不确定性表达，走闲聊路径:', text.slice(0, 30))
     return null
   }
 
@@ -95,7 +94,6 @@ export async function detectTaskCreation(
   // 提取任务标题
   const title = extractTaskTitle(text)
 
-  console.log('[TaskCreation]', { text, hasActionKeyword, timeMatch, dateStr, title })
 
   if (!title) return null
 

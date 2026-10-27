@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 上下文自动收集器（ContextCollector）
  *
@@ -541,7 +542,7 @@ export async function collectUserContext(
     const vaultNotes = await searchVaultNotes(userId, message || '', 8)
     vaultBlock = formatVaultBlock(vaultNotes)
   } catch (err) {
-    console.error('[ContextCollector] Vault search failed:', err instanceof Error ? err.message : err)
+    logger.error({ err }, '[ContextCollector] Vault search failed')
   }
 
   return {

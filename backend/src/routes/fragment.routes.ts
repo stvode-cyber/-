@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 import crypto from 'crypto'
 import { Router } from 'express'
 import { z } from 'zod'
@@ -196,7 +197,7 @@ async function aiClassifyFragment(content: string): Promise<{
 
     return { kind, tags, note, source: 'ai' }
   } catch (err) {
-    console.warn('[fragment/quick] AI 分类失败，回退规则引擎:', (err as Error).message)
+    logger.warn({ err }, '')
     return ruleFallback()
   }
 }

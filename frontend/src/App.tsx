@@ -194,7 +194,6 @@ export default function App() {
       .then(({ App: AppPlugin }) => {
         plugin = AppPlugin
         return AppPlugin.addListener('appUrlOpen', ({ url }: { url: string }) => {
-          console.log('[deep-link] 收到 URL:', url)
           // 匹配 aie://quick-note
           if (url === 'aie://quick-note' || url.startsWith('aie://quick-note')) {
             // 跳转到首页并设置 quick=1，触发 HomePage 自动聚焦随手记输入框

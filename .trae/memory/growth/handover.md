@@ -6,16 +6,16 @@
 
 ---
 
-## ⚡ AI 接手 30 秒快照（2026-10-17 更新）
+## ⚡ AI 接手 30 秒快照（2026-10-18 更新 · v1.2.0）
 
 | 维度 | 当前值 |
 |---|---|
-| **Git HEAD** | 今日 HEAD（mobile 头部重构 + 墨玉绿主题）|
+| **Git HEAD** | ChatPage 拆分 2795→918 行 + console.log 清理 |
 | **远程仓库** | `git@github.com:stvode-cyber/-.git`（仓库名是 `-`）|
-| **版本号** | **v1.1.0**（三落点对齐 ✅）|
+| **版本号** | **v1.2.0**（三落点对齐 ✅）|
 | **运行端口** | 3001（后端）· 5173（桌面 dev）· 5174（手机 dev）· 5175（admin dev）|
-| **服务器** | 47.116.59.141 · pm2 `backend` 端口 3100 · 后端 v1.1.0 |
-| **已安装桌面** | `C:\Program Files\aie-desktop\绿角犀.exe`（v1.1.0）|
+| **服务器** | 47.116.59.141 · pm2 `erp-backend` 端口 3000 · ERP 后端 NestJS |
+| **已安装桌面** | `C:\Program Files\aie-desktop\绿角犀.exe`（v1.2.0）|
 | **后端健康** | 本地 http://localhost:3001/health ✅ |
 
 ### 最近大改动（7 天内）
@@ -34,7 +34,7 @@
 |---|---|---|---|
 | **本地 dev** | `admin` | `admin123` | `backend/prisma/dev.db` |
 | **桌面版** | `admin` | `admin123` | `%APPDATA%\aie-desktop\data\aie.db` |
-| **服务器 prod.db** | `admin` | `admin123` | `/root/backend/prisma/prod.db` |
+| **ERP 服务器** | `admin` | `admin123` | MySQL `zhiyun_erp`（NestJS/TypeORM）|
 | 手机端临时 | `testuser` | `test123A` | role=user（**正式发布前删掉** auto-login）|
 
 ---
@@ -102,11 +102,11 @@ pm2 restart backend
 - **greenrhino-cloud-ssl.conf**（443 default_server）— 主 HTTPS · `/api/v1/` → 3100 · `/apk/` 静态托管
 - **erp-web.conf**（80 HTTP）— 手机端 Android 不信任 47.116.59.141 证书 → 走 HTTP 80 绕过
 
-### 数据库（⚠️ SQLite 不是 MySQL！）
+### ERP 服务器数据库（⚠️ 是 MySQL！不是 SQLite！）
 ```bash
-sqlite3 /root/backend/prisma/prod.db ".tables"          # 写 SQL 前先确认表名！
+mysql -uroot -p'ErpRoot2026@Sec' zhiyun_erp -e "SHOW TABLES;"
 ```
-⚠️ **表名漂移铁律**：本地 dev.db 用 Prisma 默认（`User`），服务器 prod.db 是小写复数（`users`）。
+⚠️ **两个项目不能混**：看图 APP 用本地 SQLite（`backend/prisma/dev.db`），ERP 服务器用 MySQL `zhiyun_erp`。
 
 ### 托管目录
 | 路径 | 内容 |

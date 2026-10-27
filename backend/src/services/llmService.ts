@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * LLM 服务层（LLMService）
  *
@@ -418,7 +419,7 @@ async function callGatewayProxy(
 ): Promise<LLMResult | null> {
   const token = getRequestToken()
   if (!token) {
-    console.warn('[LLM] cloud 模式无请求 token，AI 网关请求被跳过')
+    logger.warn('[LLM] cloud 模式无请求 token，AI 网关请求被跳过')
     return null
   }
 
@@ -449,7 +450,7 @@ async function callGatewayProxy(
         } catch { /* ignore */ }
         throw new GatewayUpstreamError(403, msg)
       }
-      console.error(`[LLM] 网关响应异常: ${response.status} ${response.statusText} - ${errBody.slice(0, 250)}`)
+      logger.error(`[LLM] 网关响应异常: ${response.status} ${response.statusText} - ${errBody.slice(0, 250)}`)
       return null
     }
 
@@ -466,7 +467,7 @@ async function callGatewayProxy(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[LLM] 云端网关调用失败:', msg)
+    logger.error({ msg }, '')
     return null
   } finally {
     clearTimeout(timeoutId)
@@ -499,20 +500,20 @@ export async function llmGenerateChat(messages: ChatMessage[]): Promise<LLMResul
       } catch (err) {
         // 403（未开通/到期）业务语义：上抛，交由上层转友善提示，而非静默降级
         if (err instanceof GatewayUpstreamError) {
-          console.warn(`[LLM] cloud 模式网关拒绝: ${err.statusCode} ${err.message}`)
+          logger.warn(`[LLM] cloud 模式网关拒绝: ${err.statusCode} ${err.message}`)
           throw err
         }
-        console.error('[LLM] cloud 模式网关调用异常:', err instanceof Error ? err.message : String(err))
+        logger.error({ err }, '[LLM] cloud 模式网关调用异常')
       }
       if (viaGateway) return viaGateway
       // cloud 模式：网关失败不再回退本地（避免泄露本地/无 key），直接降级
       if (shouldUseCloud) {
-        console.warn('[LLM] cloud 模式网关失败，降级为规则回复')
+        logger.warn('[LLM] cloud 模式网关失败，降级为规则回复')
         return null
       }
       // auto 模式：网关失败，回退本地直连
     } else if (shouldUseCloud) {
-      console.warn('[LLM] cloud 模式未配置 LLM_GATEWAY_URL，降级为规则回复')
+      logger.warn('[LLM] cloud 模式未配置 LLM_GATEWAY_URL，降级为规则回复')
       return null
     }
   }
@@ -522,14 +523,14 @@ export async function llmGenerateChat(messages: ChatMessage[]): Promise<LLMResul
       return await callOllama(messages, config)
     } else if (config.provider === 'openai') {
       if (!config.apiKey) {
-        console.warn('[LLM] OpenAI provider configured but no API key set')
+        logger.warn('[LLM] OpenAI provider configured but no API key set')
         return null
       }
       return await callOpenAICompatible(messages, config)
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error(`[LLM] ${getConfig().provider} call failed:`, msg)
+    logger.error({ msg }, '[LLM] call failed')
     return null
   }
 
@@ -559,7 +560,7 @@ export async function llmProxyCompletion(opts: {
   try {
     if (cfg.provider === 'openai') {
       if (!cfg.apiKey) {
-        console.warn('[LLM proxy] OpenAI provider configured but no API key set')
+        logger.warn('[LLM proxy] OpenAI provider configured but no API key set')
         return null
       }
       return await callOpenAICompatible(opts.messages, cfg)
@@ -569,7 +570,7 @@ export async function llmProxyCompletion(opts: {
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[LLM proxy] upstream call failed:', msg)
+    logger.error({ msg }, '')
     return null
   }
   return null

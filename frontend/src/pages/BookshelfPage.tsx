@@ -440,9 +440,9 @@ function BookModal({ initial, onClose, onSave }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/40 animate-overlay-fade" />
       <div
-        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-y-auto"
+        className="relative w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-y-auto animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between">

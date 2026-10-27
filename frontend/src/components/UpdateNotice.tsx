@@ -39,7 +39,6 @@ export default function UpdateNotice() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log('[UpdateNotice] mount, __BUILD_MODE__=', __BUILD_MODE__)
     if (__BUILD_MODE__ !== 'mobile') return
 
     const timer = setTimeout(async () => {
@@ -49,7 +48,6 @@ export default function UpdateNotice() {
             params: { current: CURRENT_APK_VERSION },
           }),
         )
-        console.log('[UpdateNotice] response:', data?.hasUpdate, data?.version)
         if (!data?.hasUpdate) return
 
         const dismissed = localStorage.getItem('aie_update_dismissed')
@@ -77,13 +75,11 @@ export default function UpdateNotice() {
       const fileName = `update-${info.version}.apk`
 
       // 1. Filesystem.downloadFile 原生下载（绕过 CapacitorHttp 对 fetch 的拦截）
-      console.log('[UpdateNotice] downloadFile →', info.apkUrl)
       const dlResult = await Filesystem.downloadFile({
         url: info.apkUrl,
         path: fileName,
         directory: Directory.Data,
       })
-      console.log('[UpdateNotice] downloadFile done, path:', dlResult.path)
       setProgress(85)
 
       // 2. 调原生插件 → FileProvider + Intent.ACTION_VIEW → 系统安装器
@@ -93,7 +89,6 @@ export default function UpdateNotice() {
       if (installPath.startsWith('file://')) {
         installPath = installPath.replace('file://', '')
       }
-      console.log('[UpdateNotice] IntentInstaller.install →', installPath)
       await IntentInstaller.install({ path: installPath })
 
       localStorage.setItem('aie_update_dismissed', info.version)

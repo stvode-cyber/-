@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 倒计时核心工具库
  *
@@ -401,16 +402,16 @@ export function startCountdownScheduler(intervalMs: number = 60_000): void {
   if (schedulerHandle) return
   // 立即跑一次，便于启动时立即检测
   runCountdownScan().catch((err) => {
-    console.error('[CountdownScheduler] 启动扫描失败:', err)
+    logger.error({ err }, '')
   })
   schedulerHandle = setInterval(() => {
     runCountdownScan().catch((err) => {
-      console.error('[CountdownScheduler] 扫描失败:', err)
+      logger.error({ err }, '')
     })
   }, intervalMs)
   // 不阻塞进程退出
   schedulerHandle.unref?.()
-  console.log(`[CountdownScheduler] 已启动，间隔 ${Math.floor(intervalMs / 1000)}s`)
+  logger.info(`[CountdownScheduler] 已启动，间隔 ${Math.floor(intervalMs / 1000)}s`)
 }
 
 /** 停止调度器（仅测试用） */
@@ -438,7 +439,7 @@ export async function runCountdownScan(now: Date = new Date()): Promise<void> {
     try {
       await scanSingle(c, now)
     } catch (err) {
-      console.error(`[CountdownScheduler] 扫描 ${c.id} 失败:`, (err as Error).message)
+      logger.error({ err, countdownId: c.id }, '[CountdownScheduler] 扫描 %s 失败', c.id)
     }
   }
 }

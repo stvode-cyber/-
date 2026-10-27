@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 每周聚合调度器（WeeklyAggregator）— P1
  *
@@ -25,7 +26,7 @@ export async function runWeeklyAggregatorCheck(now: Date = new Date()): Promise<
   if (day !== 1 || hour !== 3) return
   if (lastRunDate === todayStr) return
   lastRunDate = todayStr
-  console.log(`[WeeklyAggregator] 触发周报聚合 (${todayStr} ${hour}:${now.getMinutes()})`)
+  logger.info(`[WeeklyAggregator] 触发周报聚合 (${todayStr} ${hour}:${now.getMinutes()})`)
   await aggregateForAllUsers()
 }
 
@@ -34,11 +35,11 @@ export function startWeeklyAggregatorScheduler(intervalMs: number = 60_000): voi
   if (schedulerHandle) return
   schedulerHandle = setInterval(() => {
     runWeeklyAggregatorCheck().catch((err) => {
-      console.error('[WeeklyAggregator] 检查失败:', err)
+      logger.error({ err }, '[WeeklyAggregator] 检查失败')
     })
   }, intervalMs)
   schedulerHandle.unref?.()
-  console.log('[WeeklyAggregator] 已启动，每周一 03:00 触发')
+  logger.info('[WeeklyAggregator] 已启动，每周一 03:00 触发')
 }
 
 /** 停止调度器（仅测试用） */
@@ -64,10 +65,10 @@ export async function aggregateForAllUsers(): Promise<number> {
       await aggregateForUser(u.id)
       ok += 1
     } catch (err) {
-      console.error(`[WeeklyAggregator] 用户 ${u.id} 聚合失败:`, err instanceof Error ? err.message : err)
+      logger.error({ err, userId: u.id }, '[WeeklyAggregator] 用户 %s 聚合失败', u.id)
     }
   }
-  console.log(`[WeeklyAggregator] 完成，缓存 ${ok}/${users.length} 位用户的上周周报`)
+  logger.info(`[WeeklyAggregator] 完成，缓存 ${ok}/${users.length} 位用户的上周周报`)
   return ok
 }
 

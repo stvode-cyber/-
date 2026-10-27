@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 import { Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
@@ -140,7 +141,7 @@ router.post('/', uploadRateLimit, async (req, res, next) => {
     // #10 修复：后台异步处理（不 await，立即返回 202）
     // 错误已在 processVoiceMemoInBackground 内部捕获并落库，此处 catch 仅记录日志
     processVoiceMemoInBackground(memo.id, userId, body.audioData, body.audioFormat, title).catch((err) => {
-      console.error(`[voice-memo ${memo.id}] 后台处理异常:`, err.message)
+      logger.error(`[voice-memo ${memo.id}] 后台处理异常:`, err.message)
     })
 
     // 立即返回 uploaded 状态（不含 audioData，避免响应膨胀）

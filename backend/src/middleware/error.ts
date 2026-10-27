@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express'
 import { ZodError } from 'zod'
 import { fail, HttpError, generateRequestId } from '../utils/response.js'
 import { auditReq } from '../utils/audit.js'
+import logger from '../lib/logger.js'
 
 /**
  * 请求 ID 注入中间件
@@ -80,7 +81,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return fail(res, err.message, status === 403 ? 403 : 502)
   }
   if (err instanceof Error) {
-    console.error('[ERROR]', err.message, err.stack)
+    logger.error({ err, stack: err.stack }, '[ERROR] %s', err.message)
     // Prisma 已知错误可在此分支处理
     if (err.message.includes('Unique constraint')) {
       return fail(res, '数据已存在，请勿重复提交', 409)

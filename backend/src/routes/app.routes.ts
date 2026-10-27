@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 import { Router } from 'express'
 import { authRequired, adminRequired } from '../middleware/auth.js'
 import fs from 'fs'
@@ -114,7 +115,7 @@ router.get('/windows-version', async (req, res) => {
     }
     // 调用日志：追踪有多少客户端在检查更新
     const ip = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown'
-    console.log(`[windows-version] ip=${ip} current=${current} latest=${latest.version} hasUpdate=${hasUpdate}`)
+    logger.info(`[windows-version] ip=${ip} current=${current} latest=${latest.version} hasUpdate=${hasUpdate}`)
     res.json({
       code: 200,
       data: {
@@ -134,10 +135,10 @@ router.get('/windows-version', async (req, res) => {
     // Prisma 表不存在 (P2021) 或 DB 未就绪 → 降级 404，避免前端崩溃
     const code = err?.code
     if (code === 'P2021' || code === 'P2020' || err?.name?.includes('InitializationError')) {
-      console.warn('[windows-version] DB not ready, returning 404')
+      logger.warn('[windows-version] DB not ready, returning 404')
       return res.json({ code: 404, message: '无发布记录', data: null })
     }
-    console.error('windows-version error:', err)
+    logger.error('windows-version error:', err)
     res.status(500).json({ code: 500, message: '服务器错误' })
   }
 })
@@ -164,7 +165,7 @@ router.get('/android-version', async (req, res) => {
       if ((lat[i] || 0) < (cur[i] || 0)) break
     }
     const ip = (req.headers['x-forwarded-for'] as string) || req.ip || 'unknown'
-    console.log(`[android-version] ip=${ip} current=${current} latest=${latest.version} hasUpdate=${hasUpdate}`)
+    logger.info(`[android-version] ip=${ip} current=${current} latest=${latest.version} hasUpdate=${hasUpdate}`)
     res.json({
       code: 200,
       data: {
@@ -182,10 +183,10 @@ router.get('/android-version', async (req, res) => {
   } catch (err: any) {
     const code = err?.code
     if (code === 'P2021' || code === 'P2020' || err?.name?.includes('InitializationError')) {
-      console.warn('[android-version] DB not ready, returning 404')
+      logger.warn('[android-version] DB not ready, returning 404')
       return res.json({ code: 404, message: '无发布记录', data: null })
     }
-    console.error('android-version error:', err)
+    logger.error('android-version error:', err)
     res.status(500).json({ code: 500, message: '服务器错误' })
   }
 })

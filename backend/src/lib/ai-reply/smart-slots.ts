@@ -1,3 +1,4 @@
+import logger from '../../lib/logger.js'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { llmGenerateChat, type ChatMessage } from '../../services/llmService.js'
@@ -127,7 +128,7 @@ export async function saveSmartSlotCache(cache: Record<string, SmartSlotConfig>)
     await fs.mkdir(path.dirname(SMART_SLOT_CACHE_FILE), { recursive: true })
     await fs.writeFile(SMART_SLOT_CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
   } catch (err) {
-    console.warn('[SmartSlots] 缓存写入失败:', err instanceof Error ? err.message : err)
+    logger.warn({ err }, '[SmartSlots] 缓存写入失败')
   }
 }
 
@@ -213,7 +214,7 @@ export async function getSmartSlotConfig(text: string): Promise<SmartSlotConfig>
       }
     }
   } catch (err) {
-    console.warn('[SmartSlots] LLM 判断失败，使用默认配置:', err instanceof Error ? err.message : err)
+    logger.warn({ err }, '[SmartSlots] LLM 判断失败，使用默认配置')
   }
 
   return SMART_SLOT_DEFAULT

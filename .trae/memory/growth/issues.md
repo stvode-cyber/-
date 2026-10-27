@@ -253,3 +253,6 @@ await IntentInstaller.install({ path: dlResult.path })
 7. **Nginx 不追加 Access-Control-Allow-Origin** — 避免与后端动态头冲突
 8. **PowerShell heredoc 在 SSH 引号嵌套时必炸** — 写 .sh 文件 scp 上去
 9. **Electron 每次 build SHA256 变** — 打完包必须更新 prod.db windows_releases 表
+10. **重要信息变更必跑 secrets-sync-checklist SKILL** — 改完 secrets.md → Grep 全项目扫残留旧值（pm2 三次漂移教训）
+11. **后端生产用 Pino 替换 console.error/warn** — Express 官方推荐，比 Winston 快 5-10x，内置 redact 脱敏
+12. **绿角犀有两个项目不能混** — 看图 APP=Express/SQLite 本地跑（端口 3001），ERP=NestJS/MySQL 在 47.116.59.141（端口 3000）（2026-10-18 严重教训：搞混导致 SSH 命令全错）

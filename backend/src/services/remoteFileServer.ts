@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 远程文件访问服务（手机 → 电脑局域网直连）
  *
@@ -597,10 +598,10 @@ export function startRemoteFileServer(cfg: RemoteAccessConfig = loadConfig()): v
   if (serverInstance || !cfg.enabled) return
   const app = buildApp(cfg)
   serverInstance = app.listen(cfg.port, '0.0.0.0', () => {
-    console.log(`\n📡 远程文件访问已开启: http://0.0.0.0:${cfg.port}（授权目录 ${cfg.roots.length} 个）\n`)
+    logger.info(`\n📡 远程文件访问已开启: http://0.0.0.0:${cfg.port}（授权目录 ${cfg.roots.length} 个）\n`)
   })
   serverInstance.on('error', (err: Error) => {
-    console.error('❌ 远程文件服务启动失败:', err.message)
+    logger.error({ err }, '远程文件服务启动失败')
     serverInstance = null
   })
 }
@@ -609,7 +610,7 @@ export function stopRemoteFileServer(): void {
   if (!serverInstance) return
   serverInstance.close()
   serverInstance = null
-  console.log('📡 远程文件访问已关闭')
+  logger.info('📡 远程文件访问已关闭')
 }
 
 /** 应用启动时调用：读取配置，enabled 则拉起服务 */

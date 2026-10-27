@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * 每日早安问候调度器（MorningGreetingScheduler）
  *
@@ -37,12 +38,12 @@ export function startMorningGreetingScheduler(intervalMs: number = 60_000): void
 
   schedulerHandle = setInterval(() => {
     runMorningGreetingCheck().catch((err) => {
-      console.error('[MorningGreeting] 检查失败:', err)
+      logger.error({ err }, '')
     })
   }, intervalMs)
 
   schedulerHandle.unref?.()
-  console.log(`[MorningGreeting] 已启动，每日 ${TRIGGER_HOUR}:${String(TRIGGER_MINUTE).padStart(2, '0')} 触发`)
+  logger.info(`[MorningGreeting] 已启动，每日 ${TRIGGER_HOUR}:${String(TRIGGER_MINUTE).padStart(2, '0')} 触发`)
 }
 
 /** 停止调度器（仅测试用） */
@@ -67,7 +68,7 @@ export async function runMorningGreetingCheck(now: Date = new Date()): Promise<v
   // 今天已经发送过，跳过
   if (lastSentDate === todayStr) return
 
-  console.log(`[MorningGreeting] 触发每日问候 (${todayStr} ${hour}:${minute})`)
+  logger.info(`[MorningGreeting] 触发每日问候 (${todayStr} ${hour}:${minute})`)
   lastSentDate = todayStr
 
   await sendMorningGreetingsToAllUsers()
@@ -98,11 +99,11 @@ export async function sendMorningGreetingsToAllUsers(): Promise<number> {
       await sendGreetingToUser(user.id, user.nickname || user.username, user.preferredTone || 'gentle')
       sentCount++
     } catch (err) {
-      console.error(`[MorningGreeting] 用户 ${user.id} 发送失败:`, err)
+      logger.error({ err, userId: user.id }, '[MorningGreeting] 用户 %s 发送失败', user.id)
     }
   }
 
-  console.log(`[MorningGreeting] 完成，共发送 ${sentCount}/${users.length} 条`)
+  logger.info(`[MorningGreeting] 完成，共发送 ${sentCount}/${users.length} 条`)
   return sentCount
 }
 

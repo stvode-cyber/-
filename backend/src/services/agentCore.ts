@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * AgentCore —— 生活助理 AI 核心（P0 落地版）
  *
@@ -947,7 +948,7 @@ async function runUnderstandingPipeline(userId: string, sessionId: string, userT
       })
     }
   } catch (e) {
-    console.error('[AgentCore] understanding pipeline failed:', e instanceof Error ? e.message : e)
+    logger.error({ err: e }, '[AgentCore] understanding pipeline failed')
   }
 }
 
@@ -1881,7 +1882,7 @@ export async function maybeInjectGreeting(sessionId: string, userId: string) {
       },
     })
   } catch (e) {
-    console.error('[AgentCore] greeting inject failed:', e instanceof Error ? e.message : e)
+    logger.error({ err: e }, '[AgentCore] greeting inject failed')
     return null
   } finally {
     GREETING_INFLIGHT.delete(sessionId)

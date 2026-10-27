@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, FileText, RefreshCw, Download, FileCode2 } from 'lucide-react'
 import { api, unwrap } from '../lib/api'
 import { isDesktop } from '../lib/localCache'
-import { downloadOfficeDoc } from './ChatPage'
+import { downloadOfficeDoc } from '../components/chat/ChatWidgets'
 
 /** GET /chat/office-docs/:id 返回结构 */
 interface OfficeDoc {

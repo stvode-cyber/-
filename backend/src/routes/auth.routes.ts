@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 // TODO: [auth路由泄漏] 预防：废弃前端注册入口时，后端 /register 路由必须加 @deprecated 注释 + 限流保护；唯一暴露入口是 /phone-register（手机+验证码）
 // TODO: [短信mock降级] 预防：阿里云 SMS 参数缺失或调用失败时必须自动返回验证码不阻塞注册；真实 SMS 响应严禁包含 code 字段
 import { Router } from 'express'
@@ -200,7 +201,7 @@ router.post('/send-sms', smsRateLimit, async (req, res, next) => {
       body.code = code
     }
 
-    console.log(`[SMS] ${result.via} phone=${masked} sent=${result.sent}`)
+    logger.info(`[SMS] ${result.via} phone=${masked} sent=${result.sent}`)
     return success(res, body, '验证码已发送')
   } catch (e) {
     next(e)

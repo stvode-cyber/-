@@ -86,22 +86,65 @@ npm run build:admin       # admin
 | Page | 之前 | 之后 | 降幅 | 目的地 |
 |---|---|---|---|---|
 | ChatPage | 2932 | 2796 | -5% | `chat/useVoiceRecording.ts`（hook） |
+| **ChatPage 二次** | **2795** | **918** | **-67%** 🆕 | `chatTypes.ts`（25 interface）+ `ChatWidgets.tsx`（16 组件）+ `MessageBubble.tsx`（最大子组件） |
 | HomePage | 1284 | 1093 | **-15%** | `home/useHomeData.ts`（hook） |
+| **HomePage 二次** | **1093** | **332** | **-70%** 🆕 | `components/home/homeTypes.ts`（4 interface）+ `HomeWidgets.tsx`（TodayOverviewCard + AddEventModal + 工具函数）+ `EventDetailModal.tsx`（独立最大组件） |
 | PetPage | 1232 | 862 | **-30%** | `components/pet/PetGames.tsx`（5 组件） |
+| **PetPage 二次** | **862** | **378** | **-56%** 🆕 | `components/pet/PetWidgets.tsx`（PetList + 专属互动 + 签到 + 商店 + 排行榜 + 添加弹窗 + 工具函数） |
 | LibraryPage | 1143 | 743 | **-35%** | `components/library/LibraryWidgets.tsx`（10 组件） |
+| **LibraryPage 二次** | **702** | **566** | **-19%** 🆕 | `LibraryWidgets.tsx` 追加 CategoryStatsPanel + CategoryRuleModal |
 
 ---
 
-## 踩过的坑（6 条铁律）
+## 联网学术验证（2026-10-18 搜索）
+
+**React 大组件拆分 Top3 模式**（JSS 2024 论文验证）：
+
+| 排名 | 模式 | 适用场景 |
+|---|---|---|
+| 1 | **Split Component**（按 UI 区域拆） | 组件有多个独立视觉区块 |
+| 2 | **Extract Component**（按功能拆） | 逻辑耦合度低的子功能 |
+| 3 | **Extract Hook**（按数据/状态拆） | 复杂 state 管理逻辑 |
+
+**官方建议**：从最深子组件开始往上拆（ChatPage 二次拆分验证有效）。
+
+---
+
+## Electron Defender DLL 锁绕解（2026-10-18 联网验证）
+
+electron-builder 没有绕过功能，**直接换输出目录最快**：
+```powershell
+npm run build:desktop -- --config.directories.output=release-v17
+```
+或 Windows Security → Exclusions → Add 目录排除（需先关 Tamper Protection）。
+
+---
+
+## 后端 Express 生产日志（2026-10-18 联网升级）
+
+Express 官方推荐 **Pino**（比 Winston 快 5-10x，异步+redact 脱敏）：
+```ts
+import pino from 'pino';
+const logger = pino({ level: 'info', redact: ['password', 'token', 'apiKey'] });
+// 替换全部 console.error/warn
+```
+
+---
+
+## 踩过的坑（10 条铁律）
 
 | # | 坑 | 解法 |
 |---|---|---|
 | 1 | 脚本 splice 多次改同一文件炸文件 | **Edit 逐块替换**，每步前 `git stash` 备份 |
-| 2 | ChatPage types 单独抽文件 | JSON metadata 类型断言太复杂 → **types 不抽**，内联留在 page 里 |
+| 2 | ChatPage types 抽文件后 ChatWidgets 重复定义冲突 | **types 可以抽**（25 interface 实战验证），前提**全部 export type** + grep 查重复 |
 | 3 | hook 里的 state 类型断言太复杂 | 用 `any` 代替外部复杂 interface，主组件 cast：`const data = _data as HomeData \| null` |
 | 4 | PetPage 的 MEM_EMOJIS 只在 PetGames 内部但 PetPage 会引用 | 必须 **export 常量** + PetPage import |
 | 5 | Prisma DATABASE_URL 相对路径 `file:./dev.db` | 会被 resolve 到 `backend/prisma/dev.db`（不是 `backend/dev.db`），**下次统一用绝对路径** |
 | 6 | Electron 内嵌 backend SQLite 是空文件 | main.cjs 先跑 `prisma db push` 自动建表，再调 `ensureReleaseTables()` seed |
+| 7 | PowerShell 批量删多行 console.log 只删开头留字符串垃圾 | 用 Read+Edit 逐文件改 |
+| 8 | PowerShell 切 ChatPage interface 块混入尾巴 | 切分前先 Select-String 找边界 |
+| 9 | PowerShell 多行删除后留下孤立闭括号 `})` | 删 console.log 前先 grep 上下文 |
+| 10 | release-v16 旧目录被 Defender 锁 | 新输出目录绕过：`--config.directories.output=release-v17` |
 
 ---
 

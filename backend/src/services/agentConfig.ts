@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 // ============================================================
 // P4 运营配置化：Agent 语料/人设配置服务
 // - 配置文件：backend/config/agent-config.json（随包分发，可后台编辑）
@@ -123,7 +124,7 @@ function readRaw(): { cfg: AgentConfig; mtime: number } {
       cache = structuredClone(DEFAULTS)
       cacheMtime = 0
       if (process.env.NODE_ENV !== 'test') {
-        console.warn('[AgentConfig] 配置文件读取失败，使用内置默认值:', e instanceof Error ? e.message : e)
+        logger.warn({ err: e }, '')
       }
     }
     return { cfg: cache, mtime: cacheMtime }

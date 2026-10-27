@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 /**
  * Worker 心跳超时清理调度器
  *
@@ -24,7 +25,7 @@ let schedulerHandle: NodeJS.Timeout | null = null
 
 export function startExecInstanceScheduler(intervalMs: number = SCAN_INTERVAL_MS): void {
   if (schedulerHandle) return
-  console.log('[ExecInstanceScheduler] 心跳超时清理调度器启动（阈值 5min，扫描间隔 60s）')
+  logger.info('[ExecInstanceScheduler] 心跳超时清理调度器启动（阈值 5min，扫描间隔 60s）')
   schedulerHandle = setInterval(async () => {
     try {
       // Prisma SQLite 上 DateTime 列存为 INTEGER 毫秒时间戳
@@ -36,10 +37,10 @@ export function startExecInstanceScheduler(intervalMs: number = SCAN_INTERVAL_MS
       )
       // $executeRawUnsafe 返回受影响行数（SQLite）
       if (typeof result === 'number' && result > 0) {
-        console.log(`[ExecInstanceScheduler] 清理 ${result} 个超时离线的 Worker（心跳 > 5min）`)
+        logger.info(`[ExecInstanceScheduler] 清理 ${result} 个超时离线的 Worker（心跳 > 5min）`)
       }
     } catch (err) {
-      console.error('[ExecInstanceScheduler] 扫描失败:', err instanceof Error ? err.message : err)
+      logger.error({ err }, '[ExecInstanceScheduler] 扫描失败')
     }
   }, intervalMs)
   // unref() — 不阻塞进程退出（Electron 主进程 / 服务器进程退出时自动清理）
@@ -50,6 +51,6 @@ export function stopExecInstanceScheduler(): void {
   if (schedulerHandle) {
     clearInterval(schedulerHandle)
     schedulerHandle = null
-    console.log('[ExecInstanceScheduler] 已停止')
+    logger.info('[ExecInstanceScheduler] 已停止')
   }
 }

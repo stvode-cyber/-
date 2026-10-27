@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 import { Router } from 'express'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
@@ -482,9 +483,9 @@ router.post('/batch-download', async (req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Content-Disposition', `attachment; filename="assets-${byKey.size}-${Date.now()}.zip"`)
     const archive = new ZipArchive({ zlib: { level: 6 } })
-    archive.on('warning', (e: any) => { if (e?.code !== 'ENOENT') console.warn('[batch-download]', e) })
+    archive.on('warning', (e: any) => { if (e?.code !== 'ENOENT') logger.warn('[batch-download]', e) })
     archive.on('error', (err: any) => {
-      console.error('[batch-download] archive error', err)
+      logger.error('[batch-download] archive error', err)
       if (!res.headersSent) res.status(500).end()
       else res.end()
     })

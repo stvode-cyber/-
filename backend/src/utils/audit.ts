@@ -1,3 +1,4 @@
+import logger from '../lib/logger.js'
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma.js'
 
@@ -52,7 +53,7 @@ export function audit(input: AuditInput): void {
     })
     .catch((err) => {
       // 日志写入失败只打印控制台，不抛出
-      console.error('[AUDIT] 写入失败:', err.message)
+      logger.error('[AUDIT] 写入失败:', err.message)
     })
 }
 
@@ -80,7 +81,7 @@ export async function auditAsync(input: AuditInput): Promise<void> {
       },
     })
   } catch (err) {
-    console.error('[AUDIT] 关键日志写入失败:', (err as Error).message)
+    logger.error({ err }, '')
   }
 }
 

@@ -1,3 +1,4 @@
+import logger from '../../lib/logger.js'
 import { prisma } from '../prisma.js'
 import { classifyBillCategory } from '../../utils/classify.js'
 import { collectUserContext, type UserContext } from '../../services/contextCollector.js'
@@ -83,7 +84,7 @@ export async function generateReply(content: string, userId: string, sessionId?:
 
   // 自动提取用户习惯（非阻塞，后台执行，不影响回复速度）
   extractAndSaveHabits(userId, content).catch(err => {
-    console.error('[AI-Reply] Habit extraction failed:', err)
+    logger.error({ err }, '')
   })
 
   // DG-16 危机信号检测（优先级最高，先于所有匹配）
@@ -99,7 +100,7 @@ export async function generateReply(content: string, userId: string, sessionId?:
       return taskCreation
     }
   } catch (err) {
-    console.error('[AI-Reply] Task creation detection failed:', err)
+    logger.error({ err }, '')
   }
 
   // v2/v3：自动收集上下文 → 上下文感知分析 → LLM 增强
@@ -150,7 +151,7 @@ export async function generateReply(content: string, userId: string, sessionId?:
               contextSummary: ctxSummary,
             }
           } catch (err) {
-            console.error('[AI-Reply] Action execution failed:', err)
+            logger.error({ err }, '')
             // 行动执行失败，返回 LLM 文本（去掉指令标签）
             return {
               reply: cleanRepetitiveCare(stripActionTag(llmResult.text)),
@@ -540,7 +541,7 @@ export async function generateReply(content: string, userId: string, sessionId?:
             contextSummary: ctxSummary,
           }
         } catch (err) {
-          console.error('[AI-Reply] Fragment path action execution failed:', err)
+          logger.error({ err }, '')
         }
       }
 
