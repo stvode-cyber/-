@@ -74,6 +74,13 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      // Matrix SDK 直连 Continuwuity（Vite Node proxy，绕过浏览器 CORS）
+      // Continuwuity 跑在 Docker 容器 8008 端口
+      '/_matrix': {
+        target: 'http://47.116.59.141:8008',
+        changeOrigin: true,
+        ws: true,  // /sync WebSocket 长轮询需要
+      },
     },
   },
   build: {

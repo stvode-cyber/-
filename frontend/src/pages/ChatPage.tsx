@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { Send, Plus, Check, ArrowRight, Sparkles, Mic, Square, Loader2, List, Image as ImageIcon, Paperclip, MapPin, X, ChevronLeft, Smile, FileText, Download, Eye, Fingerprint, Settings } from 'lucide-react'
+import { Send, Plus, Check, ArrowRight, Sparkles, Mic, Square, Loader2, List, Image as ImageIcon, Paperclip, MapPin, X, ChevronLeft, Smile, FileText, Download, Eye, Fingerprint, Settings, MessageCircle } from 'lucide-react'
 import { api, unwrap } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../components/Toast'
@@ -9,6 +9,10 @@ import { formatTime, priorityMeta, toneMeta } from '../lib/utils'
 import { BILL_QUICK_CATEGORIES, fragmentKindMeta } from '../lib/constants'
 import { isDesktop } from '../hooks/useIsDesktop'
 import { useVoiceRecording } from './chat/useVoiceRecording'
+
+// === Matrix IM 通道（Day 5-6 MVP：与 AI 通道并存，tab 切换） ===
+import { MatrixProvider, useMatrix } from '../hooks/useMatrix'
+import { DEFAULT_ROOM_ID } from '../lib/matrixClient'
 
 
 // === 拆分后：类型 + 子组件从外部文件 import ===
@@ -83,7 +87,16 @@ const STICKERS = [
  * - diet_card      饮食引导卡（渲染 DietCard 组件）
  * - handover_card  交接单生成卡（渲染 HandoverCard 组件）
  */
+// === Matrix Provider Wrapper（Day 5-6 MVP：外层挂 Provider，内层原逻辑不变） ===
 export default function ChatPage() {
+  return (
+    <MatrixProvider>
+      <ChatPageInner />
+    </MatrixProvider>
+  )
+}
+
+function ChatPageInner() {
   const { user } = useAuthStore()
   const aiNickname = user?.aiNickname
   const navigate = useNavigate()
@@ -133,6 +146,20 @@ export default function ChatPage() {
     provider: string
     model: string
   } | null>(null)
+
+  // === Matrix IM 通道（Day 5-6 MVP：与 AI 通道并存，tab 切换） ===
+  const [channel, setChannel] = useState<'ai' | 'matrix'>('ai')
+  const matrix = useMatrix()
+
+  // 切到 matrix 通道时自动 connect（懒加载：不占首次渲染资源）
+  useEffect(() => {
+    if (channel === 'matrix' && !matrix.connected && matrix.status !== 'connecting') {
+      matrix.connect(DEFAULT_ROOM_ID).catch((err) => {
+        console.warn('[ChatPage] Matrix connect failed:', err)
+        toast('Matrix 连接失败，请稍后重试', 'error')
+      })
+    }
+  }, [channel])
 
   useEffect(() => {
     initSession()
@@ -631,6 +658,32 @@ export default function ChatPage() {
               {llmStatus?.available ? `已连接 ${llmStatus.model}` : `当前语气：${toneMeta[user?.preferredTone || 'gentle']?.label || '温柔关怀'}`}
             </div>
           </div>
+          {/* === 通道 Tab 切换（Day 5-6 MVP：AI 角角 ↔ Matrix 群聊） === */}
+          <div className="flex items-center bg-gray-100/70 rounded-lg p-0.5 text-[11px] font-medium">
+            <button
+              onClick={() => setChannel('ai')}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                channel === 'ai'
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Sparkles size={11} />
+              AI
+            </button>
+            <button
+              onClick={() => setChannel('matrix')}
+              className={`px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 ${
+                channel === 'matrix'
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              title="Matrix 群聊"
+            >
+              <MessageCircle size={11} />
+              Matrix
+            </button>
+          </div>
           {/* AI 助理设定入口 */}
           <button
             onClick={() => navigate('/settings/ai-assistant')}
@@ -652,6 +705,8 @@ export default function ChatPage() {
         </div>
       </header>
 
+      {/* AI 通道消息列表 + 输入栏（Day 5-6 MVP：原逻辑不变） */}
+      {channel === 'ai' && (<>
       {/* 消息列表 */}
       <div ref={scrollRef} className={`flex-1 overflow-y-auto px-3 py-4 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/10 ${desktop ? 'rounded-b-xl' : ''}`}>
         <div className={`space-y-3 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
@@ -957,6 +1012,87 @@ export default function ChatPage() {
         </div>
         </div>
       </div>
+
+      </>)} {/* channel === 'ai' 条件闭合 */}
+
+      {/* Matrix IM 通道（Day 5-6 MVP：明文消息 + tab 切换） */}
+      {channel === 'matrix' && (
+        <>
+          {/* Matrix 消息列表 */}
+          <div ref={scrollRef} className={`flex-1 overflow-y-auto px-3 py-4 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/10 ${desktop ? 'rounded-b-xl' : ''}`}>
+            <div className={`space-y-3 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
+              {matrix.status === 'connecting' && (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <LoadingState text="连接 Matrix 群聊中..." />
+                </div>
+              )}
+              {matrix.status === 'error' && (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <ErrorState text={matrix.error || 'Matrix 连接失败'} onRetry={() => matrix.connect(DEFAULT_ROOM_ID)} />
+                </div>
+              )}
+              {matrix.status === 'connected' && matrix.messages.length === 0 && (
+                <EmptyState text="群聊暂无消息" hint="说点什么吧..." />
+              )}
+              {matrix.status === 'connected' && matrix.messages.map((m) => (
+                <div key={m.id} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                    m.isSelf
+                      ? 'bg-gradient-accent text-white rounded-br-sm'
+                      : 'bg-primary-50 border border-primary-100 text-gray-800 rounded-bl-sm'
+                  }`}>
+                    {!m.isSelf && <div className="text-[10px] text-primary-600 font-medium mb-0.5">{m.senderId}</div>}
+                    <div className="break-words">{m.body}</div>
+                    <div className="text-[9px] opacity-60 mt-1 text-right">{formatTime(new Date(m.timestamp).toISOString())}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Matrix 输入栏（极简版：只有 textarea + send button） */}
+          <div className="px-3 py-3 bg-white/80 backdrop-blur-xl border-t border-primary-100">
+            <div className={`flex items-end gap-2 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    if (input.trim() && matrix.connected) {
+                      matrix.sendText(input.trim())
+                        .then(() => setInput(''))
+                        .catch(() => toast('发送失败', 'error'))
+                    }
+                  }
+                }}
+                placeholder={matrix.connected ? '发送群聊消息...' : '等待连接...'}
+                rows={1}
+                disabled={!matrix.connected}
+                className="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 max-h-32 disabled:opacity-50"
+              />
+              <button
+                onClick={() => {
+                  if (input.trim() && matrix.connected) {
+                    matrix.sendText(input.trim())
+                      .then(() => setInput(''))
+                      .catch(() => toast('发送失败', 'error'))
+                  }
+                }}
+                disabled={!input.trim() || !matrix.connected}
+                className={`p-2.5 text-white rounded-2xl disabled:opacity-40 transition-all ${
+                  input.trim() && matrix.connected ? 'bg-gradient-accent hover:shadow-lg hover:shadow-primary-300/40' : ''
+                }`}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+            <div className="text-[10px] text-gray-300 mt-1 px-2">
+              Matrix 群聊 · {matrix.status === 'connected' ? '已连接' : matrix.status === 'connecting' ? '连接中...' : '未连接'}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

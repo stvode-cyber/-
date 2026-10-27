@@ -29,6 +29,7 @@
         "epubjs": "^0.3.93",
         "lucide-react": "^0.456.0",
         "mammoth": "^1.12.1",
+        "matrix-js-sdk": "^44.0.0",
         "pdfjs-dist": "^3.11.174",
         "qrcode.react": "^4.2.0",
         "react": "^18.3.1",
