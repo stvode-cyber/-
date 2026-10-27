@@ -10,6 +10,7 @@
 | M-004 | PowerShell 5 环境特定坑 | P1 | 5 | ⚠️ recurring | 2026-10-15 |
 | M-005 | Git push / 编码 / 换行符 | P1 | 2 | ⚠️ recurring | 2026-09-30 |
 | M-006 | Android 自动更新全链路 | **P0** | 3 | 🔧 fixing | 2026-10-15 |
+| M-007 | Continuwuity / Matrix SSO 环境依赖 | P2 | 1 | ⚠️ GAP | 2026-10-27 |
 
 ---
 
@@ -171,6 +172,34 @@ await IntentInstaller.install({ path: dlResult.path })
 1. Capacitor 8 项目涉及 HTTP cleartext fetch，先确认是不是被 CapacitorHttp 拦截了
 2. 自定义 Capacitor 插件注册用 `initialPlugins.add()` 比 `load()→registerPlugin()` 更稳
 3. APK 里搜不到 Kotlin 类名 → classes.dex 用 Mangled 格式存，UTF8 搜不准，换搜 Java 类或看 build/intermediates
+
+---
+
+## [M-007] Continuwuity / Matrix SSO 环境依赖 · P2 · GAP
+
+**GAP-001 本地 Matrix 链路测试天然受限**
+
+- 现象：本地 backend/.env.local 同步了 server admin token + room，但 Continuwuity admin token 会在两种情况下失效：
+  ① Continuwuity 0.5.10 fresh reset → admin token 必然变（新 user_id + 新 session）
+  ② SSH tunnel 18008→8008 不稳定（K15：tunnel 经常掉，本地 Express 连不上 Continuwuity）
+- 预防规则：
+  1. **不要信任本地 .env.local 的 admin token**——每次 Continuwuity reset 后必须重新 `POST /_matrix/client/v3/login` 拿新 token，更新 server .env + 本地 .env.local
+  2. 本地测 Matrix 链路前，先 SSH 上 server 跑 Node.js matrix-login 脚本验环境 OK，再本地测
+  3. Continuwuity Docker reset 后 admin room ID 也会变（新 fresh install 自动建 general room）——必须 `GET /_matrix/client/v3/joined_rooms` 拿新 room ID
+  4. **铁律 #56 提示 vs 钩子**：可以考虑写个 preflight-check SSH 脚本——跑 D2 链路前自动验 server admin token + room 有效性
+
+### 已知环境参数（2026-10-27 实测）
+
+```
+Continuwuity 版本：0.5.10
+Server：47.116.59.141（lujax.fun）
+Docker 容器名：continuwuity
+Matrix homeserver URL：http://127.0.0.1:8008
+Public URL：https://lujax.fun
+admin 用户 Matrix ID：@admin:lujax.fun
+admin 密码（derived）：SHA256("admin:greenrhino-matrix-sso-v1").slice(0,24) = a080624b0f927e969bd805ec
+pm2 app-backend：pid 3004712，端口 3101
+```
 
 ---
 
