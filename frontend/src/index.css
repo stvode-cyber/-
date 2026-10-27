@@ -23,17 +23,17 @@
     --color-scrollbar: 210 214 222;
     --color-scrollbar-hover: 160 166 178;
 
-    /* === Primary 靛蓝（极简白系：黑墨主调，靛蓝做焦点） === */
-    --color-primary-50: 240 243 253;
-    --color-primary-100: 224 230 248;
-    --color-primary-200: 196 208 238;
-    --color-primary-300: 160 178 224;
-    --color-primary-400: 110 136 205;
-    --color-primary-500: 76 102 178;    /* 靛蓝 #4C66B2：焦点/主操作 */
-    --color-primary-600: 58 80 148;
-    --color-primary-700: 44 60 116;
-    --color-primary-800: 30 42 84;
-    --color-primary-900: 18 26 52;
+    /* === Primary 墨玉绿（AGENTS.md 品牌色 #00856A） === */
+    --color-primary-50: 237 249 246;
+    --color-primary-100: 200 243 233;
+    --color-primary-200: 150 230 213;
+    --color-primary-300: 80 210 185;
+    --color-primary-400: 20 170 140;
+    --color-primary-500: 0 133 106;     /* 墨玉绿 #00856A：焦点/主操作 */
+    --color-primary-600: 0 108 86;
+    --color-primary-700: 0 88 70;
+    --color-primary-800: 0 68 54;
+    --color-primary-900: 0 48 38;
 
     /* === Accent 深墨（标题/重点文字，Apple 风格高对比） === */
     --color-accent-50: 247 248 250;
@@ -85,17 +85,17 @@
     --color-scrollbar: 51 65 85;
     --color-scrollbar-hover: 71 85 105;
 
-    /* Primary：深色模式下靛蓝提亮（浅容器变深，主色变亮蓝） */
-    --color-primary-50: 18 26 52;
-    --color-primary-100: 26 38 74;
-    --color-primary-200: 38 54 100;
-    --color-primary-300: 56 78 136;
-    --color-primary-400: 88 116 172;
-    --color-primary-500: 128 156 214;
-    --color-primary-600: 160 184 228;
-    --color-primary-700: 190 206 240;
-    --color-primary-800: 214 224 247;
-    --color-primary-900: 235 240 252;
+    /* Primary：深色模式下墨玉绿反转变体（深背景→亮绿前景） */
+    --color-primary-50: 0 30 24;
+    --color-primary-100: 0 48 38;
+    --color-primary-200: 0 68 54;
+    --color-primary-300: 0 88 70;
+    --color-primary-400: 0 108 86;
+    --color-primary-500: 0 133 106;
+    --color-primary-600: 20 170 140;
+    --color-primary-700: 80 210 185;
+    --color-primary-800: 150 230 213;
+    --color-primary-900: 200 243 233;
 
     /* Accent 反转：深色模式下浅色变深、深色变亮 */
     --color-accent-50: 15 23 42;
@@ -392,8 +392,8 @@
     @apply rounded-2xl p-4 border transition-shadow duration-200;
     background: rgb(var(--color-card-bg));
     border-color: rgb(var(--color-card-border));
-    box-shadow: 0 1px 2px rgba(58, 80, 148, 0.06),
-                0 6px 20px rgba(58, 80, 148, 0.09);
+    box-shadow: 0 1px 2px rgba(0, 133, 106, 0.06),
+                0 6px 20px rgba(0, 133, 106, 0.09);
   }
   .card-soft {
     @apply rounded-2xl p-4 border;
@@ -427,17 +427,17 @@
     transform: scale(0.97);
   }
 
-  /* 主按钮 - 靛蓝（Material Filled：纯色 + 克制阴影，不用渐变） */
+  /* 主按钮 - 墨玉绿（Material Filled：纯色 + 克制阴影，不用渐变） */
   .btn-primary {
     @apply btn text-white;
     background: rgb(var(--color-primary-500));
-    box-shadow: 0 1px 2px rgba(44, 60, 116, 0.2),
-                0 4px 12px rgba(44, 60, 116, 0.22);
+    box-shadow: 0 1px 2px rgba(0, 88, 70, 0.2),
+                0 4px 12px rgba(0, 88, 70, 0.22);
   }
   .btn-primary:hover {
     background: rgb(var(--color-primary-600));
-    box-shadow: 0 2px 4px rgba(44, 60, 116, 0.24),
-                0 8px 20px rgba(44, 60, 116, 0.28);
+    box-shadow: 0 2px 4px rgba(0, 88, 70, 0.24),
+                0 8px 20px rgba(0, 88, 70, 0.28);
     transform: translateY(-1px);
   }
   .btn-primary:active {
@@ -483,7 +483,7 @@
   }
   .input:focus {
     border-color: rgb(var(--color-primary-500));
-    box-shadow: 0 0 0 3px rgba(76, 102, 178, 0.14);
+    box-shadow: 0 0 0 3px rgba(0, 133, 106, 0.14);
     outline: none;
   }
 

@@ -184,7 +184,7 @@ export function HandoverCard({
 }) {
   return (
     <div className="mt-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-3 py-2 bg-teal-50 text-teal-700 text-xs font-medium">
+      <div className="px-3 py-2 bg-primary-50 text-primary-700 text-xs font-medium">
         📋 今日数据汇总
       </div>
 
@@ -251,7 +251,7 @@ export function HandoverCard({
       <div className="px-3 py-2 border-t border-gray-50">
         <button
           onClick={() => onCreate({ completedItems, pendingItems, billsSummary, dietsSummary })}
-          className="w-full flex items-center justify-center gap-1 py-2 text-xs bg-teal-500 text-white rounded-lg hover:bg-teal-600"
+          className="w-full flex items-center justify-center gap-1 py-2 text-xs bg-primary-500 text-white rounded-lg hover:bg-primary-600"
         >
           <Plus size={14} /> 生成交接单 <ArrowRight size={12} />
         </button>
@@ -278,7 +278,7 @@ const scheduleBlockMeta: Record<ScheduleBlock['type'], { label: string; emoji: s
   focus: { label: '专注', emoji: '🎯', color: 'text-purple-600', bg: 'bg-purple-50', bar: 'bg-purple-600' },
   break: { label: '休息', emoji: '☕', color: 'text-green-600', bg: 'bg-green-50', bar: 'bg-green-600' },
   routine: { label: '常规', emoji: '📌', color: 'text-orange-600', bg: 'bg-orange-50', bar: 'bg-orange-600' },
-  review: { label: '复盘', emoji: '✨', color: 'text-teal-600', bg: 'bg-teal-50', bar: 'bg-teal-600' },
+  review: { label: '复盘', emoji: '✨', color: 'text-primary-600', bg: 'bg-primary-50', bar: 'bg-primary-600' },
 }
 
 export function ScheduleCard({ schedule }: { schedule: ScheduleData }) {
@@ -363,7 +363,7 @@ export function FragmentCard({ fragments }: { fragments: FragmentItem[] }) {
             <span className="text-sm font-medium text-gray-800">今日碎片</span>
             <span className="text-xs text-gray-400">{fragments.length} 条</span>
           </div>
-          <span className="text-[10px] text-teal-600 bg-teal-100 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] text-primary-600 bg-primary-100 px-2 py-0.5 rounded-full">
             自动分类
           </span>
         </div>
