@@ -9,7 +9,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { api, unwrap } from '../lib/api'
-import { matrixManager, type MatrixConnectionStatus, type MatrixRoomMessage, DEFAULT_ROOM_ID } from '../lib/matrixClient'
+import { matrixManager, type MatrixConnectionStatus, type MatrixRoomMessage, type MatrixRoomSummary, DEFAULT_ROOM_ID } from '../lib/matrixClient'
 
 export interface MatrixAuthResponse {
   /** Matrix user_id，如 @testuser:lujax.fun */
@@ -35,6 +35,8 @@ export interface MatrixState {
   connected: boolean
   /** Day 8-9：Rust crypto 初始化是否成功（E2EE 可用前提） */
   encryptionReady: boolean
+  /** Day 6：我已 join 的房间列表（侧边栏数据） */
+  rooms: MatrixRoomSummary[]
 }
 
 export interface MatrixActions {
@@ -48,6 +50,14 @@ export interface MatrixActions {
   switchRoom: (roomId: string) => Promise<void>
   /** 刷新当前房间消息 */
   reloadMessages: () => Promise<void>
+  /** Day 6：创建新房间（自动 join + 刷新 rooms 列表） */
+  createRoom: (name: string, opts?: { isEncrypted?: boolean; preset?: string }) => Promise<string>
+  /** Day 6：刷新 rooms 列表 */
+  refreshRooms: () => Promise<void>
+  /** Day 6b：邀请用户加入房间 */
+  inviteUser: (roomId: string, userId: string) => Promise<void>
+  /** Day 6b：踢人 */
+  kickUser: (roomId: string, userId: string) => Promise<void>
 }
 
 type MatrixCtx = MatrixState & MatrixActions
@@ -62,6 +72,7 @@ const initialState: MatrixState = {
   error: null,
   connected: false,
   encryptionReady: false,
+  rooms: [],
 }
 
 /** Provider — 整个应用或 ChatPage 级别包裹一次 */
@@ -95,6 +106,15 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
     return () => { off() }
   }, [])
 
+  // Day 7a：订阅房间列表变化（自动 accept invite 后刷新侧边栏）
+  useEffect(() => {
+    const off = matrixManager.onRoomsChange((rooms) => {
+      if (!mountedRef.current) return
+      setState((s) => ({ ...s, rooms }))
+    })
+    return () => { off() }
+  }, [])
+
   const connect = useCallback(async (roomId?: string) => {
     setState((s) => ({ ...s, status: 'connecting', error: null }))
     try {
@@ -124,9 +144,24 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
 
       // 4. 拉历史消息
       const history = await matrixManager.getRoomMessages(targetRoom, 30)
-      setState((s) => ({ ...s, roomId: targetRoom, messages: history }))
 
-      console.log('[useMatrix] connected + joined room +', history.length, 'msgs loaded')
+      // Day 6：拉所有已 join 房间列表
+      const rooms = matrixManager.getJoinedRooms()
+
+      setState((s) => ({
+        ...s,
+        roomId: targetRoom,
+        messages: history,
+        rooms,
+        // 显式设置连接状态 —— 不依赖 onStatusChange 订阅的 race condition
+        // React.StrictMode 开发环境会 double invoke useEffect + useCallback，
+        // 导致订阅可能在 setStatus('connected') 之前就被 cleanup 掉
+        status: 'connected',
+        connected: true,
+        error: null,
+      }))
+
+      console.log('[useMatrix] ✅ connect() done → status=connected, connected=true, rooms=', rooms.length)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[useMatrix] connect FAILED:', msg)
@@ -160,6 +195,30 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
     setState((s) => ({ ...s, messages: history }))
   }, [state.roomId])
 
+  // === Day 6：房间管理 actions ===
+
+  const refreshRooms = useCallback(async () => {
+    const rooms = matrixManager.getJoinedRooms()
+    setState((s) => ({ ...s, rooms }))
+  }, [])
+
+  const createRoom = useCallback(async (name: string, opts?: { isEncrypted?: boolean; preset?: string }) => {
+    const newRoomId = await matrixManager.createRoom(name, opts)
+    // 自动切换到新房间 + 拉历史（新房间应该只有创建事件）
+    const history = await matrixManager.getRoomMessages(newRoomId, 30)
+    const rooms = matrixManager.getJoinedRooms()
+    setState((s) => ({ ...s, roomId: newRoomId, messages: history, rooms }))
+    return newRoomId
+  }, [])
+
+  const inviteUser = useCallback(async (roomId: string, userId: string) => {
+    await matrixManager.invite(roomId, userId)
+  }, [])
+
+  const kickUser = useCallback(async (roomId: string, userId: string) => {
+    await matrixManager.kick(roomId, userId)
+  }, [])
+
   const value: MatrixCtx = {
     ...state,
     connect,
@@ -167,6 +226,11 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
     sendText,
     switchRoom,
     reloadMessages,
+    // Day 6
+    createRoom,
+    refreshRooms,
+    inviteUser,
+    kickUser,
   }
 
   return <MatrixContext.Provider value={value}>{children}</MatrixContext.Provider>

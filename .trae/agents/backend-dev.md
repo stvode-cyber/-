@@ -13,7 +13,7 @@
 - JWT RS256（`jose` 库，云端签发，本地验签）
 - 本地 SQLite（dev.db / prod.db）
 - LLM：SiliconFlow DeepSeek-V3（`POST /api/v1/ai/proxy` 网关代理）
-- PM2 进程管理（云端 `pm2 aie-backend`）
+- PM2 进程管理（云端 `pm2 app-backend`）
 
 ## 工作清单
 
@@ -49,8 +49,8 @@
 ### 打包 & 部署
 
 - `npm run build` → dist/ 生成
-- 云端部署：tar dist + prisma/schema.prisma + package.json → SCP → 解压覆盖 → `prisma db push` → `pm2 restart aie-backend`
-- PM2 日志：`pm2 logs aie-backend --lines 200`
+- 云端部署：tar dist + prisma/schema.prisma + package.json → SCP → 解压覆盖 → `prisma db push` → `pm2 restart app-backend`
+- PM2 日志：`pm2 logs app-backend --lines 200`
 - **内测两步走**：本机 smoke 全过 → 等用户确认 → 再上云端
 
 ## 交付自检

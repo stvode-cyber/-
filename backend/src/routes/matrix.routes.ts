@@ -20,9 +20,11 @@
  */
 import { Router } from 'express'
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
 import { authRequired } from '../middleware/auth.js'
 import { HttpError } from '../utils/response.js'
 import logger from '../lib/logger.js'
+import { matrixBot } from '../services/matrixBot.js'
 
 const router = Router()
 
@@ -212,6 +214,190 @@ router.get('/whoami', authRequired, async (req, res, next) => {
   } catch (e) {
     next(e)
   }
+})
+
+// ─══════════════════════════════════════════════════════════
+// Day 7b：邀请链接生成 + 接受（无状态 JWT token，复用 JWT_SECRET）
+// ─══════════════════════════════════════════════════════════
+
+const MATRIX_INVITE_SECRET = process.env.MATRIX_INVITE_SECRET || process.env.JWT_SECRET || 'greenrhino-matrix-invite-default'
+const MATRIX_INVITE_EXPIRES_IN = process.env.MATRIX_INVITE_EXPIRES_IN || '7d' // 默认 7 天
+
+interface InviteTokenPayload {
+  roomId: string
+  inviterId: string
+}
+
+function signInviteToken(payload: InviteTokenPayload): string {
+  return jwt.sign(payload, MATRIX_INVITE_SECRET, {
+    expiresIn: MATRIX_INVITE_EXPIRES_IN,
+  } as jwt.SignOptions)
+}
+
+function verifyInviteToken(token: string): InviteTokenPayload {
+  try {
+    return jwt.verify(token, MATRIX_INVITE_SECRET) as InviteTokenPayload
+  } catch {
+    throw new HttpError('邀请链接无效或已过期', 400)
+  }
+}
+
+// POST /api/v1/matrix/invite-link — 生成邀请链接（authRequired）
+// body: { roomId }
+router.post('/invite-link', authRequired, async (req, res, next) => {
+  try {
+    const { roomId } = req.body as { roomId?: string }
+    if (!roomId || typeof roomId !== 'string') {
+      throw new HttpError('roomId 必填', 400)
+    }
+
+    const user = req.user!
+    const token = signInviteToken({ roomId, inviterId: user.userId })
+
+    // 返回绿角犀前端可访问的链接
+    const baseUrl = req.headers.origin || CONTINUUITY_PUBLIC_URL
+    const inviteUrl = `${baseUrl}/chat/join?token=${encodeURIComponent(token)}`
+
+    logger.info({ username: user.username, roomId }, '[Matrix] invite-link generated')
+
+    res.json({
+      code: 200,
+      data: {
+        ok: true,
+        token,
+        inviteUrl,
+        expiresIn: MATRIX_INVITE_EXPIRES_IN,
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// POST /api/v1/matrix/accept-invite — 接受邀请（authRequired）
+// body: { token } → 验签 → 当前登录用户自动 accept Matrix invite → 返回 roomId
+router.post('/accept-invite', authRequired, async (req, res, next) => {
+  try {
+    const { token } = (req.body || {}) as { token?: string }
+    if (!token || typeof token !== 'string') {
+      throw new HttpError('token 必填', 400)
+    }
+
+    // 1. 验签拿 roomId
+    const { roomId, inviterId } = verifyInviteToken(token)
+
+    // 2. 用当前登录用户的 Matrix 身份 accept invite
+    const user = req.user!
+    const password = deriveMatrixPassword(user.userId)
+
+    let tokenResult: Awaited<ReturnType<typeof matrixLogin>> | null = null
+    try {
+      tokenResult = await matrixLogin(user.username, password)
+    } catch {
+      await ensureMatrixUser(user.username, password)
+      tokenResult = await matrixLogin(user.username, password)
+    }
+
+    // 3. 调 Matrix Client API /join/{roomId}
+    const { code, body } = await matrixFetch(
+      `/_matrix/client/v3/join/${encodeURIComponent(roomId)}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: { Authorization: `Bearer ${tokenResult.accessToken}` },
+      },
+    )
+
+    if (code !== 200) {
+      logger.warn({ code, body, roomId }, '[Matrix] accept-invite Matrix join failed')
+      throw new HttpError(`接受邀请失败（Matrix ${code}）`, 502)
+    }
+
+    logger.info({ username: user.username, roomId, inviterId }, '[Matrix] invite accepted')
+
+    res.json({
+      code: 200,
+      data: {
+        ok: true,
+        roomId,
+        inviterId,
+        message: '已成功加入房间',
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// ─══════════════════════════════════════════════════════════
+// Day 8：Matrix AI Bot 管理端点
+// ─══════════════════════════════════════════════════════════
+
+// POST /api/v1/matrix/bot/setup — 创建 bot 账户 + 启动（authRequired，管理员最好）
+// body: { username?, password? } 不传用默认 greenrhino_ai
+router.post('/bot/setup', authRequired, async (req, res, next) => {
+  try {
+    const user = req.user!
+    const username = (req.body?.username as string) || process.env.MATRIX_BOT_USERNAME || 'greenrhino_ai'
+    const password = (req.body?.password as string) || process.env.MATRIX_BOT_PASSWORD
+      || crypto.randomBytes(24).toString('hex')
+
+    // 1. 用 admin room command 创建 bot 用户（幂等：已存在会报错 → login fallback）
+    if (CONTINUUITY_ADMIN_TOKEN && CONTINUUITY_ADMIN_ROOM) {
+      try {
+        await sendAdminCommand(`!admin users create-user ${username} ${password}`)
+        logger.info({ username }, '[MatrixBot] create-user command sent')
+      } catch {
+        logger.warn({ username }, '[MatrixBot] create-user failed (may already exist)')
+      }
+    }
+
+    // 2. bot login（matrixBot service 内部方法）
+    const { token, userId } = await matrixBot.login(username, password)
+
+    // 3. 启动 bot
+    await matrixBot.start()
+
+    res.json({
+      code: 200,
+      data: {
+        ok: true,
+        botUserId: userId,
+        botUsername: username,
+        running: true,
+        // ⚠️ token 只返回一次，用户应自行保存到服务器 .env（MATRIX_BOT_TOKEN / MATRIX_BOT_PASSWORD）
+        // 不在响应里返回明文密码
+        setupNote: '请将 bot token 和 password 存入服务器 .env：MATRIX_BOT_USERNAME / MATRIX_BOT_PASSWORD / MATRIX_BOT_TOKEN',
+      },
+    })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// POST /api/v1/matrix/bot/start — 启动（需要已 setup 过）
+router.post('/bot/start', authRequired, async (_req, res, next) => {
+  try {
+    await matrixBot.start()
+    res.json({ code: 200, data: { ok: true, status: matrixBot.getStatus() } })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// POST /api/v1/matrix/bot/stop — 停止
+router.post('/bot/stop', authRequired, async (_req, res, next) => {
+  try {
+    await matrixBot.stop()
+    res.json({ code: 200, data: { ok: true } })
+  } catch (e) {
+    next(e)
+  }
+})
+
+// GET /api/v1/matrix/bot/status — bot 状态
+router.get('/bot/status', authRequired, (_req, res) => {
+  res.json({ code: 200, data: { ok: true, ...matrixBot.getStatus() } })
 })
 
 export default router

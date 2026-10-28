@@ -114,6 +114,7 @@ const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const TeamTasksPage = lazy(() => import('./pages/TeamTasksPage'))
 const TeamSettingsPage = lazy(() => import('./pages/TeamSettingsPage'))
 const PMBoardPage = lazy(() => import('./pages/PMBoardPage'))
+const JoinInvitePage = lazy(() => import('./pages/JoinInvitePage'))
 
 /** 懒加载路由的加载占位 */
 function RouteFallback() {
@@ -234,6 +235,8 @@ export default function App() {
             {/* 合规协议页：未登录也可访问（注册流程需展示） */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            {/* Day 7b：邀请链接页，未登录也需能渲染（内部跳 login?redirect=...） */}
+            <Route path="/chat/join" element={<JoinInvitePage />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Suspense>
@@ -267,6 +270,7 @@ export default function App() {
                 <Route path="/fragments" element={<FragmentsPage />} />
                 <Route path="/voice-memos" element={<VoiceMemoListPage />} />
                 <Route path="/chat/ai" element={<ChatPage />} />
+                <Route path="/chat/join" element={<JoinInvitePage />} />
                 <Route path="/chat/u/:convId" element={<ChatUserPage />} />
                 <Route path="/chat/g/:convId" element={<ChatUserPage />} />
                 <Route path="/live-meeting" element={<LiveMeetingPage />} />
@@ -358,6 +362,7 @@ export default function App() {
               <Route path="/fragments" element={<FragmentsPage />} />
               <Route path="/voice-memos" element={<VoiceMemoListPage />} />
               <Route path="/chat/ai" element={<ChatPage />} />
+              <Route path="/chat/join" element={<JoinInvitePage />} />
               <Route path="/chat/u/:convId" element={<ChatUserPage />} />
               <Route path="/chat/g/:convId" element={<ChatUserPage />} />
               <Route path="/live-meeting" element={<LiveMeetingPage />} />

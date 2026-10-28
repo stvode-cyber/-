@@ -117,7 +117,7 @@ function runCmds() {
 
 function startPm2() {
   console.log('\n8. 启动 PM2...')
-  conn.exec(`cd ${REMOTE_DIR}/backend && pm2 delete greenrhino 2>/dev/null; pm2 start "npx tsx src/index.ts" --name greenrhino && pm2 save 2>&1 | tail -5`, (err, stream) => {
+  conn.exec(`cd ${REMOTE_DIR}/backend && pm2 delete app-backend 2>/dev/null; pm2 start "npx tsx src/index.ts" --name app-backend && pm2 save 2>&1 | tail -5`, (err, stream) => {
     if (err) { console.error(err); conn.end(); return }
     let out = ''
     stream.on('data', d => out += d)

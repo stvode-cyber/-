@@ -55,6 +55,7 @@ import pmRoutes from './routes/pm.routes.js'
 import oidcRoutes from './routes/oidc.routes.js'
 import matrixRoutes from './routes/matrix.routes.js'
 import { initRemoteFileServer } from './services/remoteFileServer.js'
+import { matrixBot } from './services/matrixBot.js'
 import { startCountdownScheduler } from './utils/countdown.lib.js'
 import { startMorningGreetingScheduler } from './utils/morningGreeting.lib.js'
 import { startProactiveScheduler } from './utils/proactive.lib.js'
@@ -222,7 +223,7 @@ const PORT = Number(process.env.PORT) || 3001
 // - 手机端调试时显式暴露：HOST=0.0.0.0 npm run dev
 const HOST = process.env.HOST || '127.0.0.1'
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`\n🚀 绿角犀后端已启动`)
   console.log(`   本地地址: http://${HOST}:${PORT}`)
   console.log(`   健康检查: http://${HOST}:${PORT}/health\n`)
@@ -247,6 +248,23 @@ app.listen(PORT, HOST, () => {
     initAgentCore()
     // 远程文件访问（手机 → 电脑局域网直连）：读取持久化配置，enabled 则拉起独立端口
     initRemoteFileServer()
+    // Day 8：Matrix AI Bot（需要 .env 配 MATRIX_BOT_USERNAME/PASSWORD，或运行时调 /bot/setup）
+    matrixBot.start().catch(() => { /* bot 未配置不阻断后端启动 */ })
   })
 })
+
+// Day 8：Matrix Bot graceful shutdown + Express server close
+const shutdown = async (signal: string) => {
+  logger.info({ signal }, '收到关闭信号，优雅停机中...')
+  try {
+    await matrixBot.stop()
+    await new Promise<void>((resolve) => server.close(() => resolve()))
+    logger.info('HTTP server 已关闭')
+  } catch (err) {
+    logger.error({ err }, '关闭出错')
+  }
+  process.exit(0)
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
 

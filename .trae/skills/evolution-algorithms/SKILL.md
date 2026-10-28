@@ -283,7 +283,7 @@ export async function runHealthCheck() {
   // 1. PM2 进程状态（从本机 PM2 API 读，部署时在同一台机）
   try {
     const { execSync } = require('child_process')
-    const status = execSync('pm2 status aie-backend --json').toString()
+    const status = execSync('pm2 status app-backend --json').toString()
     if (JSON.parse(status)[0]?.pm2_env?.status !== 'online') {
       issues.push('pm2_stopped')
     }
@@ -302,12 +302,12 @@ export async function runHealthCheck() {
   for (const issue of issues) {
     switch (issue) {
       case 'pm2_stopped':
-        execSync('pm2 restart aie-backend')
+        execSync('pm2 restart app-backend')
         logRestore(issue, 'auto-restart')
         break
       case 'db_corrupted':
         execSync('cp /root/backend/prisma/prod.db.bak.* /root/backend/prisma/prod.db')  // 最新备份
-        execSync('pm2 restart aie-backend')
+        execSync('pm2 restart app-backend')
         logRestore(issue, 'auto-restore-from-backup')
         break
     }

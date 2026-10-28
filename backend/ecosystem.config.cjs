@@ -3,10 +3,10 @@
  *
  * 使用方式：
  *   pm2 start ecosystem.config.cjs
- *   pm2 restart aie-backend
- *   pm2 logs aie-backend
- *   pm2 stop aie-backend
- *   pm2 delete aie-backend
+ *   pm2 restart app-backend
+ *   pm2 logs app-backend
+ *   pm2 stop app-backend
+ *   pm2 delete app-backend
  *
  * 开机自启：
  *   pm2 startup
@@ -15,7 +15,7 @@
 module.exports = {
   apps: [
     {
-      name: 'aie-backend',
+      name: 'app-backend',
       script: 'dist/index.js',
       cwd: __dirname,
       instances: 1,

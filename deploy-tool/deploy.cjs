@@ -201,7 +201,7 @@ async function stepExec() {
 
   // 11. 启动后端（PM2）
   log('[11/N] 启动后端 (PM2)...');
-  await sshExec(conn, `cd ${REMOTE_DIR}/backend && pm2 delete aie-backend 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save 2>&1 | tail -5`);
+  await sshExec(conn, `cd ${REMOTE_DIR}/backend && pm2 delete app-backend 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save 2>&1 | tail -5`);
   await sshExec(conn, `pm2 list`);
 
   // 12. 配置 PM2 开机自启

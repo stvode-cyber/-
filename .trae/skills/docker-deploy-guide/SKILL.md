@@ -10,7 +10,7 @@
 # 云端部署四步法
 tar -czf backend-update.tar.gz -C backend dist prisma/schema.prisma package.json
 scp backend-update.tar.gz root@47.116.59.141:/root/backend/
-ssh root@47.116.59.141 "cd /root/backend && cp dist dist.bak.\$(date +%Y%m%d-%H%M%S) && cp prisma/prod.db prisma/prod.db.bak.\$(date +%Y%m%d-%H%M%S) && tar -xzf backend-update.tar.gz && pm2 stop aie-backend && npx prisma db push && pm2 start dist/index.js --name aie-backend && pm2 status aie-backend"
+ssh root@47.116.59.141 "cd /root/backend && cp dist dist.bak.\$(date +%Y%m%d-%H%M%S) && cp prisma/prod.db prisma/prod.db.bak.\$(date +%Y%m%d-%H%M%S) && tar -xzf backend-update.tar.gz && pm2 stop app-backend && npx prisma db push && pm2 start dist/index.js --name app-backend && pm2 status app-backend"
 curl -s http://47.116.59.141:3001/health
 ```
 

@@ -40,9 +40,9 @@ cp prisma/prod.db prisma/prod.db.bak.$(date +%Y%m%d-%H%M%S)
 tar -xzf backend-update.tar.gz
 
 # 6. 数据库 push（如 schema 有变更）
-pm2 stop aie-backend
+pm2 stop app-backend
 npx prisma db push
-pm2 start aie-backend
+pm2 start app-backend
 
 # 7. smoke test
 curl -s http://127.0.0.1:3001/health | grep -q ok && echo OK || echo FAIL
@@ -51,10 +51,10 @@ curl -s http://127.0.0.1:3001/health | grep -q ok && echo OK || echo FAIL
 ### PM2 常用
 
 ```bash
-pm2 status aie-backend     # 看 online / stopped
-pm2 logs aie-backend --lines 200 --nostream
-pm2 restart aie-backend
-pm2 delete aie-backend && pm2 start dist/index.js --name aie-backend
+pm2 status app-backend     # 看 online / stopped
+pm2 logs app-backend --lines 200 --nostream
+pm2 restart app-backend
+pm2 delete app-backend && pm2 start dist/index.js --name app-backend
 ```
 
 ### 备份恢复

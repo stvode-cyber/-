@@ -94,7 +94,7 @@ async function main() {
     await sshExec(conn, `nginx -t 2>&1 && systemctl enable nginx && systemctl restart nginx && echo "✅ Nginx 已启动"`);
 
     log('=== [5/6] 启动后端 (PM2) ===');
-    await sshExec(conn, `cd ${REMOTE_DIR}/backend && pm2 delete aie-backend 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save 2>&1 | tail -5`);
+    await sshExec(conn, `cd ${REMOTE_DIR}/backend && pm2 delete app-backend 2>/dev/null; pm2 start ecosystem.config.cjs && pm2 save 2>&1 | tail -5`);
     await sshExec(conn, `pm2 list`);
 
     log('=== [6/6] 配置开机自启 ===');

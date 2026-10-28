@@ -88,7 +88,7 @@ async function main() {
     await sshUploadDir(conn, path.resolve(__dirname, '..', 'frontend', 'dist'), '/var/www/aie-frontend');
 
     log('=== [3/5] 重启后端 PM2 ===');
-    await sshExec(conn, `cd /root/APP-AIE/backend && pm2 restart aie-backend --update-env 2>&1 | tail -5`);
+    await sshExec(conn, `cd /root/APP-AIE/backend && pm2 restart app-backend --update-env 2>&1 | tail -5`);
 
     log('=== [4/5] 等待后端启动 ===');
     await new Promise(r => setTimeout(r, 3000));

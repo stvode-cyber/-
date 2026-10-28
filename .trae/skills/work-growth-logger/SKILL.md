@@ -130,7 +130,7 @@ Electron 桌面端（Windows）+ React 18 前端 + Node.js/Express 后端 + Pris
 ## 当前状态
 - **版本**：v1.0.6（内测中）
 - **Git**：main 分支，commit xxx，remote = git@github.com:stvode-cyber/APP-AIE.git
-- **服务器**：47.116.59.141（root），pm2 aie-backend（3100）
+- **服务器**：47.116.59.141（root），pm2 app-backend（3100）
 - **GitHub 仓库**：stvode-cyber/APP-AIE（private）
 
 ## 远程资源清单

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { Send, Plus, Check, ArrowRight, Sparkles, Mic, Square, Loader2, List, Image as ImageIcon, Paperclip, MapPin, X, ChevronLeft, Smile, FileText, Download, Eye, Fingerprint, Settings, MessageCircle } from 'lucide-react'
+import { Send, Plus, Check, ArrowRight, Sparkles, Mic, Square, Loader2, List, Image as ImageIcon, Paperclip, MapPin, X, ChevronLeft, Smile, FileText, Download, Eye, Fingerprint, Settings, MessageCircle, Users } from 'lucide-react'
 import { api, unwrap } from '../lib/api'
 import { useAuthStore } from '../stores/auth'
 import { useToast } from '../components/Toast'
@@ -12,7 +12,14 @@ import { useVoiceRecording } from './chat/useVoiceRecording'
 
 // === Matrix IM 通道（Day 5-6 MVP：与 AI 通道并存，tab 切换） ===
 import { MatrixProvider, useMatrix } from '../hooks/useMatrix'
-import { DEFAULT_ROOM_ID } from '../lib/matrixClient'
+import { DEFAULT_ROOM_ID, matrixManager } from '../lib/matrixClient'
+// Day 6 房间管理组件
+import { MatrixRoomSidebar } from '../components/chat/MatrixRoomSidebar'
+import { MatrixCreateRoomModal } from '../components/chat/MatrixCreateRoomModal'
+import { MatrixMemberPanel } from '../components/chat/MatrixMemberPanel'
+// Day 6b 邀请/踢人弹窗
+import { MatrixInviteModal } from '../components/chat/MatrixInviteModal'
+import { MatrixKickConfirmDialog } from '../components/chat/MatrixKickConfirmDialog'
 
 
 // === 拆分后：类型 + 子组件从外部文件 import ===
@@ -150,6 +157,29 @@ function ChatPageInner() {
   // === Matrix IM 通道（Day 5-6 MVP：与 AI 通道并存，tab 切换） ===
   const [channel, setChannel] = useState<'ai' | 'matrix'>('ai')
   const matrix = useMatrix()
+
+  // Day 6：房间管理 UI 状态
+  const [createRoomModalOpen, setCreateRoomModalOpen] = useState(false)
+  const [memberPanelOpen, setMemberPanelOpen] = useState(false)
+  // Day 6b：邀请/踢人弹窗状态
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
+  const [kickConfirmTarget, setKickConfirmTarget] = useState<{ userId: string; name: string } | null>(null)
+  const [kickSubmitting, setKickSubmitting] = useState(false)
+
+  // Day 6：当前房间成员列表（派生，从 matrixManager 直接拿，避免加 action）
+  const currentRoomMembers = matrix.connected && matrix.roomId
+    ? matrixManager.getRoomMembers(matrix.roomId)
+    : []
+
+  // Day 6b：权限计算（派生，依赖 matrix.roomId 变化重算）
+  const canInviteCurrentRoom = matrix.connected && matrix.roomId
+    ? matrixManager.canInvite(matrix.roomId)
+    : false
+  const canKickMemberInCurrentRoom = (targetUserId: string) => {
+    if (!matrix.connected || !matrix.roomId) return false
+    return matrixManager.canKick(matrix.roomId, targetUserId)
+  }
+  const currentRoomName = matrix.rooms.find((r) => r.roomId === matrix.roomId)?.name || ''
 
   // 切到 matrix 通道时自动 connect（懒加载：不占首次渲染资源）
   useEffect(() => {
@@ -1015,100 +1045,208 @@ function ChatPageInner() {
 
       </>)} {/* channel === 'ai' 条件闭合 */}
 
-      {/* Matrix IM 通道（Day 5-6 MVP：明文消息 + tab 切换） */}
+      {/* Matrix IM 通道（Day 6：房间列表 + 成员面板） */}
       {channel === 'matrix' && (
-        <>
-          {/* Matrix 消息列表 */}
-          <div ref={scrollRef} className={`flex-1 overflow-y-auto px-3 py-4 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/10 ${desktop ? 'rounded-b-xl' : ''}`}>
-            <div className={`space-y-3 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
-              {matrix.status === 'connecting' && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <LoadingState text="连接 Matrix 群聊中..." />
-                </div>
-              )}
-              {matrix.status === 'error' && (
-                <div className="flex flex-col items-center justify-center h-full">
-                  <ErrorState text={matrix.error || 'Matrix 连接失败'} onRetry={() => matrix.connect(DEFAULT_ROOM_ID)} />
-                </div>
-              )}
-              {matrix.status === 'connected' && matrix.messages.length === 0 && (
-                <EmptyState text="群聊暂无消息" hint="说点什么吧..." />
-              )}
-              {/* Day 8-9：E2EE 加密能力状态提示 */}
-              {matrix.connected && !matrix.encryptionReady && (
-                <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-center">
-                  ⚠️ 端到端加密未启用（Rust crypto 初始化失败），当前为明文消息
-                </div>
-              )}
-              {matrix.status === 'connected' && matrix.messages.map((m) => (
-                <div key={m.id} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                    m.isSelf
-                      ? 'bg-gradient-accent text-white rounded-br-sm'
-                      : 'bg-primary-50 border border-primary-100 text-gray-800 rounded-bl-sm'
-                  }`}>
-                    {!m.isSelf && <div className="text-[10px] text-primary-600 font-medium mb-0.5">{m.senderId}</div>}
-                    <div className="break-words flex items-start gap-1">
-                      {m.isEncrypted && (
-                        <span title="端到端加密" className="inline-block text-[10px] leading-none mt-0.5">🔒</span>
-                      )}
-                      {!m.isDecrypted && (
-                        <span title="解密失败" className="inline-block text-[10px] leading-none mt-0.5">🔐</span>
-                      )}
-                      <span>{m.body}</span>
-                    </div>
-                    <div className="text-[9px] opacity-60 mt-1 text-right">{formatTime(new Date(m.timestamp).toISOString())}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="flex flex-1 overflow-hidden">
+          {/* 左：房间列表侧边栏 · Day 6 */}
+          <MatrixRoomSidebar
+            rooms={matrix.rooms}
+            currentRoomId={matrix.roomId}
+            onSelectRoom={(roomId) => matrix.switchRoom(roomId).catch((err) => toast(err.message, 'error'))}
+            onCreateRoom={() => setCreateRoomModalOpen(true)}
+            disabled={!matrix.connected}
+            // Day 7a：复制 Matrix 房间分享链接到剪贴板
+            onShareLink={(roomId) => {
+              const link = matrixManager.generateShareLink(roomId)
+              navigator.clipboard.writeText(link).then(
+                () => toast('邀请链接已复制到剪贴板', 'success'),
+                () => toast('复制失败，请手动复制', 'error'),
+              )
+            }}
+          />
 
-          {/* Matrix 输入栏（极简版：只有 textarea + send button） */}
-          <div className="px-3 py-3 bg-white/80 backdrop-blur-xl border-t border-primary-100">
-            <div className={`flex items-end gap-2 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
+          {/* 中：消息列表 + 输入栏 */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Day 6：成员面板 toggle 按钮（消息区右上角） */}
+            {matrix.connected && matrix.roomId && (
+              <div className="flex justify-end px-3 pt-2">
+                <button
+                  onClick={() => setMemberPanelOpen((v) => !v)}
+                  className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
+                    memberPanelOpen
+                      ? 'bg-primary-100 text-primary-600'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                  title="成员列表"
+                >
+                  <Users size={11} />
+                  <span>{currentRoomMembers.filter((m) => m.membership === 'join').length} 人</span>
+                </button>
+              </div>
+            )}
+
+            {/* Matrix 消息列表 */}
+            <div ref={scrollRef} className={`flex-1 overflow-y-auto px-3 py-2 bg-gradient-to-b from-primary-50/40 via-white to-primary-50/10 ${desktop ? 'rounded-b-xl' : ''}`}>
+              <div className={`space-y-3 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
+                {matrix.status === 'connecting' && (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <LoadingState text="连接 Matrix 群聊中..." />
+                  </div>
+                )}
+                {matrix.status === 'error' && (
+                  <div className="flex flex-col items-center justify-center h-full">
+                    <ErrorState text={matrix.error || 'Matrix 连接失败'} onRetry={() => matrix.connect(DEFAULT_ROOM_ID)} />
+                  </div>
+                )}
+                {matrix.status === 'connected' && matrix.messages.length === 0 && (
+                  <EmptyState text="群聊暂无消息" hint="说点什么吧..." />
+                )}
+                {/* Day 8-9：E2EE 加密能力状态提示 */}
+                {matrix.connected && !matrix.encryptionReady && (
+                  <div className="text-[11px] text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-center">
+                    ⚠️ 端到端加密未启用（Rust crypto 初始化失败），当前为明文消息
+                  </div>
+                )}
+                {matrix.status === 'connected' && matrix.messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.isSelf ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                      m.isSelf
+                        ? 'bg-gradient-accent text-white rounded-br-sm'
+                        : 'bg-primary-50 border border-primary-100 text-gray-800 rounded-bl-sm'
+                    }`}>
+                      {!m.isSelf && <div className="text-[10px] text-primary-600 font-medium mb-0.5">{m.senderId}</div>}
+                      <div className="break-words flex items-start gap-1">
+                        {m.isEncrypted && (
+                          <span title="端到端加密" className="inline-block text-[10px] leading-none mt-0.5">🔒</span>
+                        )}
+                        {!m.isDecrypted && (
+                          <span title="解密失败" className="inline-block text-[10px] leading-none mt-0.5">🔐</span>
+                        )}
+                        <span>{m.body}</span>
+                      </div>
+                      <div className="text-[9px] opacity-60 mt-1 text-right">{formatTime(new Date(m.timestamp).toISOString())}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Matrix 输入栏（极简版：只有 textarea + send button） */}
+            <div className="px-3 py-3 bg-white/80 backdrop-blur-xl border-t border-primary-100">
+              <div className={`flex items-end gap-2 ${desktop ? 'max-w-[800px] mx-auto' : ''}`}>
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (input.trim() && matrix.connected) {
+                        matrix.sendText(input.trim())
+                          .then(() => setInput(''))
+                          .catch(() => toast('发送失败', 'error'))
+                      }
+                    }
+                  }}
+                  placeholder={matrix.connected ? '发送群聊消息...' : '等待连接...'}
+                  rows={1}
+                  disabled={!matrix.connected}
+                  className="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 max-h-32 disabled:opacity-50"
+                />
+                <button
+                  onClick={() => {
                     if (input.trim() && matrix.connected) {
                       matrix.sendText(input.trim())
                         .then(() => setInput(''))
                         .catch(() => toast('发送失败', 'error'))
                     }
-                  }
-                }}
-                placeholder={matrix.connected ? '发送群聊消息...' : '等待连接...'}
-                rows={1}
-                disabled={!matrix.connected}
-                className="flex-1 resize-none rounded-2xl px-4 py-2.5 text-sm border border-gray-200 bg-gray-50 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 max-h-32 disabled:opacity-50"
-              />
-              <button
-                onClick={() => {
-                  if (input.trim() && matrix.connected) {
-                    matrix.sendText(input.trim())
-                      .then(() => setInput(''))
-                      .catch(() => toast('发送失败', 'error'))
-                  }
-                }}
-                disabled={!input.trim() || !matrix.connected}
-                className={`p-2.5 text-white rounded-2xl disabled:opacity-40 transition-all ${
-                  input.trim() && matrix.connected ? 'bg-gradient-accent hover:shadow-lg hover:shadow-primary-300/40' : ''
-                }`}
-              >
-                <Send size={18} />
-              </button>
-            </div>
-            <div className="text-[10px] text-gray-300 mt-1 px-2 flex items-center gap-2">
-              <span>Matrix 群聊 · {matrix.status === 'connected' ? '已连接' : matrix.status === 'connecting' ? '连接中...' : '未连接'}</span>
-              {matrix.encryptionReady && (
-                <span className="inline-flex items-center gap-0.5 text-emerald-600">🔒 E2EE</span>
-              )}
+                  }}
+                  disabled={!input.trim() || !matrix.connected}
+                  className={`p-2.5 text-white rounded-2xl disabled:opacity-40 transition-all ${
+                    input.trim() && matrix.connected ? 'bg-gradient-accent hover:shadow-lg hover:shadow-primary-300/40' : ''
+                  }`}
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+              <div className="text-[10px] text-gray-300 mt-1 px-2 flex items-center gap-2">
+                <span>Matrix 群聊 · {matrix.status === 'connected' ? '已连接' : matrix.status === 'connecting' ? '连接中...' : '未连接'}</span>
+                {matrix.encryptionReady && (
+                  <span className="inline-flex items-center gap-0.5 text-emerald-600">🔒 E2EE</span>
+                )}
+              </div>
             </div>
           </div>
-        </>
+
+          {/* 右：成员面板 · Day 6b（加邀请/踢人） */}
+          {memberPanelOpen && (
+            <MatrixMemberPanel
+              open={memberPanelOpen}
+              members={currentRoomMembers}
+              currentUserId={matrix.userId}
+              onClose={() => setMemberPanelOpen(false)}
+              // Day 6b：权限 + 回调
+              canInvite={canInviteCurrentRoom}
+              canKickMember={canKickMemberInCurrentRoom}
+              onInviteClick={() => setInviteModalOpen(true)}
+              onKickClick={(targetUserId) => {
+                const target = currentRoomMembers.find((m) => m.userId === targetUserId)
+                if (target) setKickConfirmTarget({ userId: target.userId, name: target.name })
+              }}
+            />
+          )}
+
+          {/* 创建房间弹窗 · Day 6 */}
+          <MatrixCreateRoomModal
+            open={createRoomModalOpen}
+            encryptionAvailable={matrix.encryptionReady}
+            onClose={() => setCreateRoomModalOpen(false)}
+            onCreate={(name, opts) => matrix.createRoom(name, opts).then((roomId) => {
+              toast(`群聊创建成功`, 'success')
+              return roomId
+            })}
+          />
+
+          {/* 邀请弹窗 · Day 6b */}
+          <MatrixInviteModal
+            open={inviteModalOpen}
+            onClose={() => setInviteModalOpen(false)}
+            roomName={currentRoomName}
+            onInvite={async (userId) => {
+              if (!matrix.roomId) throw new Error('未加入任何群聊')
+              await matrix.inviteUser(matrix.roomId, userId)
+              toast(`已发送邀请给 ${userId}`, 'success')
+            }}
+          />
+
+          {/* 踢人确认弹窗 · Day 6b */}
+          <MatrixKickConfirmDialog
+            open={!!kickConfirmTarget}
+            onClose={() => setKickConfirmTarget(null)}
+            targetName={kickConfirmTarget?.name || ''}
+            targetUserId={kickConfirmTarget?.userId || ''}
+            roomName={currentRoomName}
+            submitting={kickSubmitting}
+            onConfirm={async () => {
+              if (!kickConfirmTarget || !matrix.roomId) return
+              setKickSubmitting(true)
+              try {
+                await matrix.kickUser(matrix.roomId, kickConfirmTarget.userId)
+                toast(`已将 ${kickConfirmTarget.name} 移出群聊`, 'success')
+                setKickConfirmTarget(null)
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : '移出失败'
+                // 优化常见错误提示
+                if (msg.includes('power')) {
+                  toast('权限不足，无法移出该成员', 'error')
+                } else {
+                  toast(msg, 'error')
+                }
+              } finally {
+                setKickSubmitting(false)
+              }
+            }}
+          />
+        </div>
       )}
     </div>
   )

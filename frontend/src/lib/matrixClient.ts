@@ -18,8 +18,8 @@ import * as sdk from 'matrix-js-sdk'
 // Vite proxy path: /_matrix 匹配转发到 Continuwuity
 const BASE_URL = window.location.origin
 
-/** Day 5-6 MVP 硬编码 admin room（Day 2 fresh create 后验证有效） */
-export const DEFAULT_ROOM_ID = '!3b7C96Koy6pTBSfIlgxi5-R77vvIdsnrq1lfI6495t8'
+/** Day 8-9 E2EE 加密测试房间（admin creator，power 100，已开启 m.room.encryption） */
+export const DEFAULT_ROOM_ID = '!HZ8bM_Zad8SU8ZnqWk8zlM9iWezPLPIHORGSJJ7sPP0'
 
 export type MatrixConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
@@ -40,6 +40,8 @@ class MatrixClientManager {
   private encryptionEnabled = false  // Day 8-9：Rust crypto 初始化状态
   private listeners = new Set<(status: MatrixConnectionStatus) => void>()
   private messageListeners = new Set<(msg: MatrixRoomMessage) => void>()
+  /** Day 7a：房间列表变化订阅（自动 accept invite 后刷新侧边栏） */
+  private roomsListeners = new Set<(rooms: MatrixRoomSummary[]) => void>()
 
   /** 当前连接状态 */
   getStatus() {
@@ -57,6 +59,19 @@ class MatrixClientManager {
   onMessage(fn: (msg: MatrixRoomMessage) => void) {
     this.messageListeners.add(fn)
     return () => this.messageListeners.delete(fn)
+  }
+
+  /** Day 7a：订阅房间列表变化 */
+  onRoomsChange(fn: (rooms: MatrixRoomSummary[]) => void) {
+    this.roomsListeners.add(fn)
+    return () => this.roomsListeners.delete(fn)
+  }
+
+  /** Day 7a：内部触发 rooms 变化 */
+  private notifyRoomsChanged(rooms: MatrixRoomSummary[]) {
+    for (const fn of this.roomsListeners) {
+      try { fn(rooms) } catch {}
+    }
   }
 
   private setStatus(s: MatrixConnectionStatus) {
@@ -90,11 +105,11 @@ class MatrixClientManager {
       if (enableE2EE) {
         // 前缀加 _v2 换独立 IndexedDB，避免之前 admin 账户的旧密钥与当前 device 冲突
         // SDK initRustCrypto 发现 store 里的 device 不等于当前 device → 抛错
-        console.log('[Matrix] initRustCrypto({ useIndexedDB: true })...')
+        console.log('[Matrix] initRustCrypto({ useIndexedDB: true, prefix: greenrhino_matrix_v3_ })...')
         try {
           await this.client.initRustCrypto({
             useIndexedDB: true,
-            cryptoDatabasePrefix: 'greenrhino_matrix_v2_',
+            cryptoDatabasePrefix: 'greenrhino_matrix_v3_',
           })
           this.encryptionEnabled = true
           console.log('[Matrix] ✅ Rust crypto ready, crypto API available')
@@ -112,6 +127,27 @@ class MatrixClientManager {
           this.setStatus('connected')
         } else if (state === 'ERROR') {
           this.setStatus('error')
+        }
+      })
+
+      // === Day 7a：自动接受房间邀请 ===
+      // SDK 官方推荐：监听 RoomEvent.MyMembership
+      // 当 membership 变为 invite → 自动 joinRoom
+      this.client.on(sdk.RoomEvent.MyMembership, (room, membership, prevMembership) => {
+        if (membership === sdk.KnownMembership.Invite) {
+          const roomInfo = `room=${room.roomId} name="${room.name}"`
+          console.log('[Matrix] 🎯 收到邀请 → 自动接受', roomInfo)
+          this.client!.joinRoom(room.roomId)
+            .then((res) => {
+              const joinedRoomId = (res as { roomId?: string }).roomId || room.roomId
+              console.log('[Matrix] ✅ 自动加入成功', joinedRoomId)
+              // 刷新 rooms 列表（让侧边栏看到新房间）
+              const newRooms = this.getJoinedRooms()
+              this.notifyRoomsChanged(newRooms)
+            })
+            .catch((err) => {
+              console.warn('[Matrix] ⚠️ 自动加入失败（可能已加过）：', err.message)
+            })
         }
       })
 
@@ -310,6 +346,172 @@ class MatrixClientManager {
     return messages
   }
 
+  // === Day 6：房间管理 API ===
+
+  /**
+   * 创建新房间
+   * @param name 房间显示名称
+   * @param opts.isEncrypted 是否开启 E2EE（默认 true，创建后自动发送 m.room.encryption state event）
+   * @param opts.preset 房间类型 preset：private_chat（默认，仅邀请可加入）/ public_chat / trusted_private_chat
+   */
+  async createRoom(
+    name: string,
+    opts: { isEncrypted?: boolean; preset?: string } = {},
+  ): Promise<string> {
+    if (!this.client) throw new Error('Matrix not initialized')
+    const isEncrypted = opts.isEncrypted !== false
+    const preset = opts.preset || 'private_chat'
+
+    console.log('[Matrix] createRoom:', { name, isEncrypted, preset })
+
+    const res = await this.client.createRoom({
+      name,
+      // SDK default preset = 'private_chat', default visibility = 'private' —— 跟我们要的一样
+      initial_state: isEncrypted && this.encryptionEnabled
+        ? [{
+            type: sdk.EventType.RoomEncryption,
+            state_key: '',
+            content: {
+              algorithm: 'm.megolm.v1.aes-sha2',
+              rotation_period_msgs: 100,
+            },
+          }]
+        : [],
+    } as sdk.ICreateRoomOpts)
+
+    const roomId = (res as { room_id: string }).room_id
+    console.log('[Matrix] ✅ room created:', roomId)
+    return roomId
+  }
+
+  /**
+   * 列出当前用户已 join 的所有房间（侧边栏数据）
+   * 按最后消息时间倒序
+   */
+  getJoinedRooms(): MatrixRoomSummary[] {
+    if (!this.client) return []
+    const rooms = this.client.getRooms()
+
+    const summaries: MatrixRoomSummary[] = rooms
+      .filter((r) => r.getMyMembership() === 'join')
+      .map((r) => {
+        const timeline = r.getLiveTimeline()
+        const lastEvent = timeline.getEvents().slice(-1)[0]
+        const encryption = r.hasEncryptionStateEvent()
+        return {
+          roomId: r.roomId,
+          name: r.name || r.roomId,
+          encryption,
+          memberCount: r.getJoinedMemberCount(),
+          lastMessageAt: lastEvent?.getTs() || 0,
+        }
+      })
+      .sort((a, b) => b.lastMessageAt - a.lastMessageAt)
+
+    return summaries
+  }
+
+  /** 获取指定房间的成员列表 */
+  getRoomMembers(roomId: string): MatrixMember[] {
+    if (!this.client) return []
+    const room = this.client.getRoom(roomId)
+    if (!room) return []
+
+    const members = room.getMembers()
+    return members.map((m) => ({
+      userId: m.userId,
+      name: m.name || m.userId,
+      membership: (m.membership as MatrixMember['membership']) || 'join',
+      powerLevel: m.powerLevel || 0,
+    }))
+  }
+
+  /** 邀请用户加入房间 */
+  async invite(roomId: string, userId: string): Promise<void> {
+    if (!this.client) throw new Error('Matrix not initialized')
+    console.log('[Matrix] invite:', { roomId, userId })
+    await this.client.invite(roomId, userId)
+    console.log('[Matrix] ✅ invited', userId, 'to', roomId)
+  }
+
+  /** 踢人（可选 reason） */
+  async kick(roomId: string, userId: string, reason?: string): Promise<void> {
+    if (!this.client) throw new Error('Matrix not initialized')
+    console.log('[Matrix] kick:', { roomId, userId, reason })
+    await this.client.kick(roomId, userId, reason)
+    console.log('[Matrix] ✅ kicked', userId, 'from', roomId)
+  }
+
+  // === Day 6b：权限检查 ===
+
+  /** 当前用户在指定房间的 powerLevel（0 默认成员，50 管理员，100 创建者） */
+  getMyPowerLevel(roomId: string): number {
+    if (!this.client) return 0
+    const room = this.client.getRoom(roomId)
+    if (!room) return 0
+    const myUserId = this.client.getUserId()
+    if (!myUserId) return 0
+    const member = room.getMember(myUserId)
+    return member?.powerLevel ?? 0
+  }
+
+  /** 检查当前用户是否有权在该房间邀请他人 */
+  canInvite(roomId: string): boolean {
+    if (!this.client) return false
+    const room = this.client.getRoom(roomId)
+    if (!room) return false
+    const state = room.currentState
+    const myLevel = this.getMyPowerLevel(roomId)
+    // SDK 有 hasSufficientPowerLevelFor：invite 默认 0（private room），kick 默认 50
+    if (typeof state.hasSufficientPowerLevelFor === 'function') {
+      return state.hasSufficientPowerLevelFor('invite', myLevel)
+    }
+    // fallback：private room 用 preset 判断（invite=0）
+    return myLevel >= 0
+  }
+
+  /** 检查当前用户是否有权踢人（踢人需要 powerLevel 50 以上，且目标 powerLevel < 我） */
+  canKick(roomId: string, targetUserId: string): boolean {
+    if (!this.client) return false
+    const room = this.client.getRoom(roomId)
+    if (!room) return false
+    const myLevel = this.getMyPowerLevel(roomId)
+    const targetMember = room.getMember(targetUserId)
+    const targetLevel = targetMember?.powerLevel ?? 0
+    // 不能踢自己，不能踢 powerLevel >= 自己的
+    if (targetUserId === this.client.getUserId()) return false
+    if (targetLevel >= myLevel) return false
+    // kick 默认需要 powerLevel 50
+    const state = room.currentState
+    if (typeof state.hasSufficientPowerLevelFor === 'function') {
+      return state.hasSufficientPowerLevelFor('kick', myLevel)
+    }
+    return myLevel >= 50
+  }
+
+  // === Day 7a：分享邀请链接 ===
+
+  /**
+   * 生成 Matrix Room 分享链接（matrix.to 格式，可在任意 Matrix 客户端打开）
+   * 优先用 canonical alias（#room:homeserver），fallback 用 roomId（!xxx:homeserver）
+   */
+  generateShareLink(roomId: string): string {
+    if (!this.client) return ''
+    const room = this.client.getRoom(roomId)
+    if (!room) return ''
+
+    // 优先 canonical alias（如果有设置的话）
+    const alias = room.getCanonicalAlias() || room.getAltAliases()?.[0]
+    if (alias) {
+      return `https://matrix.to/#/${encodeURIComponent(alias)}`
+    }
+
+    // fallback：从 roomId 里提取 homeserver（roomId 格式 !xxx:homeserver）
+    const homeserver = roomId.includes(':') ? roomId.split(':').slice(1).join(':') : ''
+    const via = homeserver ? `?via=${encodeURIComponent(homeserver)}` : ''
+    return `https://matrix.to/#/${encodeURIComponent(roomId)}${via}`
+  }
+
   /** 断开连接 */
   async stop() {
     if (!this.client) return
@@ -341,6 +543,24 @@ export interface MatrixRoomMessage {
   isEncrypted?: boolean
   /** Day 8-9：SDK 是否成功解密（m.bad.encrypted 时为 false） */
   isDecrypted?: boolean
+}
+
+/** Day 6：房间摘要（侧边栏用） */
+export interface MatrixRoomSummary {
+  roomId: string
+  name: string
+  encryption: boolean
+  memberCount: number
+  /** 最后一条消息时间戳（ms） */
+  lastMessageAt: number
+}
+
+/** Day 6：房间成员 */
+export interface MatrixMember {
+  userId: string
+  name: string
+  membership: 'join' | 'invite' | 'leave' | 'ban' | 'knock'
+  powerLevel: number
 }
 
 /** 全局单例 */
