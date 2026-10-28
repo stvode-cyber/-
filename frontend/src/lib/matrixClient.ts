@@ -11,9 +11,12 @@
 import * as sdk from 'matrix-js-sdk'
 
 /** Continuwuity homeserver 的 Matrix 端点 baseUrl */
-// 之前用相对路径 '/_matrix' — SDK 内部拼绝对 URL（TURN/key backup/server versions）时炸 TypeError
-// 改成完整绝对 URL，开发环境走 Vite proxy，生产环境走自家 Express proxy
-const BASE_URL = `${window.location.origin}/_matrix`
+// SDK 内部会自己拼 /_matrix/client/... 路径 → BASE_URL 必须只到 origin
+// ① 相对 '/_matrix' → SDK 拼绝对 URL 时炸 TypeError (baseUrl 不是 http)
+// ② 'http://localhost:5173/_matrix' → SDK 再拼 '/_matrix/client/...' → 路径重复 → 404
+// ✅ 正确: window.location.origin → SDK 拼 '_matrix/client/...' → 'http://localhost:5173/_matrix/client/...'
+// Vite proxy path: /_matrix 匹配转发到 Continuwuity
+const BASE_URL = window.location.origin
 
 /** Day 5-6 MVP 硬编码 admin room（Day 2 fresh create 后验证有效） */
 export const DEFAULT_ROOM_ID = '!3b7C96Koy6pTBSfIlgxi5-R77vvIdsnrq1lfI6495t8'
@@ -85,11 +88,13 @@ class MatrixClientManager {
 
       // ⭐ Day 8-9：E2EE Rust crypto 初始化（SDK v44 推荐路径）
       if (enableE2EE) {
+        // 前缀加 _v2 换独立 IndexedDB，避免之前 admin 账户的旧密钥与当前 device 冲突
+        // SDK initRustCrypto 发现 store 里的 device 不等于当前 device → 抛错
         console.log('[Matrix] initRustCrypto({ useIndexedDB: true })...')
         try {
           await this.client.initRustCrypto({
             useIndexedDB: true,
-            cryptoDatabasePrefix: 'greenrhino_matrix_',
+            cryptoDatabasePrefix: 'greenrhino_matrix_v2_',
           })
           this.encryptionEnabled = true
           console.log('[Matrix] ✅ Rust crypto ready, crypto API available')
