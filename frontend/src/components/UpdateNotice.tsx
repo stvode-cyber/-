@@ -5,7 +5,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem'
 import { IntentInstaller } from '../lib/intent-installer'
 
 /** 当前 APK 版本号（与 android/app/build.gradle versionName 严格对齐） */
-const CURRENT_APK_VERSION = '1.0.2'
+const CURRENT_APK_VERSION = '1.0.4'
 
 /** 移动端启动时自动检查更新 → App 内下载 → 写内部存储 → 调系统安装器
  *
