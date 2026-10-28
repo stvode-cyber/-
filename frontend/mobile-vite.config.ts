@@ -38,7 +38,8 @@ export default defineConfig({
           if (id.includes('pdfjs-dist')) return 'pdfjs-vendor'
           if (id.includes('epubjs')) return 'epubjs-vendor'
           if (id.includes('mammoth')) return 'mammoth-vendor'
-          if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+          // react/scheduler 不单独抽，避免和 vendor chunk 形成循环依赖导致白屏
+          // if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
           if (id.includes('node_modules')) return 'vendor'
         },
       },

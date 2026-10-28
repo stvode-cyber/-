@@ -46,7 +46,7 @@ export function getAPIBaseURL(): string {
   if (__BUILD_MODE__ === 'mobile') {
     // 默认走 Nginx 443 反代的直连 IP（lujax.fun 域名 SNI 被封锁不可用）
     // TODO-PROD: 正式发版前改回 https:// — 内测阶段 HTTP 绕过自签名证书（Android WebView 不信任）
-    return import.meta.env.VITE_API_BASE_URL || 'http://47.116.59.141/api/v1'
+    return import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3001/api/v1'
   }
 
   if (isElectron) {

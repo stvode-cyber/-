@@ -17,6 +17,7 @@ import { PWAUpdatePrompt } from './components/PWAUpdatePrompt'
 import OfflineBanner from './components/OfflineBanner'
 import { Toaster } from './components/Toast'
 import { ConfirmDialog } from './components/ConfirmDialog'
+import UpdateNotice from './components/UpdateNotice'
 
 /** 团队门槛守卫：有部门直接放行，没部门跳 /team/create */
 function RequireTeam() {
@@ -137,6 +138,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
       <ConfirmDialog />
       <PWAUpdatePrompt />
       <OfflineBanner />
+      <UpdateNotice />
     </>
   )
 }
