@@ -114,7 +114,7 @@ export async function ensureReleaseTables() {
     // ===== seed v1.0.4（Android，比当前 1.0.3 大 → hasUpdate=true）=====
     // apkUrl 默认指向远程 Nginx，开发时可通过 LOCAL_APK_URL 环境变量覆盖为本地 Express
     // （真机 adb reverse 场景：设备 127.0.0.1:3001 → 电脑 Express）
-    const apkUrl = process.env.LOCAL_APK_URL || 'http://47.116.59.141/apk/aie-mobile-1.0.3.apk'
+    const apkUrl = process.env.LOCAL_APK_URL || 'http://47.116.59.141/apk/aie-mobile-1.0.4.apk'
     await prisma.$executeRawUnsafe(`
       INSERT INTO android_releases (id, version, isLatest, sizeMB, apkUrl, apkMd5, notes, forceUpdate)
       VALUES (

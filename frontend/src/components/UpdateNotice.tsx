@@ -55,34 +55,6 @@ export default function UpdateNotice() {
 
         setInfo(data)
         setVisible(true)
-        // 开发调试模式：弹窗显示后直接用 fetch 回来的 data 触发下载
-        // 绕开 React state 闭包陷阱（handleUpdate 闭包里 info 还是 null）
-        // 正式发版前删除这段 auto-update 逻辑
-        if (__BUILD_MODE__ === 'mobile') {
-          console.log('[UpdateNotice] auto-update scheduled in 1s, apkUrl=', data.apkUrl)
-          setTimeout(async () => {
-            console.log('[UpdateNotice] auto-update STARTED, downloading...')
-            try {
-              const fileName = `update-${data.version}.apk`
-              const dlResult = await Filesystem.downloadFile({
-                url: data.apkUrl,
-                path: fileName,
-                directory: Directory.Data,
-              })
-              console.log('[UpdateNotice] download OK:', dlResult.path)
-              const rawPath = dlResult.path
-              if (!rawPath) throw new Error('下载结果路径为空')
-              const installPath = rawPath.startsWith('file://') ? rawPath.replace('file://', '') : rawPath
-              console.log('[UpdateNotice] installing:', installPath)
-              await IntentInstaller.install({ path: installPath })
-              console.log('[UpdateNotice] install DONE')
-              localStorage.setItem('aie_update_dismissed', data.version)
-              setVisible(false)
-            } catch (e) {
-              console.error('[UpdateNotice] auto-update FAILED:', e)
-            }
-          }, 1000)
-        }
       } catch (e) {
         console.error('[UpdateNotice] check failed:', e)
       }
