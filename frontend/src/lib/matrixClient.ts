@@ -11,9 +11,9 @@
 import * as sdk from 'matrix-js-sdk'
 
 /** Continuwuity homeserver 的 Matrix 端点 baseUrl */
-// 开发环境走 Vite proxy /_matrix → http://47.116.59.141:8008
-// Electron 生产环境也可以走自家 Express proxy，或直接公网
-const BASE_URL = '/_matrix'
+// 之前用相对路径 '/_matrix' — SDK 内部拼绝对 URL（TURN/key backup/server versions）时炸 TypeError
+// 改成完整绝对 URL，开发环境走 Vite proxy，生产环境走自家 Express proxy
+const BASE_URL = `${window.location.origin}/_matrix`
 
 /** Day 5-6 MVP 硬编码 admin room（Day 2 fresh create 后验证有效） */
 export const DEFAULT_ROOM_ID = '!3b7C96Koy6pTBSfIlgxi5-R77vvIdsnrq1lfI6495t8'
