@@ -163,13 +163,19 @@ async function handleMatrixAuth(req: any, res: any, next: any) {
       logger.warn({ whoCode, whoBody }, '[Matrix] whoami verification failed')
     }
 
+    // Day 8-9：Express 统一响应格式 { code, data }（api.ts interceptor 识别 code 字段解包）
+    // 之前只有 { ok } 没有 code → 前端 unwrap 再取 .data = undefined
     res.json({
-      ok: true,
-      access_token: tokenResult.accessToken,
-      user_id: tokenResult.userId || matrixUserId,
-      homeserver: CONTINUUITY_PUBLIC_URL,
-      device_id: tokenResult.deviceId,
-      matrix_id: matrixUserId,
+      code: 200,
+      data: {
+        ok: true,
+        // Express API 全项目统一 camelCase（前端 TypeScript 接口约定）
+        accessToken: tokenResult.accessToken,
+        userId: tokenResult.userId || matrixUserId,
+        homeserver: CONTINUUITY_PUBLIC_URL,
+        deviceId: tokenResult.deviceId,
+        matrixId: matrixUserId,
+      },
     })
   } catch (e) {
     next(e)

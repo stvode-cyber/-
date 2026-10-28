@@ -190,6 +190,11 @@ Rust 写的 Matrix 协议服务端，Conduit → Conduwuit → Continuwuity 社�
 
 ### Day 8 — D5 AI 助理 Matrix bot
 
+> ⚠️ **方向卡 DIR-003 v1.0（2026-10-28）**：原 Day 8-9 规划被 E2EE MVP 抢占。
+> 实际执行：Day 8-9 先上 E2EE 端到端加密（Rust crypto + 房间级加密开关），Day 8 bot 往后推。
+> 完整方向卡 + SDK 真坑记录 → 见 `05_功能特性/DIR-003-Day89-E2EE方向卡.md`。
+> 项目进程 → `项目进程.md` v0.9。
+
 绿角犀 AI 助理当一个普通 Matrix 用户，用户跟它聊就是跟 bot 聊。
 
 | 步骤 | 说明 | 产出 |

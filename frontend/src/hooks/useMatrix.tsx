@@ -104,10 +104,12 @@ export function MatrixProvider({ children }: { children: React.ReactNode }) {
       console.log('[useMatrix] got Matrix token for', auth.userId)
 
       // 2. init matrixManager
+      // Day 8-9 E2EE 已开启（vite.config.ts configureServer 强制 .wasm 返回 application/wasm MIME type）
       await matrixManager.init({
         userId: auth.userId,
         accessToken: auth.accessToken,
         deviceId: auth.deviceId,
+        enableE2EE: true,
       })
 
       setState((s) => ({

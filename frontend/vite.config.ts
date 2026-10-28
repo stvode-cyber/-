@@ -67,6 +67,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Vite dep 预构建配置：排除 crypto-wasm 包，让浏览器直接请求 node_modules 原始 .wasm 文件
+  // （dep 预构建跳过了 .wasm 文件，导致 SDK initRustCrypto 请求 SPA fallback → text/html 错 MIME type）
+  optimizeDeps: {
+    exclude: ['@matrix-org/matrix-sdk-crypto-wasm'],
+  },
   server: {
     port: 5173,
     proxy: {
@@ -75,12 +80,23 @@ export default defineConfig({
         changeOrigin: true,
       },
       // Matrix SDK 直连 Continuwuity（Vite Node proxy，绕过浏览器 CORS）
-      // Continuwuity 跑在 Docker 容器 8008 端口
+      // 服务器 nginx HTTP 80 反代 /_matrix → 127.0.0.1:8008（2026-10-28 修复，绕过 HTTPS reset）
       '/_matrix': {
-        target: 'http://47.116.59.141:8008',
+        target: 'http://47.116.59.141:80',
         changeOrigin: true,
         ws: true,  // /sync WebSocket 长轮询需要
       },
+    },
+    // 强制 .wasm 文件返回 application/wasm MIME type
+    // 修复 @matrix-org/matrix-sdk-crypto-wasm initRustCrypto 报错
+    // "Expected content type 'application/wasm'"
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url && /\.wasm(\?|$)/.test(req.url)) {
+          res.setHeader('Content-Type', 'application/wasm')
+        }
+        next()
+      })
     },
   },
   build: {
