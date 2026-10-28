@@ -111,21 +111,24 @@ export async function ensureReleaseTables() {
     `)
     logger.info('[ensureReleaseTables] ✅ windows seeded v1.2.0')
 
-    // ===== seed v1.0.3（Android，比当前 1.0.2 大 → hasUpdate=true）=====
+    // ===== seed v1.0.4（Android，比当前 1.0.3 大 → hasUpdate=true）=====
+    // apkUrl 默认指向远程 Nginx，开发时可通过 LOCAL_APK_URL 环境变量覆盖为本地 Express
+    // （真机 adb reverse 场景：设备 127.0.0.1:3001 → 电脑 Express）
+    const apkUrl = process.env.LOCAL_APK_URL || 'http://47.116.59.141/apk/aie-mobile-1.0.3.apk'
     await prisma.$executeRawUnsafe(`
       INSERT INTO android_releases (id, version, isLatest, sizeMB, apkUrl, apkMd5, notes, forceUpdate)
       VALUES (
-        'apk_v1_0_3',
-        '1.0.3',
+        'apk_v1_0_4',
+        '1.0.4',
         1,
-        45.2,
-        'http://47.116.59.141/apk/aie-mobile-1.0.3.apk',
+        16.5,
+        '${apkUrl.replace(/'/g, "''")}',
         '',
-        'v1.0.3：修复自动更新弹窗 + 后台稳定性优化\\n- 修复 UpdateNotice 首次启动闪退\\n- IntentInstaller FileProvider authority 对齐 packageName\\n- 新增 Matrix 房间管理 Day 6-8',
+        'v1.0.4：Android 自动更新全链路验证\n- Express /apk 静态文件服务\n- UpdateNotice auto-update 自动下载\n- Filesystem.downloadFile + IntentInstaller 系统安装器',
         0
       )
     `)
-    logger.info('[ensureReleaseTables] ✅ android seeded v1.0.3')
+    logger.info({ apkUrl }, '[ensureReleaseTables] ✅ android seeded v1.0.4')
   } catch (e) {
     logger.warn({ err: e }, '[ensureReleaseTables] seed 失败: %s', (e as Error).message)
   }

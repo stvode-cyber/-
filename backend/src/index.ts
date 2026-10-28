@@ -213,6 +213,10 @@ const adminWebDir = process.env.ADMIN_WEB_DIR || path.join(__dirname, '..', 'pub
 app.use('/admin', express.static(adminWebDir, { index: 'admin.html' }))
 app.get('/admin/*', (_req, res) => res.sendFile(path.join(adminWebDir, 'admin.html')))
 
+// APK 静态文件目录（手机端自动更新下载用）
+const apkDir = path.join(__dirname, '..', 'data')
+app.use('/apk', express.static(apkDir))
+
 app.use(notFound)
 app.use(errorHandler)
 
