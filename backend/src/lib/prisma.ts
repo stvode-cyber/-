@@ -49,12 +49,23 @@ export const prismaReady: Promise<void> =
 /**
  * 启动时确保 windows_releases / android_releases 表存在 + 有初始数据
  * Electron 内嵌 backend 首次启动时 SQLite 是空文件，Prisma schema 不会自动建表
- * 所以用 $executeRawUnsafe 手动 CREATE TABLE IF NOT EXISTS + seed 最新版本
+ * 所以用 $executeRawUnsafe 手动 DROP + CREATE TABLE + seed 最新版本
+ *
+ * 关键约束（Prisma 5.22.0 + SQLite）：
+ *   - Prisma 原生 DateTime API（model.create/upsert）会把时间序列化成毫秒时间戳 "1793173770374"
+ *     写进 TEXT 类型列后，Prisma 读的时候期望 ISO 8601 字符串 → P2023 炸
+ *   - SQLite datetime('now') 产出 '2026-10-28 07:44:35'（空格分隔），|| 'Z' 还是空格分隔
+ *     Prisma 拒绝空格格式 → P2023 炸
+ *   - 唯一安全方案：DEFAULT 用 strftime('%Y-%m-%dT%H:%M:%SZ', 'now') 直接产出 '2026-10-28T07:44:35Z'
+ *     + INSERT 不传 publishedAt 让 DEFAULT 生效 + 所有写操作走 $executeRawUnsafe 绕过 Prisma DateTime 序列化
  */
 export async function ensureReleaseTables() {
   try {
+    // ===== windows_releases =====
+    // 每次 DROP 重建：清掉旧数据里可能的空格 ISO 或毫秒戳
+    await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS windows_releases')
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS windows_releases (
+      CREATE TABLE windows_releases (
         id TEXT PRIMARY KEY,
         version TEXT UNIQUE NOT NULL,
         isLatest INTEGER NOT NULL DEFAULT 0,
@@ -64,66 +75,58 @@ export async function ensureReleaseTables() {
         setupSha256 TEXT NOT NULL,
         notes TEXT NOT NULL DEFAULT '',
         forceUpdate INTEGER NOT NULL DEFAULT 0,
-        publishedAt TEXT NOT NULL DEFAULT (datetime('now'))
+        publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
       )
     `)
+    // ===== android_releases =====
+    await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS android_releases')
     await prisma.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS android_releases (
+      CREATE TABLE android_releases (
         id TEXT PRIMARY KEY,
         version TEXT UNIQUE NOT NULL,
         isLatest INTEGER NOT NULL DEFAULT 0,
         sizeMB REAL NOT NULL,
         apkUrl TEXT NOT NULL,
-        apkSha256 TEXT NOT NULL,
+        apkMd5 TEXT NOT NULL,
         notes TEXT NOT NULL DEFAULT '',
         forceUpdate INTEGER NOT NULL DEFAULT 0,
-        publishedAt TEXT NOT NULL DEFAULT (datetime('now'))
+        publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
       )
     `)
-    // seed 最新版本（空表时插入 + 有旧版本时 upsert 最新）
-    const cnt = await prisma.$queryRawUnsafe('SELECT count(*) as cnt FROM windows_releases') as { cnt: bigint }[]
-    const hasV12 = await prisma.$queryRawUnsafe("SELECT count(*) as cnt FROM windows_releases WHERE version='1.2.0'") as { cnt: bigint }[]
-    if (cnt[0].cnt === 0n) {
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
-        VALUES (
-          'rel_v1_2_0',
-          '1.2.0',
-          1,
-          160.5,
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
-          '',
-          'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
-          0
-        )
-      `)
-      logger.info('[ensureReleaseTables] ✅ seeded v1.2.0')
-    } else if (hasV12[0].cnt === 0n) {
-      // 有旧版本但没 v1.2.0 → upsert
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
-        VALUES (
-          'rel_v1_2_0',
-          '1.2.0',
-          1,
-          160.5,
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
-          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
-          '',
-          'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
-          0
-        )
-        ON CONFLICT(id) DO UPDATE SET isLatest=1, notes=excluded.notes
-      `)
-      await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
-      logger.info('[ensureReleaseTables] ✅ upserted v1.2.0')
-    } else {
-      // 已有 v1.2.0 → 确保 isLatest=1
-      await prisma.$executeRawUnsafe("UPDATE windows_releases SET isLatest=1 WHERE version='1.2.0'; UPDATE windows_releases SET isLatest=0 WHERE version != '1.2.0'")
-    }
+
+    // ===== seed v1.2.0（Windows）=====
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
+      VALUES (
+        'rel_v1_2_0',
+        '1.2.0',
+        1,
+        160.5,
+        'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
+        'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
+        '',
+        'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
+        0
+      )
+    `)
+    logger.info('[ensureReleaseTables] ✅ windows seeded v1.2.0')
+
+    // ===== seed v1.0.3（Android，比当前 1.0.2 大 → hasUpdate=true）=====
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO android_releases (id, version, isLatest, sizeMB, apkUrl, apkMd5, notes, forceUpdate)
+      VALUES (
+        'apk_v1_0_3',
+        '1.0.3',
+        1,
+        45.2,
+        'http://47.116.59.141/apk/aie-mobile-1.0.3.apk',
+        '',
+        'v1.0.3：修复自动更新弹窗 + 后台稳定性优化\\n- 修复 UpdateNotice 首次启动闪退\\n- IntentInstaller FileProvider authority 对齐 packageName\\n- 新增 Matrix 房间管理 Day 6-8',
+        0
+      )
+    `)
+    logger.info('[ensureReleaseTables] ✅ android seeded v1.0.3')
   } catch (e) {
-    // 表可能已存在（Prisma schema 同步过），忽略
-    logger.warn({ err: e }, '[ensureReleaseTables] 跳过（表可能已存在）: %s', (e as Error).message)
+    logger.warn({ err: e }, '[ensureReleaseTables] seed 失败: %s', (e as Error).message)
   }
 }
