@@ -6,27 +6,36 @@
 
 ---
 
-## ⚡ AI 接手 30 秒快照（2026-11-03 OIDC PKCE 全链路验证 · v1.2.0）
+## ⚡ AI 接手 30 秒快照（2026-11-03 OIDC PKCE + Express ECS 部署 · v1.2.0）
 
 | 维度 | 当前值 |
 |---|---|
-| **Git HEAD** | 72a16fb `feat(livekit): Day 9 LiveKit 预调研 12 文件`（本地工作区干净）|
-| **远程仓库** | `https://github.com/stvode-cyber/-.git`（HTTPS，已改 SSH→HTTPS）|
+| **Git HEAD** | bb8d9a3 `docs(ledger): DC-20261103-01`（本地工作区干净，4 commit 已推 GitHub）|
+| **远程仓库** | `https://github.com/stvode-cyber/-.git`（HTTPS，credential-manager）|
 | **版本号** | **v1.2.0**（三落点对齐 ✅）|
-| **运行端口** | 3001（后端）· 5173（桌面 dev）· 5174（手机 dev）· 5175（admin dev）|
-| **服务器** | 🔴 **Continuwuity 云端全挂**（lujax.fun + 3000 + 3101 全 timeout）需重启！· 47.116.59.141 pm2 状态未知 |
+| **本地端口** | 3001（Express dev）· 5173/5174/5175（桌面/手机/admin dev）|
+| **ECS 47.116.59.141** | ✅ **OIDC 已通！** pm2 `aie-oidc-backend` online port 3101 · Continuwuity docker Up · nginx `/api/oidc/` → 127.0.0.1:3101 ✅ |
+| **公网验证** | ✅ `https://lujax.fun/api/oidc/.well-known/openid-configuration` → 200 + 完整 JSON |
+| **Express 部署目录** | `/root/aie-oidc-backend/`（dist/ + keys/ + prisma/）|
 | **已安装桌面** | `C:\Program Files\aie-desktop\绿角犀.exe`（v1.2.0）|
-| **后端健康** | Express 本地启动正常 → /health 200 ✅（刚验过，OIDC PKCE 全链路通过）|
-| **本地 SQLite admin 密码** | `cSQuH83lZSy58IQq`（已和 .env 对齐）|
-| **OIDC client_secret** | `334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA`（硬编码 oidc.routes.ts）|
+| **本地 SQLite admin** | `cSQuH83lZSy58IQq`（已和 .env + ECS dev.db 对齐）|
+| **OIDC client_secret** | `334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA` |
+| **Workbench 入口** | 阿里云控制台 → ECS i-uf639nktwpt4rchwy1vg → 远程连接 → 通过Workbench远程连接 → 立即登录（root，免密已打通）|
 
-### 最近大改动（今天 v1.2.0 迭代）
+### 今晚关键改动（OIDC Day 2 主线落地）
 
-1. **OIDC PKCE + 登录表单全链路** — Day 2 Continuwuity 强制 code_challenge(S256) → auth 端点从"强制 authRequired 中间件"升级为"可选认证：有 JWT 直发 code，无 cookie 返回登录表单 HTML" → token 端点新增 PKCE verifyPkce + userinfo 端点查 Prisma User 返回完整 OIDC Claims（sub/preferred_username/nickname/avatar/email/phone）— 本地完整链路通过 ✅
-2. **17 个未提交文件一次性入库** — oidc.routes.ts (59 行改) + 台账补写 6 篇 daily + 14 个 LiveKit 预调研脚本 + 2 个 Continuwuity config.toml base/final — 3 个 commit 全推 GitHub
-3. **remote 统一改 HTTPS** — 原 fetch/push 全 SSH 但这台机器没配 GitHub 公钥 → push 失败 → 改 HTTPS credential-manager 兜底成功 → 下次 fetch/push 再不会卡 SSH
-4. **密码 hash 对齐** — .env ADMIN_PASSWORD 改过后 SQLite dev.db 里的 admin 还是早期 seed 的 admin123 → 今天验 OIDC 时 bcrypt.compare 失败才发现 → 用 .env 密码重新 hash 更新 → 现在对齐了
-5. **Continuwuity 云端全挂** — lujax.fun 主站 + 3000 端口 + 3101 pm2 app-backend 全 timeout → 严重阻塞，需上服务器重启 pm2
+1. **Express 首次 ECS 部署成功** — 源码 git clone GitHub 443 timeout → frpc tunnel 穿透（本地 HTTP server 127.0.0.1:18080 + frpc remotePort=18081 + ECS curl 127.0.0.1:18081）→ tar.gz 成功（536KB）→ npm ci --omit=dev + prisma generate + db push + pm2 start `node dist/index.js` → online port 3101 ✅
+2. **OIDC RSA keys 上传** — 本地 keys/oidc-private.pem + oidc-public.pem → frpc tunnel 直传（2KB）→ Express restart → Discovery 从 503 "keys not loaded" 变 200 完整 JSON ✅
+3. **Continuwuity 从 Exited(1) → Up** — docker logs 全是 OIDC 502（Express 没部署根因验证）→ docker start continuwuity → Up 8s ✅ · 再无 502 报错
+4. **ECS 环境真查（首次真跑 pm2/netstat/docker）** — pm2 只有 pm2-logrotate（erp-backend 也丢了！）· port 3000/3101 空 · port 8080 被 Python3 SimpleHTTP（/opt/greenrhino_download）· Node v20.20.2 · SQLite 已有 · GitHub 443 timeout
+5. **frpc tunnel 方案定型** — frpc.toml 加 ecs-download proxy（remotePort=18081）· 本地 HTTP server 127.0.0.1:18080 serve $env:TEMP · ECS curl 127.0.0.1:18081 走 frps 7000 穿透 · 可复用方案：未来任何 ECS 缺 git/docker 的场景都能这么传
+
+### 已知坑（遗留但不阻塞）
+
+- **erp-backend (NestJS) 也丢了** — pm2 save 过期 + port 3000 空 · 今晚只救 OIDC，ERP 后续再恢复
+- **port 8080 Python3 server** — 疑似之前临时启动忘了停（serve /opt/greenrhino_download）· 不影响 OIDC · 后续可清理
+- **pm2 save 必须加 cron 自动存** — 重启机器会丢（erp-backend 丢了就是教训）· 后续加 systemd 或 crontab
+- **PowerShell base64 有 UTF-8 BOM 坑** — Out-File -Encoding utf8 会加 BOM · ECS `base64 -d` 不认 → pem 原文件直传更稳
 
 ---
 
@@ -153,14 +162,14 @@ APP-AIE/
 
 ---
 
-## ⚠️ 活跃坑 Top 6（2026-11-03 真跑 OIDC 发现）
+## ⚠️ 活跃坑 Top 6（2026-11-03 全解 OIDC 后刷新）
 
-1. **🔴🔴 Continuwuity 云端全挂** — lujax.fun 主站 + :3000 + :3101 pm2 app-backend 全 timeout → 需 SSH 47.116.59.141 重启 pm2 app-backend + Continuwuity docker
-2. **🔴 .env ADMIN_PASSWORD ≠ SQLite dev.db 密码** — 今天 bcrypt.compare 才发现：.env 写 cSQuH83lZSy58IQq，SQLite 还是早期 seed 的 admin123 → 已修
-3. **token 端点强制要求 client_secret** — Continuwuity OIDC client 必须配 client_secret=334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA，只带 PKCE 不够
-4. **Capacitor jvmToolchain(21) 必须覆盖** — afterEvaluate 到 17
-5. **Setup.exe /S 被 Defender 拦** — 改用 win-unpacked 直拷
-6. **pm2 进程名漂移（本周第 3 次复发）** — 11 文件 32 处已修，根因 ecosystem.config.cjs 源头错写
+1. **🟢 Continuwuity OIDC 502 根因已解** — 根因：Express backend 从来没部署到 ECS 3101（昨晚 handover 里写了但没真查）→ Express 部署 + keys 上传 + Continuwuity docker start → 公网 Discovery 200 ✅
+2. **🔴 erp-backend (NestJS pm2) 丢了** — pm2 save 过期 + ECS 重启后进程没自动恢复 → port 3000 空了 → 后续需要重新 `git clone + npm ci + pm2 start + pm2 save`
+3. **🟡 port 8080 Python3 SimpleHTTP 残留** — pid 675，serve /opt/greenrhino_download → 不影响 OIDC（frpc 用 18081 避开了）→ 后续可 `kill 675`
+4. **🟡 GitHub 443 到 ECS timeout** — 阿里云 ECS 出网限制？→ frpc tunnel 是当前唯一远程传文件方案 → 后续考虑在 ECS 装 GitHub mirror 或用 frpc 长期代理
+5. **🟡 pm2 save 必须加 cron** — pm2 save 过期会丢进程（erp-backend 丢了就是教训）→ 后续 ECS 加 `crontab -e` 每天 `pm2 save`
+6. **🟢 .env 密码 hash 对齐（已解）** — 今晚 Express 部署时 .env 和 SQLite 密码都是 `cSQuH83lZSy58IQq` ✅
 
 ---
 
@@ -174,10 +183,16 @@ Invoke-RestMethod -Uri "http://localhost:3001/health"
 $body = @{username='admin';password='cSQuH83lZSy58IQq'} | ConvertTo-Json
 $res = Invoke-RestMethod -Uri "http://localhost:3001/api/v1/auth/login" -Method POST -ContentType "application/json" -Body $body
 $res.data.user.role    # 应该是 "admin"
-# OIDC Discovery（Continuwuity 云端挂了，本地端点只给 Express 启动才能测）
-Invoke-RestMethod -Uri "http://localhost:3001/api/oidc/.well-known/openid-configuration"
-# OIDC Auth（不带 cookie → 返回登录表单）
-Invoke-RestMethod -Uri "http://localhost:3001/api/oidc/auth?response_type=code&client_id=continuwuity&redirect_uri=https://lujax.fun/callback&code_challenge=abc&code_challenge_method=S256"
-# Continuwuity 云端（全挂！需上 47.116.59.141 重启 pm2 + docker）
-# ssh root@47.116.59.141 "pm2 list && docker ps && curl -s http://127.0.0.1:3101/health"
+# OIDC Discovery（公网已通！Express 3101 ECS 部署完成）
+Invoke-RestMethod -Uri "https://lujax.fun/api/oidc/.well-known/openid-configuration"
+# OIDC Auth（不带 cookie → Express 返回登录表单 HTML）
+Invoke-RestMethod -Uri "https://lujax.fun/api/oidc/auth?response_type=code&client_id=continuwuity&redirect_uri=https://lujax.fun/callback&code_challenge=abc&code_challenge_method=S256"
+# ECS 内部直验（从 Workbench 终端跑）
+# curl -s http://127.0.0.1:3101/health
+# curl -s http://127.0.0.1:3101/api/oidc/.well-known/openid-configuration
+# docker ps | grep continuwuity
+# pm2 list | grep aie-oidc
+# frpc tunnel 临时上传（ECS 缺 git 时用）
+# 本地 PowerShell: HTTP server 127.0.0.1:18080 serve TEMP + frpc remotePort=18081
+# ECS: curl -o /tmp/pkg.tar.gz http://127.0.0.1:18081/pkg.tar.gz
 ```
