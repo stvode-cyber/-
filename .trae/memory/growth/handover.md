@@ -6,25 +6,27 @@
 
 ---
 
-## ⚡ AI 接手 30 秒快照（2026-11-02 台账周报复核 · v1.2.0）
+## ⚡ AI 接手 30 秒快照（2026-11-03 OIDC PKCE 全链路验证 · v1.2.0）
 
 | 维度 | 当前值 |
 |---|---|
-| **Git HEAD** | ChatPage 拆分 2795→918 行 + console.log 清理 |
-| **远程仓库** | `git@github.com:stvode-cyber/-.git`（仓库名是 `-`）|
+| **Git HEAD** | 72a16fb `feat(livekit): Day 9 LiveKit 预调研 12 文件`（本地工作区干净）|
+| **远程仓库** | `https://github.com/stvode-cyber/-.git`（HTTPS，已改 SSH→HTTPS）|
 | **版本号** | **v1.2.0**（三落点对齐 ✅）|
 | **运行端口** | 3001（后端）· 5173（桌面 dev）· 5174（手机 dev）· 5175（admin dev）|
-| **服务器** | 47.116.59.141 · pm2 `erp-backend` 端口 3000 · ERP 后端 NestJS |
+| **服务器** | 🔴 **Continuwuity 云端全挂**（lujax.fun + 3000 + 3101 全 timeout）需重启！· 47.116.59.141 pm2 状态未知 |
 | **已安装桌面** | `C:\Program Files\aie-desktop\绿角犀.exe`（v1.2.0）|
-| **后端健康** | 本地 http://localhost:3001/health ✅ |
+| **后端健康** | Express 本地启动正常 → /health 200 ✅（刚验过，OIDC PKCE 全链路通过）|
+| **本地 SQLite admin 密码** | `cSQuH83lZSy58IQq`（已和 .env 对齐）|
+| **OIDC client_secret** | `334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA`（硬编码 oidc.routes.ts）|
 
-### 最近大改动（7 天内）
+### 最近大改动（今天 v1.2.0 迭代）
 
-1. **墨玉绿主题头部重构** — HomePage.tsx + 3 新组件（GreetingHeader/WeekCalendar/MissionCard）+ tailwind brand 色
-2. **Android 自动更新全链路** — IntentInstallerPlugin.java + Filesystem.downloadFile + progress:true
-3. **CORS 根治** — 后端 cors() 动态回显，解决 WebView 严格拒绝
-4. **Capacitor JDK 17 覆盖** — afterEvaluate 覆盖所有 capacitor 插件硬写的 jvmToolchain(21)
-5. **Setup.exe 弃用** — 开发者改用 win-unpacked 直拷覆盖安装
+1. **OIDC PKCE + 登录表单全链路** — Day 2 Continuwuity 强制 code_challenge(S256) → auth 端点从"强制 authRequired 中间件"升级为"可选认证：有 JWT 直发 code，无 cookie 返回登录表单 HTML" → token 端点新增 PKCE verifyPkce + userinfo 端点查 Prisma User 返回完整 OIDC Claims（sub/preferred_username/nickname/avatar/email/phone）— 本地完整链路通过 ✅
+2. **17 个未提交文件一次性入库** — oidc.routes.ts (59 行改) + 台账补写 6 篇 daily + 14 个 LiveKit 预调研脚本 + 2 个 Continuwuity config.toml base/final — 3 个 commit 全推 GitHub
+3. **remote 统一改 HTTPS** — 原 fetch/push 全 SSH 但这台机器没配 GitHub 公钥 → push 失败 → 改 HTTPS credential-manager 兜底成功 → 下次 fetch/push 再不会卡 SSH
+4. **密码 hash 对齐** — .env ADMIN_PASSWORD 改过后 SQLite dev.db 里的 admin 还是早期 seed 的 admin123 → 今天验 OIDC 时 bcrypt.compare 失败才发现 → 用 .env 密码重新 hash 更新 → 现在对齐了
+5. **Continuwuity 云端全挂** — lujax.fun 主站 + 3000 端口 + 3101 pm2 app-backend 全 timeout → 严重阻塞，需上服务器重启 pm2
 
 ---
 
@@ -151,25 +153,31 @@ APP-AIE/
 
 ---
 
-## ⚠️ 活跃坑 Top 5（2026-11-02 周报更新）
+## ⚠️ 活跃坑 Top 6（2026-11-03 真跑 OIDC 发现）
 
-1. **Capacitor jvmToolchain(21) 必须覆盖** — afterEvaluate 到 17
-2. **Setup.exe /S 被 Defender 拦** — 改用 win-unpacked 直拷
-3. **WebView CORS 严格拒绝 `*` + credentials:true** — 后端动态回显
-4. **SQLite 表名漂移** — 写 SQL 前先 `.tables`
-5. **🔴 pm2 进程名漂移（本周第 3 次复发！）** — 11 文件 32 处 `aie-backend` 已修，根因是 ecosystem.config.cjs 源头错写
+1. **🔴🔴 Continuwuity 云端全挂** — lujax.fun 主站 + :3000 + :3101 pm2 app-backend 全 timeout → 需 SSH 47.116.59.141 重启 pm2 app-backend + Continuwuity docker
+2. **🔴 .env ADMIN_PASSWORD ≠ SQLite dev.db 密码** — 今天 bcrypt.compare 才发现：.env 写 cSQuH83lZSy58IQq，SQLite 还是早期 seed 的 admin123 → 已修
+3. **token 端点强制要求 client_secret** — Continuwuity OIDC client 必须配 client_secret=334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA，只带 PKCE 不够
+4. **Capacitor jvmToolchain(21) 必须覆盖** — afterEvaluate 到 17
+5. **Setup.exe /S 被 Defender 拦** — 改用 win-unpacked 直拷
+6. **pm2 进程名漂移（本周第 3 次复发）** — 11 文件 32 处已修，根因 ecosystem.config.cjs 源头错写
 
 ---
 
 ## 快速验证清单
 
 ```powershell
-cd D:\源码存档\助理项目\助理项目\APP-AIE
-git status --short; git log --oneline -5
+# 本地 Express（第一次要先 npm run dev 启动）
+cd D:\源码存档\助理项目\助理项目\APP-AIE\backend
 Invoke-RestMethod -Uri "http://localhost:3001/health"
-$body = @{username='admin';password='admin123'} | ConvertTo-Json
+# admin 密码已和 .env 对齐
+$body = @{username='admin';password='cSQuH83lZSy58IQq'} | ConvertTo-Json
 $res = Invoke-RestMethod -Uri "http://localhost:3001/api/v1/auth/login" -Method POST -ContentType "application/json" -Body $body
 $res.data.user.role    # 应该是 "admin"
-Get-Item "C:\Program Files\aie-desktop\绿角犀.exe" | Select-Object Length, LastWriteTime
-ssh root@47.116.59.141 "pm2 list && curl -s http://127.0.0.1:3100/health"
+# OIDC Discovery（Continuwuity 云端挂了，本地端点只给 Express 启动才能测）
+Invoke-RestMethod -Uri "http://localhost:3001/api/oidc/.well-known/openid-configuration"
+# OIDC Auth（不带 cookie → 返回登录表单）
+Invoke-RestMethod -Uri "http://localhost:3001/api/oidc/auth?response_type=code&client_id=continuwuity&redirect_uri=https://lujax.fun/callback&code_challenge=abc&code_challenge_method=S256"
+# Continuwuity 云端（全挂！需上 47.116.59.141 重启 pm2 + docker）
+# ssh root@47.116.59.141 "pm2 list && docker ps && curl -s http://127.0.0.1:3101/health"
 ```
