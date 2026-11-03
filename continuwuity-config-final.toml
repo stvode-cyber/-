@@ -1,0 +1,14 @@
+[global]
+server_name = "lujax.fun"
+address = ["0.0.0.0"]
+port = 8008
+database_path = "/var/lib/continuwuity"
+allow_federation = true
+cache_capacity_modifier = 0.3
+ip_lookup_strategy = 1
+
+[global.oauth.oidc]
+issuer = "https://lujax.fun"
+discovery_url = "https://lujax.fun/api/oidc"
+client_id = "continuwuity"
+client_secret = "334etYKd_mB9JPsBF1wsNNpw3o5UzrKMJjuRvaQOfdA"
