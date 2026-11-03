@@ -6,7 +6,7 @@
 
 ---
 
-## ⚡ AI 接手 30 秒快照（2026-10-18 更新 · v1.2.0）
+## ⚡ AI 接手 30 秒快照（2026-11-02 台账周报复核 · v1.2.0）
 
 | 维度 | 当前值 |
 |---|---|
@@ -151,13 +151,13 @@ APP-AIE/
 
 ---
 
-## ⚠️ 活跃坑 Top 5
+## ⚠️ 活跃坑 Top 5（2026-11-02 周报更新）
 
 1. **Capacitor jvmToolchain(21) 必须覆盖** — afterEvaluate 到 17
 2. **Setup.exe /S 被 Defender 拦** — 改用 win-unpacked 直拷
 3. **WebView CORS 严格拒绝 `*` + credentials:true** — 后端动态回显
 4. **SQLite 表名漂移** — 写 SQL 前先 `.tables`
-5. **pm2 进程名实际是 backend** — 不是 aie-backend
+5. **🔴 pm2 进程名漂移（本周第 3 次复发！）** — 11 文件 32 处 `aie-backend` 已修，根因是 ecosystem.config.cjs 源头错写
 
 ---
 
