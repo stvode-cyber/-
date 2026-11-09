@@ -413,10 +413,30 @@ function initDatabase() {
   });
 }
 
+// ---- 后端依赖预检（L2 保险）----
+// 打包版 backend/node_modules 若缺失关键包（如 pino），后端会在 spawn 后瞬间崩溃
+// 提前检查，避免用户白等 30s 超时报错
+function verifyBackendDependencies() {
+  const backendPath = getBackendPath();
+  const critical = ['pino', '@prisma/client', 'express', 'cors'];
+  const missing = [];
+  for (const pkg of critical) {
+    const pkgJson = path.join(backendPath, 'node_modules', pkg, 'package.json');
+    if (!fs.existsSync(pkgJson)) missing.push(pkg);
+  }
+  if (missing.length > 0) {
+    const msg = `后端依赖缺失: ${missing.join(', ')}\n打包时需同步 backend/node_modules → electron/resources/backend/node_modules`;
+    console.error('❌', msg);
+    throw new Error(msg);
+  }
+}
+
 // ---- 启动后端子进程 ----
 async function startBackend() {
   const backendPath = getBackendPath();
   const entryFile = path.join(backendPath, 'dist', 'index.js');
+
+  verifyBackendDependencies();
 
   if (!fs.existsSync(entryFile)) {
     throw new Error(`后端入口文件不存在: ${entryFile}`);
@@ -493,6 +513,10 @@ async function startBackend() {
     windowsHide: true,
   });
 
+  // L1 快速失败保险：后端 spawn 后 2s 内 exit → 依赖/代码崩溃，立即报错不等 30s
+  let earlyExitTimer = setTimeout(() => { earlyExitTimer = null; }, 2000);
+  let earlyExitTriggered = false;
+
   backendProcess.on('error', (e) => {
     console.error('[backend] spawn error:', e.message);
     logStream.write(`[SPAWN ERROR] ${e.message}\n`);
@@ -511,6 +535,20 @@ async function startBackend() {
   backendProcess.on('exit', (code, signal) => {
     console.log(`[backend] 进程退出 code=${code} signal=${signal}`);
     logStream.write(`[EXIT] code=${code} signal=${signal}\n`);
+
+    // L1 快速失败：2s 内非正常退出 → 立即抛错，不等 waitForBackend 30s
+    if (earlyExitTimer && code !== 0) {
+      earlyExitTriggered = true;
+      clearTimeout(earlyExitTimer);
+      earlyExitTimer = null;
+      const msg = `后端启动后立即崩溃 (exit code=${code})，详见日志: ${logFile}`;
+      console.error('❌', msg);
+      logStream.end();
+      // 让 waitForBackend 的 Promise 也能感知——直接杀主进程的 async 链
+      throw new Error(msg);
+    }
+    if (earlyExitTimer) { clearTimeout(earlyExitTimer); earlyExitTimer = null; }
+
     backendProcess = null;
   });
   backendProcess.on('close', (code, signal) => {
@@ -1383,13 +1421,26 @@ app.whenReady().then(async () => {
     // 桌面宠物浮窗（默认不自动启动，用户可从托盘右键「桌面宠物」或设置里手动唤出）
     // try { createPetWindow(); } catch (e) { console.error('宠物浮窗启动失败:', e.message); }
   } catch (err) {
-    console.error('❌ 启动失败:', err.message);
+    console.error('❌ 启动降级模式:', err.message);
     const { dialog } = require('electron');
-    dialog.showErrorBox(
-      '启动失败',
-      `后端启动失败：${err.message}\n\n日志位置：${getLogPath()}`
-    );
-    app.quit();
+    // L3 降级保险：后端起不来不杀 Electron，让窗口起来显示 offline 状态
+    // 把 err 写入 userData，前端 load 时读取可展示"后端未就绪"
+    try {
+      const flagPath = path.join(app.getPath('userData'), 'backend-offline.json');
+      fs.writeFileSync(flagPath, JSON.stringify({ error: err.message, ts: Date.now() }));
+    } catch { /* ignore */ }
+    // 先弹通知告知用户，不阻塞窗口创建
+    dialog.showMessageBox({
+      type: 'warning',
+      title: '后端未就绪',
+      message: `后端启动失败：${err.message}`,
+      detail: `应用界面仍可操作，但需要后端的功能（对话、存储等）不可用。\n日志：${getLogPath()}`,
+      buttons: ['知道了'],
+      defaultId: 0,
+    }).catch(() => {});
+    // 降级继续：创建托盘 + 窗口
+    try { createTray(); } catch { /* ignore */ }
+    createWindow();
   }
 });
 
