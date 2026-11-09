@@ -31,6 +31,8 @@ $FE_SRC = Join-Path $ProjectRoot 'frontend\dist'
 $FE_DST = Join-Path $ProjectRoot 'electron\resources\frontend'   # 平铺到根目录 (与 build-desktop.cjs 对齐)
 $BE_SRC = Join-Path $ProjectRoot 'backend\dist'
 $BE_DST = Join-Path $ProjectRoot 'electron\resources\backend\dist'
+$BE_NM_SRC = Join-Path $ProjectRoot 'backend\node_modules'
+$BE_NM_DST = Join-Path $ProjectRoot 'electron\resources\backend\node_modules'
 
 function Step { param($m) Write-Host ''; Write-Host "==== $m ====" -ForegroundColor Cyan }
 function OK   { param($m) Write-Host "  [OK]  $m" -ForegroundColor Green }
@@ -93,6 +95,51 @@ function Invoke-Build($dir, $label) {
     }
 }
 
+function Invoke-SyncBackendNodeModules {
+    $pkgJson = Join-Path $ProjectRoot 'backend\package.json'
+    $pkgLock = Join-Path $ProjectRoot 'backend\package-lock.json'
+
+    if (-not (Test-Path $BE_NM_SRC)) {
+        WARN "backend/node_modules not found - run 'npm ci' in backend first"
+        return
+    }
+
+    # 判断是否需要同步：package.json 或 package-lock.json 比 dst node_modules 新
+    $pkgTime = (Get-Item $pkgJson).LastWriteTime
+    if (Test-Path $pkgLock) {
+        $lockTime = (Get-Item $pkgLock).LastWriteTime
+        if ($lockTime -gt $pkgTime) { $pkgTime = $lockTime }
+    }
+
+    $dstTime = if (Test-Path $BE_NM_DST) { (Get-Item $BE_NM_DST).LastWriteTime } else { $null }
+
+    if ($dstTime -and $dstTime -ge $pkgTime) {
+        OK "backend node_modules up-to-date ($($pkgTime.ToString('HH:mm:ss')))"
+        return
+    }
+
+    if ($DryRun) {
+        WARN "[DryRun] Would sync backend/node_modules -> resources/backend/node_modules"
+        return
+    }
+
+    INFO "package.json newer than bundled node_modules - syncing..."
+    INFO "Removing old bundled node_modules..."
+    Remove-Item $BE_NM_DST -Recurse -Force -ErrorAction SilentlyContinue
+
+    # 用 robocopy 更快（多线程 + 复制 symlink/junction 正确），robocopy 退出码 0-7 都是成功
+    $robocopyExit = robocopy $BE_NM_SRC $BE_NM_DST /E /NFL /NDL /NJH /NJS /NP 2>&1 | Out-Null; $code = $LASTEXITCODE
+    if ($code -le 7) {
+        $count = (Get-ChildItem $BE_NM_DST -Directory).Count
+        OK "backend node_modules synced ($count modules, robocopy exit=$code)"
+    } else {
+        FAIL "robocopy failed (exit=$code) - fallback to Copy-Item"
+        Copy-Item -Path "$BE_NM_SRC\*" -Destination $BE_NM_DST -Recurse -Force
+        $count = (Get-ChildItem $BE_NM_DST -Directory).Count
+        OK "backend node_modules synced ($count modules, fallback copy)"
+    }
+}
+
 function Show-Verification {
     Step "Verify: source vs build vs electron/resources"
 
@@ -139,7 +186,10 @@ Write-Host ''
 if ($SyncOnly) {
     Step 'Sync only (skip build)'
     if (-not $BackendOnly) { Invoke-Sync $FE_SRC $FE_DST 'Frontend' }
-    if (-not $FrontendOnly) { Invoke-Sync $BE_SRC $BE_DST 'Backend' }
+    if (-not $FrontendOnly) {
+        Invoke-Sync $BE_SRC $BE_DST 'Backend dist'
+        Invoke-SyncBackendNodeModules
+    }
     if (-not $SkipVerify) { Show-Verification }
     exit 0
 }
@@ -158,7 +208,10 @@ if (-not $FrontendOnly) {
 # --- Sync to electron/resources ---
 Step 'Syncing to electron/resources'
 if (-not $BackendOnly) { Invoke-Sync $FE_SRC $FE_DST 'Frontend' }
-if (-not $FrontendOnly) { Invoke-Sync $BE_SRC $BE_DST 'Backend' }
+if (-not $FrontendOnly) {
+    Invoke-Sync $BE_SRC $BE_DST 'Backend dist'
+    Invoke-SyncBackendNodeModules
+}
 
 # --- Verify ---
 if (-not $SkipVerify) { Show-Verification }
