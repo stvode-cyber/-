@@ -59,76 +59,106 @@ export const prismaReady: Promise<void> =
  *   - 唯一安全方案：DEFAULT 用 strftime('%Y-%m-%dT%H:%M:%SZ', 'now') 直接产出 '2026-10-28T07:44:35Z'
  *     + INSERT 不传 publishedAt 让 DEFAULT 生效 + 所有写操作走 $executeRawUnsafe 绕过 Prisma DateTime 序列化
  */
+/**
+ * 启动时确保 windows_releases / android_releases 表存在 + 有初始数据
+ * Electron 内嵌 backend 首次启动时 SQLite 是空文件，Prisma schema 不会自动建表
+ * 所以用 $executeRawUnsafe 手动 CREATE TABLE + seed
+ *
+ * 关键约束（Prisma 5.22.0 + SQLite）：
+ *   - Prisma 原生 DateTime API（model.create/upsert）会把时间序列化成毫秒时间戳 "1793173770374"
+ *     写进 TEXT 类型列后，Prisma 读的时候期望 ISO 8601 字符串 → P2023 炸
+ *   - SQLite datetime('now') 产出 '2026-10-28 07:44:35'（空格分隔），|| 'Z' 还是空格分隔
+ *     Prisma 拒绝空格格式 → P2023 炸
+ *   - 唯一安全方案：DEFAULT 用 strftime('%Y-%m-%dT%H:%M:%SZ', 'now') 直接产出 '2026-10-28T07:44:35Z'
+ *     + INSERT 不传 publishedAt 让 DEFAULT 生效 + 所有写操作走 $executeRawUnsafe 绕过 Prisma DateTime 序列化
+ *
+ * ⚠️ 只在表不存在时 CREATE + seed。表已存在则跳过，保留用户手动修改的数据。
+ *    发新版时直接在 DB 里 INSERT 新记录 + UPDATE isLatest，无需改源码。
+ */
 export async function ensureReleaseTables() {
   try {
+    // 检查表是否已存在
+    const checkTable = async (name: string): Promise<boolean> => {
+      const rows = await prisma.$queryRawUnsafe(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='${name}'`
+      ) as Array<{ name: string }>
+      return rows.length > 0
+    }
+
     // ===== windows_releases =====
-    // 每次 DROP 重建：清掉旧数据里可能的空格 ISO 或毫秒戳
-    await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS windows_releases')
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE windows_releases (
-        id TEXT PRIMARY KEY,
-        version TEXT UNIQUE NOT NULL,
-        isLatest INTEGER NOT NULL DEFAULT 0,
-        sizeMB REAL NOT NULL,
-        setupUrl TEXT NOT NULL,
-        portableUrl TEXT,
-        setupSha256 TEXT NOT NULL,
-        notes TEXT NOT NULL DEFAULT '',
-        forceUpdate INTEGER NOT NULL DEFAULT 0,
-        publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-      )
-    `)
+    const winExists = await checkTable('windows_releases')
+    if (!winExists) {
+      logger.info('[ensureReleaseTables] windows_releases 不存在，CREATE + seed')
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE windows_releases (
+          id TEXT PRIMARY KEY,
+          version TEXT UNIQUE NOT NULL,
+          isLatest INTEGER NOT NULL DEFAULT 0,
+          sizeMB REAL NOT NULL,
+          setupUrl TEXT NOT NULL,
+          portableUrl TEXT,
+          setupSha256 TEXT NOT NULL,
+          notes TEXT NOT NULL DEFAULT '',
+          forceUpdate INTEGER NOT NULL DEFAULT 0,
+          publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        )
+      `)
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
+        VALUES (
+          'rel_v1_2_0',
+          '1.2.0',
+          1,
+          160.5,
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
+          'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
+          '',
+          'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
+          0
+        )
+      `)
+      logger.info('[ensureReleaseTables] ✅ windows seeded v1.2.0')
+    } else {
+      logger.info('[ensureReleaseTables] windows_releases 已存在，跳过 seed')
+    }
+
     // ===== android_releases =====
-    await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS android_releases')
-    await prisma.$executeRawUnsafe(`
-      CREATE TABLE android_releases (
-        id TEXT PRIMARY KEY,
-        version TEXT UNIQUE NOT NULL,
-        isLatest INTEGER NOT NULL DEFAULT 0,
-        sizeMB REAL NOT NULL,
-        apkUrl TEXT NOT NULL,
-        apkMd5 TEXT NOT NULL,
-        notes TEXT NOT NULL DEFAULT '',
-        forceUpdate INTEGER NOT NULL DEFAULT 0,
-        publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
-      )
-    `)
-
-    // ===== seed v1.2.0（Windows）=====
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO windows_releases (id, version, isLatest, sizeMB, setupUrl, portableUrl, setupSha256, notes, forceUpdate)
-      VALUES (
-        'rel_v1_2_0',
-        '1.2.0',
-        1,
-        160.5,
-        'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Setup-1.2.0.exe',
-        'http://47.116.59.141/apk/%E7%BB%BF%E8%A7%92%E7%8A%80-Portable-1.2.0.exe',
-        '',
-        'v1.2.0: 7大Page重构(-1700行)，FocusSoundPage soundEngine, LoginPage LoginWidgets, LibraryPage LibraryWidgets',
-        0
-      )
-    `)
-    logger.info('[ensureReleaseTables] ✅ windows seeded v1.2.0')
-
-    // ===== seed v1.0.4（Android，比当前 1.0.3 大 → hasUpdate=true）=====
-    // apkUrl 默认指向远程 Nginx，开发时可通过 LOCAL_APK_URL 环境变量覆盖为本地 Express
-    // （真机 adb reverse 场景：设备 127.0.0.1:3001 → 电脑 Express）
-    const apkUrl = process.env.LOCAL_APK_URL || 'http://47.116.59.141/apk/aie-mobile-1.0.4.apk'
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO android_releases (id, version, isLatest, sizeMB, apkUrl, apkMd5, notes, forceUpdate)
-      VALUES (
-        'apk_v1_0_4',
-        '1.0.4',
-        1,
-        16.5,
-        '${apkUrl.replace(/'/g, "''")}',
-        '',
-        'v1.0.4：Android 自动更新全链路验证\n- Express /apk 静态文件服务\n- UpdateNotice auto-update 自动下载\n- Filesystem.downloadFile + IntentInstaller 系统安装器',
-        0
-      )
-    `)
-    logger.info({ apkUrl }, '[ensureReleaseTables] ✅ android seeded v1.0.4')
+    const androidExists = await checkTable('android_releases')
+    if (!androidExists) {
+      logger.info('[ensureReleaseTables] android_releases 不存在，CREATE + seed')
+      await prisma.$executeRawUnsafe(`
+        CREATE TABLE android_releases (
+          id TEXT PRIMARY KEY,
+          version TEXT UNIQUE NOT NULL,
+          isLatest INTEGER NOT NULL DEFAULT 0,
+          sizeMB REAL NOT NULL,
+          apkUrl TEXT NOT NULL,
+          apkMd5 TEXT NOT NULL,
+          notes TEXT NOT NULL DEFAULT '',
+          forceUpdate INTEGER NOT NULL DEFAULT 0,
+          publishedAt TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        )
+      `)
+      // apkUrl 默认指向 Express proxy 路径（走 Express sendFile 支持 Range/断点续传）
+      // 生产固定 http://47.116.59.141，开发时 LOCAL_APK_URL 环境变量可覆盖
+      const apkUrl = process.env.LOCAL_APK_URL || 'http://47.116.59.141/apk/aie-mobile-1.0.4.apk'
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO android_releases (id, version, isLatest, sizeMB, apkUrl, apkMd5, notes, forceUpdate)
+        VALUES (
+          'apk_v1_0_4',
+          '1.0.4',
+          1,
+          14.32,
+          '${apkUrl.replace(/'/g, "''")}',
+          '',
+          'v1.0.4：Android 自动更新全链路验证',
+          0
+        )
+      `)
+      logger.info({ apkUrl }, '[ensureReleaseTables] ✅ android seeded v1.0.4')
+    } else {
+      logger.info('[ensureReleaseTables] android_releases 已存在，跳过 seed')
+    }
   } catch (e) {
     logger.warn({ err: e }, '[ensureReleaseTables] seed 失败: %s', (e as Error).message)
   }
