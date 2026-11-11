@@ -103,7 +103,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // 显式拆分：大库独立 chunk，名字稳定不被 hash 打断，用户重复访问可走缓存
+        // 修复：matrix-js-sdk 必须优先匹配独立 chunk，否则会被 react-vendor 和 vendor 分割导致循环依赖 TDZ 白屏
         manualChunks(id) {
+          if (id.includes('matrix-js-sdk') || id.includes('matrix-sdk-crypto') || id.includes('@matrix-org')) return 'matrix-vendor'
           if (id.includes('pdfjs-dist')) return 'pdfjs-vendor'
           if (id.includes('epubjs')) return 'epubjs-vendor'
           if (id.includes('mammoth')) return 'mammoth-vendor'
