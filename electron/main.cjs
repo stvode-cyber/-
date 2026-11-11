@@ -641,6 +641,16 @@ function createWindow() {
     mainWindow.focus();
   });
 
+  // 保险：ready-to-show 在极端情况（如渲染进程 TDZ/语法错误导致 loadFile 卡住）下可能永远不触发
+  // 5 秒后强制 show，确保用户至少能看到窗口
+  const forceShowTimer = setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      console.warn('[保险] ready-to-show 超时，强制 show 主窗口');
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }, 5000);
+
   // 持久化窗口位置和尺寸（防抖 500ms）
   let boundsTimer = null;
   const persistBounds = () => {
